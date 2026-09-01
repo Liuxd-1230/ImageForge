@@ -25,25 +25,31 @@ class LMStudioProvider(BaseLLMProvider):
                     data = resp.json()
                     models_raw = data.get("models", data.get("data", []))
                     loaded = []
-                    all_models = []
+                    llm_models = []
                     for m in models_raw:
+                        # Filter out embedding models
+                        if m.get("type") == "embedding":
+                            continue
                         key = m.get("key", m.get("id"))
                         if key:
-                            all_models.append(key)
+                            llm_models.append(key)
                         for inst in m.get("loaded_instances", []):
                             if inst.get("id"):
                                 loaded.append(inst.get("id"))
                     return {
                         "status": "connected",
-                        "model_count": len(all_models),
-                        "models": all_models,
+                        "model_count": len(llm_models),
+                        "models": llm_models,
                         "loaded_instances": loaded
                     }
                 
                 resp_v1 = await client.get(f"{self.base_url}/v1/models", headers=self.headers)
                 if resp_v1.status_code == 200:
                     data = resp_v1.json()
-                    models = [m.get("id") for m in data.get("data", []) if m.get("id")]
+                    models = [
+                        m.get("id") for m in data.get("data", [])
+                        if m.get("id") and "embed" not in m.get("id").lower()
+                    ]
                     return {
                         "status": "connected",
                         "model_count": len(models),
@@ -55,7 +61,7 @@ class LMStudioProvider(BaseLLMProvider):
             return {"status": "disconnected", "error": str(e)}
 
     async def list_models(self) -> List[Dict[str, Any]]:
-        """List all models available in LM Studio."""
+        """List all LLM models available in LM Studio (filters out embedding models)."""
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 resp = await client.get(f"{self.base_url}/api/v1/models", headers=self.headers)
@@ -64,6 +70,8 @@ class LMStudioProvider(BaseLLMProvider):
                     raw_models = data.get("models", data.get("data", []))
                     normalized = []
                     for m in raw_models:
+                        if m.get("type") == "embedding":
+                            continue
                         normalized.append({
                             "id": m.get("key", m.get("id")),
                             "display_name": m.get("display_name", m.get("key", m.get("id"))),
@@ -77,7 +85,10 @@ class LMStudioProvider(BaseLLMProvider):
             resp = await client.get(f"{self.base_url}/v1/models", headers=self.headers)
             resp.raise_for_status()
             data = resp.json()
-            return [{"id": m.get("id")} for m in data.get("data", []) if m.get("id")]
+            return [
+                {"id": m.get("id")} for m in data.get("data", [])
+                if m.get("id") and "embed" not in m.get("id").lower()
+            ]
 
     async def load_model(self, model_id: str, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Request LM Studio to load a model and return instance_id."""
@@ -93,7 +104,7 @@ class LMStudioProvider(BaseLLMProvider):
                 }
 
         payload = {"model": model_id, **(options or {})}
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(
                 f"{self.base_url}/api/v1/models/load",
                 json=payload,
@@ -148,23 +159,15 @@ class LMStudioProvider(BaseLLMProvider):
         payload: Dict[str, Any] = {
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": 4096
+            "max_tokens": 2048
         }
         if model:
             payload["model"] = model
 
-        # Map reasoning parameter for LM Studio (off, low, medium, high, on)
-        if reasoning_effort:
-            norm = reasoning_effort.lower()
-            if norm in ["instruct", "off"]:
-                payload["reasoning"] = "off"
-            elif norm in ["low", "medium", "high", "on"]:
-                payload["reasoning"] = norm
-
         if response_format:
             payload["response_format"] = response_format
 
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(
                 f"{self.base_url}/v1/chat/completions",
                 json=payload,
@@ -182,4 +185,8 @@ class LMStudioProvider(BaseLLMProvider):
             choices = data.get("choices", [])
             if not choices:
                 raise ValueError("LM Studio 未返回任何输出")
-            return choices[0].get("message", {}).get("content", "").strip()
+            msg = choices[0].get("message", {})
+            content = msg.get("content", "").strip()
+            if not content and msg.get("reasoning_content"):
+                content = msg.get("reasoning_content", "").strip()
+            return content

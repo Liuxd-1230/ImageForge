@@ -31,16 +31,13 @@ class PromptPipeline:
         reasoning_effort: Optional[str] = "instruct"
     ) -> SemanticFacts:
         rule_context = ""
-        if rule_ids:
-            stmt = select(RuleFile).where(RuleFile.id.in_(rule_ids), RuleFile.is_enabled == True)
-            rules = self.session.exec(stmt).all()
-            rule_context = "\n\n".join([f"[{r.name}]:\n{r.content}" for r in rules])
-        else:
-            stmt = select(RuleFile).where(RuleFile.is_enabled == True).order_by(RuleFile.sort_order)
-            rules = self.session.exec(stmt).all()
-            if rules:
+        # Only inject rules if specifically selected by user (rule_ids is non-empty list)
+        if rule_ids is not None:
+            if len(rule_ids) > 0:
+                stmt = select(RuleFile).where(RuleFile.id.in_(rule_ids), RuleFile.is_enabled == True)
+                rules = self.session.exec(stmt).all()
                 rule_context = "\n\n".join([f"[{r.name}]:\n{r.content}" for r in rules])
-
+        
         # 1. Fact Extraction
         raw_facts = await self.extractor.extract(
             user_input=raw_text,

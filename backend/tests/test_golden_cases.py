@@ -3,6 +3,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.models.character import Character
 from app.models.trigger_cache import CharacterTriggerCache
 from app.models.preset import Preset
+from app.models.lora import Lora
 from app.models.prompt_engine import (
     SemanticFacts,
     Entity,
@@ -26,9 +27,9 @@ def session():
         )
         sess.add(preset)
         
-        # Test character trigger cache fixtures (isolated for unit tests)
-        sess.add(CharacterTriggerCache(name="穗穗", canonical_tag="suisui", caption_name="Suisui"))
-        sess.add(CharacterTriggerCache(name="秧秧", canonical_tag="yangyang", caption_name="Yangyang"))
+        # Test character trigger cache fixtures
+        sess.add(CharacterTriggerCache(name="穗穗", canonical_tag="suisui", caption_name="Suisui (girl)"))
+        sess.add(CharacterTriggerCache(name="秧秧", canonical_tag="yangyang", caption_name="Yangyang (girl)"))
         sess.commit()
         yield sess
 
@@ -64,8 +65,8 @@ def test_case_02_two_model_characters_with_ownership_and_actions(session: Sessio
     assert "2girls" in res.prompt
     assert "suisui" in res.prompt
     assert "yangyang" in res.prompt
-    assert "Suisui is wearing a swimsuit and chasing Yangyang" in res.prompt
-    assert "Yangyang is wearing a blue sailor uniform" in res.prompt
+    assert "Suisui (girl) is wearing a swimsuit and chasing Yangyang (girl)" in res.prompt
+    assert "Yangyang (girl) is wearing a blue sailor uniform" in res.prompt
 
 def test_case_03_custom_character(session: Session):
     """Case 3: 自定义角色小夏 (小夏坐在长椅上)"""
@@ -237,8 +238,8 @@ def test_case_10_emotion_ownership(session: Session):
     res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
     assert "suisui" in res.prompt
     assert "yangyang" in res.prompt
-    assert "Suisui is angry and looking at Yangyang" in res.prompt
-    assert "Yangyang is smiling" in res.prompt
+    assert "Suisui (girl) is angry and looking at Yangyang (girl)" in res.prompt
+    assert "Yangyang (girl) is smiling" in res.prompt
 
 def test_case_11_props_ownership(session: Session):
     """Case 11: 道具归属 (穗穗拿着棒球棍，秧秧拿着雨伞)"""
@@ -253,11 +254,11 @@ def test_case_11_props_ownership(session: Session):
     res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
     assert "suisui" in res.prompt
     assert "yangyang" in res.prompt
-    assert "Suisui is holding a baseball bat" in res.prompt
-    assert "Yangyang is holding an umbrella" in res.prompt
+    assert "Suisui (girl) is holding a baseball bat" in res.prompt
+    assert "Yangyang (girl) is holding an umbrella" in res.prompt
 
 def test_case_12_safety_determinism(session: Session):
-    """Case 12: Safe / Sensitive / NSFW / Explicit 确定性注入"""
+    """Case 12: Safe / Sensitive / NSFW / Explicit 确定性注入 (一对一)"""
     pipeline = PromptPipeline(session=session)
     facts = SemanticFacts(entities=[Entity(id="c1", name="穗穗")], statements=[])
     
@@ -274,9 +275,10 @@ def test_case_12_safety_determinism(session: Session):
 
     res_explicit = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Explicit"))
     assert "explicit" in res_explicit.prompt
+    assert "nsfw" not in res_explicit.prompt
 
 def test_case_13_artist_injection(session: Session):
-    """Case 13: 画师 @artist 确定性注入"""
+    """Case 13: 画师 @artist 确定性注入 (下划线转为空格)"""
     pipeline = PromptPipeline(session=session)
     facts = SemanticFacts(entities=[Entity(id="c1", name="穗穗")], statements=[])
     
@@ -290,7 +292,7 @@ def test_case_13_artist_injection(session: Session):
         safety="Safe",
         artist_tags=["@mika_pikazo", "@tiv"]
     ))
-    assert "@mika_pikazo" in res_art.prompt
+    assert "@mika pikazo" in res_art.prompt
     assert "@tiv" in res_art.prompt
 
 def test_case_14_lora_injection(session: Session):
@@ -310,8 +312,7 @@ def test_case_14_lora_injection(session: Session):
     assert "glowing_wings" not in res_lora.prompt
 
 def test_case_15_trigger_cache_preference(session: Session):
-    """Case 15: Trigger 手动修正优先"""
-    # Overwrite existing cache item for Suisui
+    """Case 15: Trigger 手动修正优先 (下划线转为空格)"""
     existing = session.exec(select(CharacterTriggerCache).where(CharacterTriggerCache.name == "穗穗")).first()
     if existing:
         existing.canonical_tag = "suisui_custom_v2"
@@ -324,7 +325,7 @@ def test_case_15_trigger_cache_preference(session: Session):
     pipeline = PromptPipeline(session=session)
     facts = SemanticFacts(entities=[Entity(id="c1", name="穗穗")], statements=[])
     res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
-    assert "suisui_custom_v2" in res.prompt
+    assert "suisui custom v2" in res.prompt
 
 def test_case_16_unknown_character_fallback(session: Session):
     """Case 16: 未知于 Agent 但用户认为模型已训练 (希露菲)"""
@@ -355,8 +356,8 @@ def test_case_17_multiple_complex_relations(session: Session):
     res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
     assert "suisui" in res.prompt
     assert "yangyang" in res.prompt
-    assert "Suisui is standing behind and grabbing hat from Yangyang" in res.prompt
-    assert "Yangyang is looking back at Suisui" in res.prompt
+    assert "Suisui (girl) is standing behind and grabbing hat from Yangyang (girl)" in res.prompt
+    assert "Yangyang (girl) is looking back at Suisui (girl)" in res.prompt
 
 def test_case_18_creative_completion_default_off(session: Session):
     """Case 18: 自由补全默认关闭 (两人在雨里跑)"""
@@ -375,3 +376,84 @@ def test_case_18_creative_completion_default_off(session: Session):
     assert "neon city" not in res.prompt
     assert "cinematic lighting" not in res.prompt
     assert "dramatic backlight" not in res.prompt
+
+def test_case_19_action_attribution_not_scene(session: Session):
+    """Case 19: 动作与地点修饰归属于人物而非全局 Scene (穗穗穿着泳装，在沙滩上奔跑)"""
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[Entity(id="c1", name="穗穗")],
+        statements=[
+            Statement(kind="attribute", subject="c1", text="wearing a swimsuit", facet="outfit", effect="replace"),
+            Statement(kind="attribute", subject="c1", text="running on the beach")
+        ]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    assert "suisui" in res.prompt
+    assert "Suisui (girl) is wearing a swimsuit and running on the beach" in res.prompt
+    assert "Suisui (girl) is wearing a swimsuit. running on the beach." not in res.prompt
+
+def test_case_20_dual_custom_characters_distinction(session: Session):
+    """Case 20: 两个自定义角色区分 (小夏追着小雨跑，外貌特征区分，名字不作为 tag)"""
+    char1 = Character(
+        name="小夏",
+        age_group="young adult",
+        body="petite",
+        gender="woman",
+        hair_color="black",
+        hair_style="straight",
+        hair_length="long",
+        eye_color="green",
+        top="white blouse",
+        bottom="black pleated skirt"
+    )
+    char2 = Character(
+        name="小雨",
+        age_group="young adult",
+        body="tall",
+        gender="woman",
+        hair_color="brown",
+        hair_style="twintails",
+        hair_length="short",
+        eye_color="blue",
+        top="yellow hoodie",
+        bottom="denim shorts"
+    )
+    session.add(char1)
+    session.add(char2)
+    session.commit()
+
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[
+            Entity(id="c1", name="小夏"),
+            Entity(id="c2", name="小雨")
+        ],
+        statements=[
+            Statement(kind="relation", subject="c1", target="c2", text="chasing")
+        ]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    assert "小夏" not in res.prompt
+    assert "小雨" not in res.prompt
+    assert "black hair" in res.prompt
+    assert "brown hair" in res.prompt
+    assert "the young woman with black hair is chasing the young woman with brown hair" in res.prompt
+
+def test_case_21_lora_scan_edit_preservation(session: Session):
+    """Case 21: LoRA 扫描与编辑触发词持久化 (再次扫描不覆盖用户编辑的 trigger)"""
+    # Initial scan
+    lora = Lora(name="water_dress", filename="water_dress.safetensors", trigger_words="", is_custom=False)
+    session.add(lora)
+    session.commit()
+
+    # User edits trigger words
+    lora.trigger_words = "water_dress, flowing_water"
+    lora.name = "Water Dress Effect"
+    session.add(lora)
+    session.commit()
+
+    # Simulate re-scan finding same filename
+    existing = session.exec(select(Lora).where(Lora.filename == "water_dress.safetensors")).first()
+    assert existing is not None
+    assert existing.trigger_words == "water_dress, flowing_water"
+    assert existing.name == "Water Dress Effect"

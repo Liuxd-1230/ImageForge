@@ -9,7 +9,7 @@ def build_anima_29b_workflow(
     unet_name: str = "anima29B_v10.safetensors",
     clip_name: str = "qwen_3_06b_base.safetensors",
     vae_name: str = "qwen_image_vae.safetensors",
-    clip_type: str = "qwen_image",
+    clip_type: str = "stable_diffusion",
     loras: Optional[List[LoraBuildItem]] = None,
     width: int = 1024,
     height: int = 1536,

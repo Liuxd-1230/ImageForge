@@ -13,7 +13,7 @@ SAFETY_TAG_MAP = {
     "Safe": "safe",
     "Sensitive": "sensitive",
     "NSFW": "nsfw",
-    "Explicit": "explicit, nsfw"
+    "Explicit": "explicit"
 }
 
 class PromptPolicy:
@@ -21,7 +21,10 @@ class PromptPolicy:
         self.writer = PromptWriter()
 
     def format_artist_tag(self, raw_tag: str) -> str:
-        """Formats artist tags to standard Anima-2.9B style: @artist_name."""
+        """
+        Formats artist tags to standard Anima-2.9B style: @artist name
+        (underscores converted to spaces, prepended with @).
+        """
         t = raw_tag.strip().rstrip(",")
         if not t:
             return ""
@@ -29,18 +32,29 @@ class PromptPolicy:
             t = "@" + t[7:].strip()
         elif not t.startswith("@"):
             t = "@" + t
-        return t
+        # In Anima official prompting, replace underscores in artist tags with spaces
+        prefix = "@" if t.startswith("@") else ""
+        body = t[1:] if t.startswith("@") else t
+        return f"{prefix}{body.replace('_', ' ')}".strip()
+
+    def format_character_tag(self, raw_tag: str) -> str:
+        """
+        Formats character canonical tags to standard Anima-2.9B style
+        (underscores converted to spaces, lowercase).
+        """
+        if not raw_tag:
+            return ""
+        return raw_tag.strip().replace("_", " ").lower()
 
     def determine_character_count_tag(self, facts: SemanticFacts) -> Optional[str]:
         """
-        Calculates count tags only when gender is explicitly known or verifiable.
-        Avoids assuming all characters are female.
+        Calculates count tags ONLY when gender is explicitly specified or proven in character book / statements.
+        Avoids hardcoding character names and avoids assuming all characters are female.
         """
         count = len(facts.entities)
         if count == 0:
             return None
 
-        # Check if we have gender indicators in statements or custom descriptions
         girls = 0
         boys = 0
 
@@ -49,13 +63,10 @@ class PromptPolicy:
             name = e.name.lower()
             caption = (e.caption_name or "").lower()
             
-            if "woman" in desc or "girl" in desc or "girl" in name or "woman" in name or "girl" in caption or "woman" in caption:
+            # Check gender explicitly from character description, caption, or explicit gender statements
+            if "woman" in desc or "girl" in desc or "girl" in name or "woman" in name or "girl" in caption or "woman" in caption or "female" in desc:
                 girls += 1
-            elif "man" in desc or "boy" in desc or "boy" in name or "man" in name or "boy" in caption or "man" in caption:
-                boys += 1
-            elif name in ["穗穗", "秧秧", "小夏", "爱丽丝", "明日香", "绫波丽", "初音未来", "芙莉莲", "费伦", "希露菲"]:
-                girls += 1
-            elif name in ["小明", "桐人", "鲁迪乌斯", "碳治郎", "鸣人", "路飞"]:
+            elif "man" in desc or "boy" in desc or "boy" in name or "man" in name or "boy" in caption or "man" in caption or "male" in desc:
                 boys += 1
 
         if girls > 0 and boys == 0 and girls == count:
@@ -86,16 +97,16 @@ class PromptPolicy:
         if positive_prefix and positive_prefix.strip():
             sections.append(positive_prefix.strip().rstrip(","))
 
-        # 2. Safety Tag (deterministic)
+        # 2. Safety Tag (deterministic 1-to-1 mapping)
         safety_tag = SAFETY_TAG_MAP.get(safety, "safe")
         sections.append(safety_tag)
 
-        # 3. Character Count Tag (only if verified)
+        # 3. Character Count Tag (only if verified from data/input)
         count_tag = self.determine_character_count_tag(facts)
         if count_tag:
             sections.append(count_tag)
 
-        # 4. Canonical Character Triggers / Custom Character Descriptions
+        # 4. Canonical Character Triggers (with underscores to spaces) / Custom Character Descriptions
         char_tags: List[str] = []
         for entity in facts.entities:
             if entity.source == "user_defined":
@@ -103,7 +114,7 @@ class PromptPolicy:
                     char_tags.append(entity.custom_description)
             elif entity.source == "model_character":
                 if entity.canonical_tag:
-                    char_tags.append(entity.canonical_tag)
+                    char_tags.append(self.format_character_tag(entity.canonical_tag))
 
         if char_tags:
             sections.append(", ".join(char_tags))
@@ -113,13 +124,13 @@ class PromptPolicy:
         if natural_language_scene:
             sections.append(natural_language_scene)
 
-        # 6. Artist Tags (@artist format)
+        # 6. Artist Tags (@artist with underscores to spaces)
         if artist_tags:
             formatted_artists = [self.format_artist_tag(a) for a in artist_tags if a.strip()]
             if formatted_artists:
                 sections.append(", ".join(formatted_artists))
 
-        # 7. LoRA Trigger Words
+        # 7. LoRA Trigger Words (preserve original triggers as trained)
         if lora_items:
             lora_triggers = []
             for item in lora_items:

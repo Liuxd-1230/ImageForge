@@ -15,7 +15,8 @@ CRITICAL RULES:
 2. DO NOT determine character origin. Just assign IDs ("c1", "c2", ...) and original names.
 3. Translate descriptive actions, clothing, items, and attributes into accurate, concise English.
 4. If a statement modifies or replaces an attribute (like wearing a swimsuit, ponytailed hair), set optional "facet" (e.g. "outfit", "hairstyle", "expression", "accessory") and optional "effect" ("replace", "add", "modify").
-5. Output ONLY valid JSON matching this schema:
+5. ACTIONS BELONG TO CHARACTERS: When a location or manner modifies an entity's action (e.g. "在沙滩上奔跑" -> "running on the beach", "坐在长椅上" -> "sitting on a bench"), assign it as an attribute/action of that character (subject="c1"), NOT as a global scene statement. Only pure background environment descriptions without character actions (e.g. "on a beach", "sunny day", "in a classroom") should have kind="scene".
+6. Output ONLY valid JSON matching this schema:
 {
   "entities": [
     { "id": "c1", "name": "穗穗" },
@@ -23,9 +24,9 @@ CRITICAL RULES:
   ],
   "statements": [
     { "kind": "attribute", "subject": "c1", "text": "wearing a swimsuit", "facet": "outfit", "effect": "replace" },
+    { "kind": "attribute", "subject": "c1", "text": "running on the beach" },
     { "kind": "attribute", "subject": "c2", "text": "wearing a blue sailor uniform", "facet": "outfit", "effect": "replace" },
-    { "kind": "relation", "subject": "c1", "target": "c2", "text": "chasing" },
-    { "kind": "scene", "text": "on a beach" }
+    { "kind": "relation", "subject": "c1", "target": "c2", "text": "chasing" }
   ]
 }
 """
@@ -87,7 +88,7 @@ class FactExtractor:
         # Attempt 2: Strict schema reminder
         retry_messages = [
             {"role": "system", "content": sys_content},
-            {"role": "user", "content": f"User Input: {user_input}\nIMPORTANT: Output ONLY valid JSON object with keys 'entities' and 'statements'. Do not output thinking tags or explanations."}
+            {"role": "user", "content": f"User Input: {user_input}\nIMPORTANT: Output ONLY valid JSON object with keys 'entities' and 'statements'. Translate descriptive actions into concise English statements. Do not output thinking tags or explanations."}
         ]
         try:
             raw_output = await self.llm_provider.chat(

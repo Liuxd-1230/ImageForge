@@ -38,6 +38,16 @@ class CharacterResolver:
         self.session = session
         self.llm_provider = llm_provider
 
+    def _build_caption_name(self, char: Character) -> str:
+        gender_base = "man" if (char.gender and "man" in char.gender.lower() and "wo" not in char.gender.lower()) else "woman"
+        age = "young " if "young" in (char.age_group or "") else ""
+        distinct = ""
+        if char.hair_color:
+            distinct = f" with {char.hair_color} hair"
+        elif char.hair_style:
+            distinct = f" with {char.hair_style} hair"
+        return f"the {age}{gender_base}{distinct}".strip()
+
     async def resolve_entities_async(
         self,
         entities: List[Entity],
@@ -55,10 +65,7 @@ class CharacterResolver:
             if char:
                 entity.source = "user_defined"
                 entity.canonical_tag = None
-                if char.gender and "man" in char.gender.lower() and "wo" not in char.gender.lower():
-                    entity.caption_name = "the young man" if "young" in (char.age_group or "") else "the boy"
-                else:
-                    entity.caption_name = "the young woman" if "young" in (char.age_group or "") else "the girl"
+                entity.caption_name = self._build_caption_name(char)
 
                 replaced_facets = set()
                 for s in statements:
@@ -109,10 +116,7 @@ class CharacterResolver:
             if char:
                 entity.source = "user_defined"
                 entity.canonical_tag = None
-                if char.gender and "man" in char.gender.lower() and "wo" not in char.gender.lower():
-                    entity.caption_name = "the young man" if "young" in (char.age_group or "") else "the boy"
-                else:
-                    entity.caption_name = "the young woman" if "young" in (char.age_group or "") else "the girl"
+                entity.caption_name = self._build_caption_name(char)
 
                 replaced_facets = set()
                 for s in statements:

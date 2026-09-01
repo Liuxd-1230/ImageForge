@@ -37,7 +37,9 @@ export const useStudioStore = defineStore('studio', {
     
     // ComfyUI Parameters & State (Anima-2.9B tuned defaults)
     comfyStatus: 'disconnected' as 'connected' | 'disconnected' | 'generating' | 'error',
-    checkpoint: 'anima-preview.safetensors',
+    unetName: 'anima29B_v10.safetensors',
+    clipName: 'qwen_3_06b_base.safetensors',
+    vaeName: 'qwen_image_vae.safetensors',
     samplerName: 'euler',
     scheduler: 'sgm_uniform',
     width: 1024,
@@ -59,31 +61,13 @@ export const useStudioStore = defineStore('studio', {
     syncLorasFromLibrary(allLoras: Lora[]) {
       const existingMap = new Map(this.activeLoras.map(item => [item.lora.id, item]))
       this.activeLoras = allLoras.map(lora => {
-        const exist = existingMap.get(lora.id)
+        const existing = existingMap.get(lora.id)
         return {
           lora,
-          strength: exist ? exist.strength : lora.default_strength,
-          isEnabled: exist ? exist.isEnabled : false
+          strength: existing ? existing.strength : lora.default_strength,
+          isEnabled: existing ? existing.isEnabled : false
         }
       })
-    },
-
-    toggleLora(loraId: number) {
-      const item = this.activeLoras.find(i => i.lora.id === loraId)
-      if (item) {
-        item.isEnabled = !item.isEnabled
-        this.buildPrompt()
-      }
-    },
-
-    updateLoraStrength(loraId: number, strength: number) {
-      const item = this.activeLoras.find(i => i.lora.id === loraId)
-      if (item) {
-        item.strength = strength
-        if (item.isEnabled) {
-          this.buildPrompt()
-        }
-      }
     },
 
     toggleArtist(artist: Artist) {
@@ -96,23 +80,58 @@ export const useStudioStore = defineStore('studio', {
       this.buildPrompt()
     },
 
+    toggleLora(loraId: number) {
+      const item = this.activeLoras.find(i => i.lora.id === loraId)
+      if (item) {
+        item.isEnabled = !item.isEnabled
+        this.buildPrompt()
+      }
+    },
+
+    setLoraStrength(loraId: number, strength: number) {
+      const item = this.activeLoras.find(i => i.lora.id === loraId)
+      if (item) {
+        item.strength = strength
+        this.buildPrompt()
+      }
+    },
+
+    removeStatement(index: number) {
+      this.facts.statements.splice(index, 1)
+      this.buildPrompt()
+    },
+
+    async saveEntityTrigger(entity: Entity) {
+      if (entity.source === 'model_character' && entity.canonical_tag && entity.caption_name) {
+        try {
+          await axios.post('/api/prompt/resolve-trigger', {
+            name: entity.name,
+            canonical_tag: entity.canonical_tag,
+            caption_name: entity.caption_name,
+            save_to_cache: true
+          })
+          await this.buildPrompt()
+        } catch (err) {
+          console.error('Failed to save trigger to cache:', err)
+        }
+      }
+    },
+
     async parsePrompt() {
       if (!this.rawInput.trim()) return
       this.isParsing = true
       try {
         const resp = await axios.post('/api/prompt/parse', {
           text: this.rawInput,
-          preset_id: this.selectedPresetId,
-          rule_ids: this.selectedRuleIds.length > 0 ? this.selectedRuleIds : undefined,
+          rule_ids: this.selectedRuleIds,
           provider: this.provider,
-          model: this.model || undefined,
+          model: this.model,
           reasoning_effort: this.reasoningEffort
         })
         this.facts = resp.data
         await this.buildPrompt()
-      } catch (err: any) {
-        console.error('Parse failed:', err)
-        throw err
+      } catch (err) {
+        console.error('Prompt parsing failed:', err)
       } finally {
         this.isParsing = false
       }
@@ -121,52 +140,34 @@ export const useStudioStore = defineStore('studio', {
     async buildPrompt() {
       this.isBuilding = true
       try {
-        const artistTags = this.selectedArtists.map(a => a.tags)
-        const loraItems = this.activeLoras
-          .filter(item => item.isEnabled)
-          .map(item => ({
-            filename: item.lora.filename,
-            trigger_words: item.lora.trigger_words,
-            strength: item.strength,
-            is_enabled: true
-          }))
+        const loraBuildItems = this.activeLoras.map(item => ({
+          filename: item.lora.filename,
+          trigger_words: item.lora.trigger_words,
+          strength: item.strength,
+          is_enabled: item.isEnabled
+        }))
 
         const resp = await axios.post('/api/prompt/build', {
           facts: this.facts,
           safety: this.safety,
           preset_id: this.selectedPresetId,
-          artist_tags: artistTags,
-          lora_items: loraItems,
-          extra_negative: this.extraNegative
+          extra_negative: this.extraNegative,
+          artist_tags: this.selectedArtists.map(a => a.tags),
+          lora_items: loraBuildItems
         })
+
         this.positivePrompt = resp.data.prompt
         this.negativePrompt = resp.data.negative_prompt
         this.facts = resp.data.facts
-      } catch (err: any) {
-        console.error('Build prompt failed:', err)
-        throw err
+      } catch (err) {
+        console.error('Prompt compilation failed:', err)
       } finally {
         this.isBuilding = false
       }
     },
 
-    async saveEntityTrigger(entity: Entity) {
-      if (!entity.name || !entity.canonical_tag || !entity.caption_name) return
-      try {
-        await axios.post('/api/prompt/resolve-trigger', {
-          name: entity.name,
-          canonical_tag: entity.canonical_tag,
-          caption_name: entity.caption_name,
-          save_to_cache: true
-        })
-        await this.buildPrompt()
-      } catch (err) {
-        console.error('Save trigger mapping failed:', err)
-      }
-    },
-
     async generateImage() {
-      if (!this.positivePrompt.trim()) {
+      if (!this.positivePrompt) {
         await this.buildPrompt()
       }
       this.isGenerating = true
@@ -185,7 +186,9 @@ export const useStudioStore = defineStore('studio', {
         const resp = await axios.post('/api/comfyui/generate', {
           positive_prompt: this.positivePrompt,
           negative_prompt: this.negativePrompt,
-          checkpoint: this.checkpoint,
+          unet_name: this.unetName,
+          clip_name: this.clipName,
+          vae_name: this.vaeName,
           loras: loraItems,
           width: this.width,
           height: this.height,
@@ -228,49 +231,32 @@ export const useStudioStore = defineStore('studio', {
                     artists_json: JSON.stringify(this.selectedArtists),
                     loras_json: JSON.stringify(this.activeLoras.filter(i => i.isEnabled)),
                     comfy_params_json: JSON.stringify({
-                      checkpoint: this.checkpoint,
+                      unet_name: this.unetName,
+                      clip_name: this.clipName,
+                      vae_name: this.vaeName,
                       width: this.width,
                       height: this.height,
                       steps: this.steps,
                       cfg: this.cfg,
-                      sampler: this.samplerName,
+                      sampler_name: this.samplerName,
                       scheduler: this.scheduler
                     }),
-                    image_path: this.generatedImageUrl
+                    image_url: this.generatedImageUrl
                   })
                   break
                 }
               }
             }
           } catch (e) {
-            // Processing
+            console.warn('Waiting for ComfyUI task...', e)
           }
         }
-      } catch (err: any) {
-        this.generationMessage = `生图失败: ${err.response?.data?.detail || err.message}`
-        throw err
+      } catch (err) {
+        console.error('Image generation error:', err)
+        this.generationMessage = '生图失败，请检查 ComfyUI 连接与模型设置。'
       } finally {
         this.isGenerating = false
       }
-    },
-
-    removeEntity(index: number) {
-      const e = this.facts.entities[index]
-      if (e) {
-        this.facts.statements = this.facts.statements.filter(s => s.subject !== e.id && s.target !== e.id)
-        this.facts.entities.splice(index, 1)
-        this.buildPrompt()
-      }
-    },
-
-    removeStatement(index: number) {
-      this.facts.statements.splice(index, 1)
-      this.buildPrompt()
-    },
-
-    addStatement(statement: Statement) {
-      this.facts.statements.push(statement)
-      this.buildPrompt()
     }
   }
 })

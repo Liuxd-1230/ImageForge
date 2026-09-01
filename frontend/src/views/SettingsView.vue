@@ -78,7 +78,7 @@
 
           <v-select
             v-model="form.LM_STUDIO_REASONING_EFFORT"
-            :items="thinkingOptions"
+            :items="lmStudioThinkingOptions"
             item-title="title"
             item-value="value"
             label="默认思考强度"
@@ -151,7 +151,7 @@
 
           <v-select
             v-model="form.CLOUD_REASONING_EFFORT"
-            :items="thinkingOptions"
+            :items="cloudThinkingOptions"
             item-title="title"
             item-value="value"
             label="默认思考强度"
@@ -216,7 +216,15 @@ import { useSettingsStore } from '../stores/settings'
 const settingsStore = useSettingsStore()
 const snackbar = ref(false)
 
-const thinkingOptions = [
+const lmStudioThinkingOptions = [
+  { title: 'Instruct (关闭思考 / off)', value: 'instruct' },
+  { title: 'Low (轻度思考)', value: 'low' },
+  { title: 'Medium (标准思考)', value: 'medium' },
+  { title: 'High (深度思考)', value: 'high' },
+  { title: 'On (开启思考)', value: 'on' },
+]
+
+const cloudThinkingOptions = [
   { title: 'Instruct (关闭思考)', value: 'instruct' },
   { title: 'Low (轻度思考)', value: 'low' },
   { title: 'Medium (标准思考)', value: 'medium' },
