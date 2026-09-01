@@ -110,7 +110,7 @@
             label="文件名 (对应 ComfyUI LoRA 文件)"
             density="compact"
             variant="outlined"
-            :readonly="isEdit && !form.is_custom"
+            :readonly="isEdit"
             class="mb-2"
           />
           <v-textarea

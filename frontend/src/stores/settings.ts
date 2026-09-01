@@ -69,7 +69,7 @@ export const useSettingsStore = defineStore('settings', {
         this.lmStudioStatus = resp.data.status === 'connected' ? 'connected' : 'disconnected'
         if (this.lmStudioStatus === 'connected') {
           const modelsResp = await axios.get('/api/providers/lm-studio/models')
-          this.lmStudioModels = modelsResp.data.data || []
+          this.lmStudioModels = modelsResp.data.models || modelsResp.data.data || []
         }
       } catch {
         this.lmStudioStatus = 'disconnected'
@@ -82,7 +82,7 @@ export const useSettingsStore = defineStore('settings', {
         this.cloudStatus = resp.data.status === 'connected' ? 'connected' : 'disconnected'
         if (this.cloudStatus === 'connected') {
           const modelsResp = await axios.get('/api/providers/cloud/models')
-          this.cloudModels = modelsResp.data.data || []
+          this.cloudModels = modelsResp.data.models || modelsResp.data.data || []
         }
       } catch {
         this.cloudStatus = 'disconnected'

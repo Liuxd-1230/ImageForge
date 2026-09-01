@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 from sqlmodel import Session, SQLModel, create_engine, select
 from app.models.character import Character
 from app.models.trigger_cache import CharacterTriggerCache
@@ -439,21 +440,34 @@ def test_case_20_dual_custom_characters_distinction(session: Session):
     assert "brown hair" in res.prompt
     assert "the young woman with black hair is chasing the young woman with brown hair" in res.prompt
 
-def test_case_21_lora_scan_edit_preservation(session: Session):
-    """Case 21: LoRA 扫描与编辑触发词持久化 (再次扫描不覆盖用户编辑的 trigger)"""
-    # Initial scan
-    lora = Lora(name="water_dress", filename="water_dress.safetensors", trigger_words="", is_custom=False)
-    session.add(lora)
-    session.commit()
+@pytest.mark.asyncio
+async def test_case_21_lora_scan_edit_preservation(session: Session, monkeypatch):
+    """Case 21: LoRA 扫描与编辑触发词持久化 (执行真实 sync_comfyui_loras 不覆盖用户自定义 trigger 和属性)"""
+    from app.api.loras import sync_comfyui_loras
+    from app.services.comfyui.client import ComfyUIClient
 
-    # User edits trigger words
+    # 1. First ComfyUI scan discovers water_dress.safetensors
+    monkeypatch.setattr(ComfyUIClient, "get_loras", lambda self: asyncio.sleep(0, result=["water_dress.safetensors", "other.safetensors"]))
+    await sync_comfyui_loras(session=session)
+
+    lora = session.exec(select(Lora).where(Lora.filename == "water_dress.safetensors")).first()
+    assert lora is not None
+    assert lora.trigger_words == ""
+
+    # 2. User edits trigger words, name, and default strength
     lora.trigger_words = "water_dress, flowing_water"
     lora.name = "Water Dress Effect"
+    lora.default_strength = 1.25
     session.add(lora)
     session.commit()
 
-    # Simulate re-scan finding same filename
-    existing = session.exec(select(Lora).where(Lora.filename == "water_dress.safetensors")).first()
-    assert existing is not None
-    assert existing.trigger_words == "water_dress, flowing_water"
-    assert existing.name == "Water Dress Effect"
+    # 3. Second ComfyUI scan runs
+    await sync_comfyui_loras(session=session)
+
+    # 4. Verify user custom edits are strictly preserved
+    re_synced = session.exec(select(Lora).where(Lora.filename == "water_dress.safetensors")).first()
+    assert re_synced is not None
+    assert re_synced.trigger_words == "water_dress, flowing_water"
+    assert re_synced.name == "Water Dress Effect"
+    assert re_synced.default_strength == 1.25
+    assert re_synced.is_valid_file is True

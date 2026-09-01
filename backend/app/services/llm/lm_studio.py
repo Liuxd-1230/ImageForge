@@ -27,7 +27,6 @@ class LMStudioProvider(BaseLLMProvider):
                     loaded = []
                     llm_models = []
                     for m in models_raw:
-                        # Filter out embedding models
                         if m.get("type") == "embedding":
                             continue
                         key = m.get("key", m.get("id"))
@@ -92,7 +91,7 @@ class LMStudioProvider(BaseLLMProvider):
 
     async def load_model(self, model_id: str, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Request LM Studio to load a model and return instance_id."""
-        # 1. Check if model is already loaded
+        # Check if already loaded
         health = await self.check_health()
         for inst in health.get("loaded_instances", []):
             if inst == model_id:
@@ -156,33 +155,76 @@ class LMStudioProvider(BaseLLMProvider):
         reasoning_effort: Optional[str] = "instruct",
         response_format: Optional[Dict[str, Any]] = None
     ) -> str:
-        payload: Dict[str, Any] = {
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": 2048
-        }
-        if model:
-            payload["model"] = model
+        # Separate system prompt and user input for LM Studio native /api/v1/chat
+        sys_prompts = [m.get("content", "") for m in messages if m.get("role") == "system"]
+        user_inputs = [m.get("content", "") for m in messages if m.get("role") != "system"]
+        
+        system_prompt = "\n\n".join(sys_prompts) if sys_prompts else None
+        user_text = "\n\n".join(user_inputs) if user_inputs else ""
 
-        if response_format:
-            payload["response_format"] = response_format
+        # Map reasoning parameter (Instruct->off, Low->low, Medium->medium, High->high, On->on)
+        reasoning_val = "off"
+        if reasoning_effort:
+            norm = reasoning_effort.lower()
+            if norm in ["instruct", "off"]:
+                reasoning_val = "off"
+            elif norm in ["low", "medium", "high", "on"]:
+                reasoning_val = norm
+
+        native_payload: Dict[str, Any] = {
+            "input": user_text,
+            "temperature": temperature,
+            "reasoning": reasoning_val
+        }
+        if system_prompt:
+            native_payload["system_prompt"] = system_prompt
+        if model:
+            native_payload["model"] = model
 
         async with httpx.AsyncClient(timeout=180.0) as client:
-            resp = await client.post(
+            try:
+                resp = await client.post(
+                    f"{self.base_url}/api/v1/chat",
+                    json=native_payload,
+                    headers=self.headers
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    outputs = data.get("output", [])
+                    for out in outputs:
+                        if out.get("type") == "message" and "content" in out:
+                            return out.get("content", "").strip()
+                    if outputs and "content" in outputs[0]:
+                        return outputs[0].get("content", "").strip()
+            except Exception as e:
+                logger.warning(f"LM Studio /api/v1/chat request warning ({e}), falling back to /v1/chat/completions")
+
+            # Fallback to /v1/chat/completions if /api/v1/chat fails
+            v1_payload: Dict[str, Any] = {
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": 2048
+            }
+            if model:
+                v1_payload["model"] = model
+            if response_format:
+                v1_payload["response_format"] = response_format
+
+            resp_v1 = await client.post(
                 f"{self.base_url}/v1/chat/completions",
-                json=payload,
+                json=v1_payload,
                 headers=self.headers
             )
-            if resp.status_code != 200:
-                error_msg = resp.text
+            if resp_v1.status_code != 200:
+                error_msg = resp_v1.text
                 try:
-                    error_msg = resp.json().get("error", {}).get("message", resp.text)
+                    error_msg = resp_v1.json().get("error", {}).get("message", resp_v1.text)
                 except Exception:
                     pass
-                raise RuntimeError(f"LM Studio 推理失败 (HTTP {resp.status_code}): {error_msg}")
+                raise RuntimeError(f"LM Studio 推理失败 (HTTP {resp_v1.status_code}): {error_msg}")
 
-            data = resp.json()
-            choices = data.get("choices", [])
+            data_v1 = resp_v1.json()
+            choices = data_v1.get("choices", [])
             if not choices:
                 raise ValueError("LM Studio 未返回任何输出")
             msg = choices[0].get("message", {})
