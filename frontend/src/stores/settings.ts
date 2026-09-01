@@ -12,13 +12,13 @@ export const useSettingsStore = defineStore('settings', {
       LM_STUDIO_AUTO_LOAD: true,
       LM_STUDIO_AUTO_UNLOAD: false,
       LM_STUDIO_ENABLE_THINKING: false,
-      LM_STUDIO_REASONING_EFFORT: 'medium',
+      LM_STUDIO_REASONING_EFFORT: 'instruct',
 
       CLOUD_API_NAME: '自定义云端 API',
       CLOUD_API_BASE_URL: 'https://api.openai.com/v1',
       CLOUD_API_KEY: '',
       CLOUD_MODEL: '',
-      CLOUD_REASONING_EFFORT: 'medium',
+      CLOUD_REASONING_EFFORT: 'instruct',
 
       COMFYUI_BASE_URL: 'http://127.0.0.1:8188',
       DEFAULT_SAFETY: 'Safe'
@@ -58,17 +58,21 @@ export const useSettingsStore = defineStore('settings', {
         ])
       } catch (err) {
         console.error('Save settings failed:', err)
+        throw err
       } finally {
         this.isLoading = false
       }
     },
 
-    async checkLMStudioHealth() {
+    async checkLMStudioHealth(override?: { base_url?: string, api_key?: string }) {
       try {
-        const resp = await axios.get('/api/providers/lm-studio/health')
+        const params: Record<string, string> = {}
+        if (override?.base_url) params.base_url = override.base_url
+        if (override?.api_key !== undefined) params.api_key = override.api_key
+        const resp = await axios.get('/api/providers/lm-studio/health', { params })
         this.lmStudioStatus = resp.data.status === 'connected' ? 'connected' : 'disconnected'
         if (this.lmStudioStatus === 'connected') {
-          const modelsResp = await axios.get('/api/providers/lm-studio/models')
+          const modelsResp = await axios.get('/api/providers/lm-studio/models', { params })
           this.lmStudioModels = modelsResp.data.models || modelsResp.data.data || []
         }
       } catch {
@@ -76,12 +80,15 @@ export const useSettingsStore = defineStore('settings', {
       }
     },
 
-    async checkCloudHealth() {
+    async checkCloudHealth(override?: { base_url?: string, api_key?: string }) {
       try {
-        const resp = await axios.get('/api/providers/cloud/health')
+        const params: Record<string, string> = {}
+        if (override?.base_url) params.base_url = override.base_url
+        if (override?.api_key !== undefined) params.api_key = override.api_key
+        const resp = await axios.get('/api/providers/cloud/health', { params })
         this.cloudStatus = resp.data.status === 'connected' ? 'connected' : 'disconnected'
         if (this.cloudStatus === 'connected') {
-          const modelsResp = await axios.get('/api/providers/cloud/models')
+          const modelsResp = await axios.get('/api/providers/cloud/models', { params })
           this.cloudModels = modelsResp.data.models || modelsResp.data.data || []
         }
       } catch {
@@ -89,9 +96,11 @@ export const useSettingsStore = defineStore('settings', {
       }
     },
 
-    async checkComfyHealth() {
+    async checkComfyHealth(overrideUrl?: string) {
       try {
-        const resp = await axios.get('/api/comfyui/health')
+        const params: Record<string, string> = {}
+        if (overrideUrl) params.base_url = overrideUrl
+        const resp = await axios.get('/api/comfyui/health', { params })
         this.comfyStatus = resp.data.status === 'connected' ? 'connected' : 'disconnected'
       } catch {
         this.comfyStatus = 'disconnected'

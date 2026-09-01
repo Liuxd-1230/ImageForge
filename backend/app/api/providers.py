@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from app.config import settings
@@ -16,13 +16,23 @@ class UnloadModelRequest(BaseModel):
     model: Optional[str] = None
 
 @router.get("/lm-studio/health")
-async def lm_studio_health():
-    provider = LMStudioProvider(base_url=settings.LM_STUDIO_BASE_URL, api_key=settings.LM_STUDIO_API_KEY)
+async def lm_studio_health(
+    base_url: Optional[str] = Query(None),
+    api_key: Optional[str] = Query(None)
+):
+    target_base = base_url or settings.LM_STUDIO_BASE_URL
+    target_key = api_key if api_key is not None else settings.LM_STUDIO_API_KEY
+    provider = LMStudioProvider(base_url=target_base, api_key=target_key)
     return await provider.check_health()
 
 @router.get("/lm-studio/models")
-async def lm_studio_models():
-    provider = LMStudioProvider(base_url=settings.LM_STUDIO_BASE_URL, api_key=settings.LM_STUDIO_API_KEY)
+async def lm_studio_models(
+    base_url: Optional[str] = Query(None),
+    api_key: Optional[str] = Query(None)
+):
+    target_base = base_url or settings.LM_STUDIO_BASE_URL
+    target_key = api_key if api_key is not None else settings.LM_STUDIO_API_KEY
+    provider = LMStudioProvider(base_url=target_base, api_key=target_key)
     try:
         models = await provider.list_models()
         return {"models": models}
@@ -49,13 +59,23 @@ async def lm_studio_unload(req: UnloadModelRequest):
         raise HTTPException(status_code=502, detail=f"Failed to unload model: {str(e)}")
 
 @router.get("/cloud/health")
-async def cloud_health():
-    provider = OpenAICompatibleProvider(base_url=settings.CLOUD_API_BASE_URL, api_key=settings.CLOUD_API_KEY)
+async def cloud_health(
+    base_url: Optional[str] = Query(None),
+    api_key: Optional[str] = Query(None)
+):
+    target_base = base_url or settings.CLOUD_API_BASE_URL
+    target_key = api_key if api_key is not None else settings.CLOUD_API_KEY
+    provider = OpenAICompatibleProvider(base_url=target_base, api_key=target_key)
     return await provider.check_health()
 
 @router.get("/cloud/models")
-async def cloud_models():
-    provider = OpenAICompatibleProvider(base_url=settings.CLOUD_API_BASE_URL, api_key=settings.CLOUD_API_KEY)
+async def cloud_models(
+    base_url: Optional[str] = Query(None),
+    api_key: Optional[str] = Query(None)
+):
+    target_base = base_url or settings.CLOUD_API_BASE_URL
+    target_key = api_key if api_key is not None else settings.CLOUD_API_KEY
+    provider = OpenAICompatibleProvider(base_url=target_base, api_key=target_key)
     try:
         models = await provider.list_models()
         return {"models": models}

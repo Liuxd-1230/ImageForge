@@ -10,6 +10,7 @@ export interface ActiveLoraItem {
 
 export const useStudioStore = defineStore('studio', {
   state: () => ({
+    isInitialized: false,
     rawInput: '',
     safety: 'Safe' as SafetyLevel,
     selectedPresetId: null as number | null,
@@ -66,14 +67,15 @@ export const useStudioStore = defineStore('studio', {
 
   actions: {
     initStudioSettings(settings: AppSettings) {
-      if (settings.DEFAULT_SAFETY) {
-        this.safety = settings.DEFAULT_SAFETY
-      }
-      if (settings.ACTIVE_PROVIDER) {
-        this.provider = settings.ACTIVE_PROVIDER
-      }
-      if (!this.model) {
+      if (!this.isInitialized) {
+        if (settings.DEFAULT_SAFETY) {
+          this.safety = settings.DEFAULT_SAFETY
+        }
+        if (settings.ACTIVE_PROVIDER) {
+          this.provider = settings.ACTIVE_PROVIDER
+        }
         this.model = this.provider === 'lm_studio' ? (settings.LM_STUDIO_MODEL || '') : (settings.CLOUD_MODEL || '')
+        this.isInitialized = true
       }
     },
 
@@ -160,6 +162,7 @@ export const useStudioStore = defineStore('studio', {
     async parsePrompt() {
       if (!this.rawInput.trim()) return
       this.isParsing = true
+      this.generationMessage = ''
       try {
         const resp = await axios.post('/api/prompt/parse', {
           text: this.rawInput,
@@ -170,8 +173,10 @@ export const useStudioStore = defineStore('studio', {
         })
         this.facts = resp.data
         await this.buildPrompt(true)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Prompt parsing failed:', err)
+        const msg = err.response?.data?.detail || err.message || '解析提示词失败'
+        this.generationMessage = `解析失败: ${msg}`
       } finally {
         this.isParsing = false
       }
@@ -196,7 +201,6 @@ export const useStudioStore = defineStore('studio', {
           lora_items: loraBuildItems
         })
 
-        // If not manually edited or explicitly forced, update textareas
         if (!this.isPositivePromptDirty || force) {
           this.positivePrompt = resp.data.prompt
           this.isPositivePromptDirty = false
@@ -214,6 +218,12 @@ export const useStudioStore = defineStore('studio', {
     },
 
     async generateImage() {
+      if (this.workflowMode === 'custom' && !this.customWorkflowTemplate) {
+        this.generationProgress = 0
+        this.generationMessage = '生图失败：当前为自定义工作流模式，但尚未导入任何 API Workflow JSON 文件。请先导入工作流文件或切换回内置工作流。'
+        return
+      }
+
       if (!this.positivePrompt) {
         await this.buildPrompt(true)
       }
@@ -306,7 +316,11 @@ export const useStudioStore = defineStore('studio', {
                         provider: this.provider,
                         model: this.model,
                         reasoningEffort: this.reasoningEffort,
-                        selectedRuleIds: this.selectedRuleIds
+                        selectedRuleIds: this.selectedRuleIds,
+                        workflowMode: this.workflowMode,
+                        customWorkflowName: this.customWorkflowName,
+                        customWorkflowTemplate: this.customWorkflowTemplate,
+                        overrideWorkflowModels: this.overrideWorkflowModels
                       }
                     }),
                     image_path: this.generatedImageUrl

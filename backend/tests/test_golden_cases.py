@@ -44,7 +44,6 @@ def test_case_01_single_model_character(session: Session):
     res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
     assert "suisui" in res.prompt
     assert "wearing a swimsuit" in res.prompt
-    assert "1girl" in res.prompt
     assert "smiling" not in res.prompt
     assert "classroom" not in res.prompt
 
@@ -63,7 +62,6 @@ def test_case_02_two_model_characters_with_ownership_and_actions(session: Sessio
         ]
     )
     res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
-    assert "2girls" in res.prompt
     assert "suisui" in res.prompt
     assert "yangyang" in res.prompt
     assert "Suisui (girl) is wearing a swimsuit and chasing Yangyang (girl)" in res.prompt
@@ -595,3 +593,45 @@ def test_case_24_custom_api_workflow_injection():
     )
     assert injected_wf_override["1"]["inputs"]["unet_name"] == "anima29B_v10.safetensors"
     assert injected_wf_override["2"]["inputs"]["clip_name"] == "qwen_3_06b_base.safetensors"
+
+    # 3. Test LoRA dynamic chaining in Custom Workflow
+    lora_items = [
+        LoraBuildItem(filename="water_dress.safetensors", trigger_words="water_dress", strength=1.2, is_enabled=True)
+    ]
+    injected_wf_lora = build_anima_29b_workflow(
+        positive_prompt="safe, suisui.",
+        negative_prompt="lowres",
+        loras=lora_items,
+        custom_template=raw_api_workflow
+    )
+    # LoRA node should be created
+    lora_node = None
+    for nid, node in injected_wf_lora.items():
+        if node.get("class_type") == "LoraLoader":
+            lora_node = node
+            lora_nid = nid
+            break
+    assert lora_node is not None
+    assert lora_node["inputs"]["lora_name"] == "water_dress.safetensors"
+    assert lora_node["inputs"]["strength_model"] == 1.2
+    # KSampler model input must point to the new LoRA node
+    assert injected_wf_lora["8"]["inputs"]["model"] == [lora_nid, 0]
+
+def test_case_25_unresolved_trigger_raises_error(session: Session):
+    """Case 25: 未在角色书中的未知角色若 LLM 未返回 trigger，必须明确报错，禁止假成功"""
+    import json
+    import pytest
+    from app.services.prompt_engine.resolver import CharacterResolver
+
+    class MockFailingLLM:
+        async def chat(self, *args, **kwargs):
+            return json.dumps({"characters": []})  # Returns empty resolution
+
+    resolver = CharacterResolver(session=session, llm_provider=MockFailingLLM())
+    facts_entities = [Entity(id="c1", name="完全未知的超稀有角色")]
+    
+    with pytest.raises(RuntimeError) as exc_info:
+        import asyncio
+        asyncio.run(resolver.resolve_entities_async(facts_entities, []))
+    
+    assert "未能解析角色【完全未知的超稀有角色】" in str(exc_info.value)

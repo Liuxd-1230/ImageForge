@@ -29,8 +29,9 @@ class GenerateRequest(BaseModel):
     override_models: bool = False
 
 @router.get("/health")
-async def comfyui_health():
-    client = ComfyUIClient()
+async def comfyui_health(base_url: Optional[str] = Query(None)):
+    target_base = base_url or settings.COMFYUI_BASE_URL
+    client = ComfyUIClient(base_url=target_base)
     return await client.check_health()
 
 @router.get("/checkpoints")

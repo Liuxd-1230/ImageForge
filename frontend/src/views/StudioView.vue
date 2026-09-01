@@ -585,7 +585,7 @@
           </div>
 
           <!-- Generation Error or Timeout Message -->
-          <div v-if="!studioStore.isGenerating && studioStore.generationMessage && studioStore.generationMessage.includes('失败')" class="mb-3 text-caption text-error bg-red-lighten-5 pa-2 rounded border">
+          <div v-if="!studioStore.isGenerating && studioStore.generationMessage && (studioStore.generationMessage.includes('失败') || studioStore.generationMessage.includes('超时') || studioStore.generationMessage.includes('错误'))" class="mb-3 text-caption text-error bg-red-lighten-5 pa-2 rounded border">
             <v-icon size="16" color="error" class="mr-1">mdi-alert-circle</v-icon>
             {{ studioStore.generationMessage }}
           </div>

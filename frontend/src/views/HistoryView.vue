@@ -153,6 +153,10 @@ function restoreToStudio(item: GenerationHistory) {
         if (params.studio.model) studioStore.model = params.studio.model
         if (params.studio.reasoningEffort) studioStore.reasoningEffort = params.studio.reasoningEffort
         if (params.studio.selectedRuleIds) studioStore.selectedRuleIds = params.studio.selectedRuleIds
+        if (params.studio.workflowMode) studioStore.workflowMode = params.studio.workflowMode
+        if (params.studio.customWorkflowName !== undefined) studioStore.customWorkflowName = params.studio.customWorkflowName
+        if (params.studio.customWorkflowTemplate !== undefined) studioStore.customWorkflowTemplate = params.studio.customWorkflowTemplate
+        if (params.studio.overrideWorkflowModels !== undefined) studioStore.overrideWorkflowModels = params.studio.overrideWorkflowModels
       }
     }
   } catch {}

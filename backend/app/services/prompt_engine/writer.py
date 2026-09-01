@@ -33,17 +33,16 @@ class PromptWriter:
                 continue
 
             # Determine subject name in natural language
-            subj_name = entity.caption_name or entity.name
-            if entity.source == "user_defined" and entity.custom_description:
-                # If custom description is present and short
-                subj_name = entity.caption_name or "The character"
+            subj_name = entity.caption_name
+            if not subj_name:
+                subj_name = entity.canonical_tag or "the character"
 
             actions: List[str] = []
             for s in stmts:
                 text = s.text.strip()
                 if s.kind == "relation" and s.target and s.target in entity_by_id:
                     target_entity = entity_by_id[s.target]
-                    target_name = target_entity.caption_name or target_entity.name
+                    target_name = target_entity.caption_name or target_entity.canonical_tag or "the other character"
                     # Make sure relation text mentions target if not already
                     if target_name.lower() not in text.lower():
                         actions.append(f"{text} {target_name}")

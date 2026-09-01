@@ -94,8 +94,62 @@ def build_anima_29b_workflow(
                         inputs["text"] = negative_prompt
                         negative_injected = True
 
+        # 4. Chain LoRAs if enabled
+        enabled_loras = [l for l in (loras or []) if l.is_enabled]
+        if enabled_loras:
+            ksampler_nid = None
+            for nid, node in wf.items():
+                if node.get("class_type") in ["KSampler", "KSamplerAdvanced", "KSamplerProgress"]:
+                    ksampler_nid = nid
+                    break
+
+            clip_link = None
+            for pos_nid in pos_node_ids:
+                if pos_nid in wf and "clip" in wf[pos_nid].get("inputs", {}):
+                    clip_link = wf[pos_nid]["inputs"]["clip"]
+                    break
+
+            if ksampler_nid and "model" in wf[ksampler_nid].get("inputs", {}):
+                current_model = wf[ksampler_nid]["inputs"]["model"]
+                current_clip = clip_link
+
+                digit_ids = [int(k) for k in wf.keys() if k.isdigit()]
+                next_node_id = (max(digit_ids) if digit_ids else 100) + 1
+
+                for lora in enabled_loras:
+                    node_id = str(next_node_id)
+                    lora_inputs: Dict[str, Any] = {
+                        "lora_name": lora.filename,
+                        "strength_model": lora.strength,
+                        "strength_clip": lora.strength,
+                        "model": current_model
+                    }
+                    if current_clip:
+                        lora_inputs["clip"] = current_clip
+
+                    wf[node_id] = {
+                        "class_type": "LoraLoader",
+                        "inputs": lora_inputs
+                    }
+                    current_model = [node_id, 0]
+                    if current_clip:
+                        current_clip = [node_id, 1]
+                    next_node_id += 1
+
+                wf[ksampler_nid]["inputs"]["model"] = current_model
+
+                if current_clip:
+                    for pos_nid in pos_node_ids:
+                        if pos_nid in wf and "clip" in wf[pos_nid].get("inputs", {}):
+                            wf[pos_nid]["inputs"]["clip"] = current_clip
+                    for neg_nid in neg_node_ids:
+                        if neg_nid in wf and "clip" in wf[neg_nid].get("inputs", {}):
+                            wf[neg_nid]["inputs"]["clip"] = current_clip
+
         if not positive_injected:
             raise ValueError("导入的 ComfyUI API 工作流中未找到连接至 KSampler 的 Positive 提示词节点 (CLIPTextEncode)")
+        if not negative_injected:
+            raise ValueError("导入的 ComfyUI API 工作流中未找到连接至 KSampler 的 Negative 提示词节点 (CLIPTextEncode)")
 
         return wf
 

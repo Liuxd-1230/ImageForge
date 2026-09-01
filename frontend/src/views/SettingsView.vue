@@ -91,7 +91,7 @@
               color="primary"
               variant="tonal"
               prepend-icon="mdi-refresh"
-              @click="settingsStore.checkLMStudioHealth()"
+              @click="settingsStore.checkLMStudioHealth({ base_url: form.LM_STUDIO_BASE_URL, api_key: form.LM_STUDIO_API_KEY })"
             >
               刷新模型
             </v-btn>
@@ -171,7 +171,7 @@
               color="secondary"
               variant="tonal"
               prepend-icon="mdi-refresh"
-              @click="settingsStore.checkCloudHealth()"
+              @click="settingsStore.checkCloudHealth({ base_url: form.CLOUD_API_BASE_URL, api_key: form.CLOUD_API_KEY })"
             >
               刷新模型
             </v-btn>
@@ -206,7 +206,7 @@
               color="success"
               variant="tonal"
               prepend-icon="mdi-connection"
-              @click="settingsStore.checkComfyHealth()"
+              @click="settingsStore.checkComfyHealth(form.COMFYUI_BASE_URL)"
             >
               测试连接
             </v-btn>
@@ -227,8 +227,8 @@
       </v-btn>
     </div>
 
-    <v-snackbar v-model="snackbar" color="success" :timeout="2000">
-      设置已成功保存！
+    <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="2500">
+      {{ snackbarText }}
     </v-snackbar>
   </v-container>
 </template>
@@ -240,6 +240,8 @@ import type { AppSettings } from '../types'
 
 const settingsStore = useSettingsStore()
 const snackbar = ref(false)
+const snackbarText = ref('')
+const snackbarColor = ref('success')
 
 const form = ref<AppSettings>({
   ACTIVE_PROVIDER: 'lm_studio',
@@ -267,7 +269,14 @@ onMounted(async () => {
 })
 
 async function saveAllSettings() {
-  await settingsStore.saveSettings(form.value)
+  try {
+    await settingsStore.saveSettings(form.value)
+    snackbarText.value = '设置已成功保存！'
+    snackbarColor.value = 'success'
+  } catch (err: any) {
+    snackbarText.value = `保存设置失败: ${err.message || err}`
+    snackbarColor.value = 'error'
+  }
   snackbar.value = true
 }
 </script>

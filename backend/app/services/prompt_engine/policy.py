@@ -60,13 +60,13 @@ class PromptPolicy:
 
         for e in facts.entities:
             desc = (e.custom_description or "").lower()
-            name = e.name.lower()
-            caption = (e.caption_name or "").lower()
-            
-            # Check gender explicitly from character description, caption, or explicit gender statements
-            if "woman" in desc or "girl" in desc or "girl" in name or "woman" in name or "girl" in caption or "woman" in caption or "female" in desc:
+            desc_tokens = [t.strip() for t in desc.replace(",", " ").split() if t.strip()]
+
+            # Check gender explicitly from character description (character book or explicit gender statement)
+            # Never guess gender from proper character name strings!
+            if any(w in desc_tokens for w in ["woman", "girl", "female"]):
                 girls += 1
-            elif "man" in desc or "boy" in desc or "boy" in name or "man" in name or "boy" in caption or "man" in caption or "male" in desc:
+            elif any(w in desc_tokens for w in ["man", "boy", "male"]):
                 boys += 1
 
         if girls > 0 and boys == 0 and girls == count:

@@ -71,14 +71,6 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 json=payload,
                 headers=self.headers
             )
-            # If rejected because reasoning_effort is unsupported by third-party provider, retry once cleanly without it
-            if resp.status_code == 400 and "reasoning_effort" in resp.text and "reasoning_effort" in payload:
-                del payload["reasoning_effort"]
-                resp = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    json=payload,
-                    headers=self.headers
-                )
 
             if resp.status_code != 200:
                 err_detail = resp.text
@@ -86,6 +78,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                     err_detail = resp.json().get("error", {}).get("message", resp.text)
                 except Exception:
                     pass
+                if "reasoning_effort" in str(err_detail).lower() or "reasoning" in str(err_detail).lower():
+                    raise RuntimeError(f"云端模型不支持所选思考强度 ({reasoning_effort}): {err_detail}")
                 raise RuntimeError(f"云端 LLM 推理失败 (HTTP {resp.status_code}): {err_detail}")
 
             data = resp.json()

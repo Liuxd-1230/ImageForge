@@ -77,9 +77,8 @@ class CharacterResolver:
                 replaced_facets = set()
                 for s in statements:
                     if s.subject == entity.id:
-                        # Only suppress default attribute if effect is explicitly 'replace' or not set
-                        effect = (s.effect or "replace").lower()
-                        if effect == "replace":
+                        # ONLY suppress default attribute if effect is explicitly 'replace'
+                        if s.effect and s.effect.lower() == "replace":
                             if s.facet:
                                 replaced_facets.add(s.facet.lower())
                             if any(w in s.text.lower() for w in ["wearing", "swimsuit", "uniform", "raincoat"]):
@@ -115,11 +114,15 @@ class CharacterResolver:
                         e.caption_name = caption
             except Exception as ex:
                 logger.error(f"Batch LLM trigger resolution failed: {ex}")
+                raise RuntimeError(f"未能解析角色 Trigger: {ex}")
 
             # Check if any model character remains unresolved
             missing_chars = [e.name for e in unresolved_model_chars if not e.canonical_tag]
             if missing_chars:
-                logger.warning(f"Characters unresolved: {missing_chars}")
+                raise RuntimeError(
+                    f"未能解析角色【{', '.join(missing_chars)}】的 Danbooru/Gelbooru Trigger 标签。"
+                    f"请在创作台的识别人物卡片中手动填写 Canonical Tag 与 Caption Name，或检查 LLM 模型连接。"
+                )
 
         return resolved
 
@@ -136,8 +139,7 @@ class CharacterResolver:
                 replaced_facets = set()
                 for s in statements:
                     if s.subject == entity.id:
-                        effect = (s.effect or "replace").lower()
-                        if effect == "replace":
+                        if s.effect and s.effect.lower() == "replace":
                             if s.facet:
                                 replaced_facets.add(s.facet.lower())
                             if any(w in s.text.lower() for w in ["wearing", "swimsuit", "uniform", "raincoat"]):
