@@ -1,46 +1,46 @@
 <template>
-  <v-container fluid class="pa-4">
-    <!-- Top Bar: Provider, Model, Thinking, Preset, Connection Status -->
-    <v-card variant="outlined" class="mb-4 pa-3 rounded-lg bg-surface">
-      <v-row align="center" dense>
-        <!-- Provider & Model Selection -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+  <div class="app-page-container">
+    <!-- Top Compact Desktop Toolbar -->
+    <v-card variant="outlined" class="mb-3 px-3 py-2 bg-surface rounded-lg">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+        <!-- Provider & Model Controls -->
+        <div class="d-flex align-center gap-2 flex-grow-1 flex-sm-grow-0">
           <v-btn-toggle
             v-model="studioStore.provider"
             mandatory
             density="compact"
             color="primary"
             variant="outlined"
+            rounded="md"
+            class="toolbar-toggle"
             @update:model-value="onProviderChange"
           >
-            <v-btn value="lm_studio" size="small">LM Studio</v-btn>
-            <v-btn value="cloud" size="small">云端 API</v-btn>
+            <v-btn value="lm_studio" size="small" class="px-3">LM Studio</v-btn>
+            <v-btn value="cloud" size="small" class="px-3">云端 API</v-btn>
           </v-btn-toggle>
-        </v-col>
 
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-1">
-          <v-select
-            v-model="studioStore.model"
-            :items="currentModelList"
-            item-title="id"
-            item-value="id"
-            label="LLM 模型"
-            density="compact"
-            variant="outlined"
-            hide-details
-            class="flex-grow-1"
-          />
-          <v-btn
-            icon="mdi-refresh"
-            size="small"
-            variant="text"
-            color="primary"
-            @click="refreshModels"
-          />
-        </v-col>
+          <div class="d-flex align-center gap-1" style="min-width: 200px; max-width: 280px;">
+            <v-select
+              v-model="studioStore.model"
+              :items="currentModelList"
+              item-title="id"
+              item-value="id"
+              label="LLM 模型"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="flex-grow-1 text-caption"
+            />
+            <v-btn
+              icon="mdi-refresh"
+              size="x-small"
+              variant="text"
+              color="secondary"
+              title="刷新模型列表"
+              @click="refreshModels"
+            />
+          </div>
 
-        <!-- Thinking Strength: LM Studio supports off/low/medium/high/on -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
           <v-select
             v-model="studioStore.reasoningEffort"
             :items="activeThinkingOptions"
@@ -50,12 +50,13 @@
             density="compact"
             variant="outlined"
             hide-details
-            class="flex-grow-1"
+            style="min-width: 140px; max-width: 170px;"
+            class="text-caption"
           />
-        </v-col>
+        </div>
 
-        <!-- Preset & Connection Status -->
-        <v-col cols="12" sm="6" md="3" class="d-flex justify-end align-center gap-2">
+        <!-- Preset & Engine Health Statuses -->
+        <div class="d-flex align-center justify-end gap-2 flex-grow-1 flex-sm-grow-0">
           <v-select
             v-model="studioStore.selectedPresetId"
             :items="presetStore.presets"
@@ -65,34 +66,35 @@
             density="compact"
             variant="outlined"
             hide-details
-            style="max-width: 180px;"
+            style="min-width: 140px; max-width: 180px;"
             @update:model-value="onPresetChange"
           />
-          <v-chip
-            :color="currentProviderStatus === 'connected' ? 'success' : 'grey'"
-            size="small"
-            variant="tonal"
-          >
-            {{ currentProviderStatus === 'connected' ? 'LLM 在线' : 'LLM 离线' }}
-          </v-chip>
-          <v-chip
-            :color="settingsStore.comfyStatus === 'connected' ? 'success' : 'grey'"
-            size="small"
-            variant="tonal"
-          >
-            {{ settingsStore.comfyStatus === 'connected' ? 'ComfyUI 在线' : 'ComfyUI 离线' }}
-          </v-chip>
-        </v-col>
-      </v-row>
+
+          <!-- Live Status Indicators -->
+          <div class="d-flex align-center gap-2 px-2 py-1 rounded bg-surface-variant text-caption">
+            <div class="d-flex align-center gap-1" :title="`LLM 状态: ${currentProviderStatus}`">
+              <span :class="['status-indicator', currentProviderStatus === 'connected' ? 'online' : 'offline']" />
+              <span class="text-caption font-weight-medium">LLM</span>
+            </div>
+            <v-divider vertical class="my-1" />
+            <div class="d-flex align-center gap-1" :title="`ComfyUI 状态: ${settingsStore.comfyStatus}`">
+              <span :class="['status-indicator', settingsStore.comfyStatus === 'connected' ? 'online' : 'offline']" />
+              <span class="text-caption font-weight-medium">ComfyUI</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </v-card>
 
-    <v-row>
-      <!-- LEFT COLUMN: Input, Rules, Semantic Facts -->
+    <!-- Main 2-Column Workstation Grid -->
+    <v-row dense>
+      <!-- LEFT COLUMN (~46%): Input, Rules, Semantic Facts & Ownership -->
       <v-col cols="12" lg="6">
-        <!-- Natural Language Input Card -->
-        <v-card variant="outlined" class="mb-4 pa-4 rounded-lg bg-surface">
+        <!-- Natural Language Input Section -->
+        <v-card variant="outlined" class="mb-3 pa-3 bg-surface rounded-lg">
           <div class="d-flex justify-space-between align-center mb-2">
-            <span class="text-subtitle-1 font-weight-bold">画面要求 (中文自然语言)</span>
+            <span class="section-label text-primary">画面要求 (自然语言)</span>
+            
             <!-- Safety 4-level Segmented Control -->
             <v-btn-toggle
               v-model="studioStore.safety"
@@ -100,12 +102,13 @@
               density="compact"
               color="primary"
               variant="outlined"
+              rounded="md"
               @update:model-value="studioStore.buildPrompt()"
             >
-              <v-btn value="Safe" size="small">Safe</v-btn>
-              <v-btn value="Sensitive" size="small">Sensitive</v-btn>
-              <v-btn value="NSFW" size="small">NSFW</v-btn>
-              <v-btn value="Explicit" size="small">Explicit</v-btn>
+              <v-btn value="Safe" size="x-small" class="px-2">Safe</v-btn>
+              <v-btn value="Sensitive" size="x-small" class="px-2">Sensitive</v-btn>
+              <v-btn value="NSFW" size="x-small" class="px-2">NSFW</v-btn>
+              <v-btn value="Explicit" size="x-small" class="px-2">Explicit</v-btn>
             </v-btn-toggle>
           </div>
 
@@ -114,55 +117,60 @@
             placeholder="例如：穗穗穿着泳装，秧秧穿着蓝色海军水手服，穗穗在沙滩上追秧秧。"
             rows="3"
             variant="outlined"
-            density="comfortable"
+            density="compact"
             auto-grow
             hide-details
-            class="mb-3"
+            class="mb-2 text-body-2"
             @input="studioStore.isSemanticDirty = true"
           />
 
-          <!-- Rule Files Selection Chips (Only show enabled rules) -->
-          <div v-if="activeRules.length > 0" class="d-flex align-center gap-2 mb-3 flex-wrap">
-            <span class="text-caption text-grey">参考规则:</span>
+          <!-- Rule Selection Chips -->
+          <div v-if="activeRules.length > 0" class="d-flex align-center gap-1 mb-3 flex-wrap">
+            <span class="text-caption text-grey mr-1">参考规则:</span>
             <v-chip
               v-for="rule in activeRules"
               :key="rule.id"
-              size="small"
+              size="x-small"
               :variant="studioStore.selectedRuleIds.includes(rule.id) ? 'flat' : 'outlined'"
               :color="studioStore.selectedRuleIds.includes(rule.id) ? 'primary' : 'default'"
               @click="toggleRule(rule.id)"
             >
-              <v-icon start size="14">mdi-file-document-outline</v-icon>
+              <v-icon start size="12">mdi-file-document-outline</v-icon>
               {{ rule.name }}
             </v-chip>
           </div>
 
-          <div class="d-flex justify-end">
+          <div class="d-flex justify-space-between align-center pt-1 border-t">
+            <div class="d-flex align-center gap-1">
+              <v-chip v-if="studioStore.isSemanticDirty" size="x-small" color="warning" variant="tonal">
+                画面描述有修改，待重新解析
+              </v-chip>
+            </div>
             <v-btn
               color="primary"
               variant="flat"
               :loading="studioStore.isParsing"
-              prepend-icon="mdi-brain"
-              size="large"
+              prepend-icon="mdi-creation"
+              size="small"
+              class="font-weight-medium px-4"
               @click="studioStore.parsePrompt()"
             >
-              解析提示词
+              解析语义事实
             </v-btn>
           </div>
         </v-card>
 
-        <!-- Semantic Analysis & Fact Preview Card -->
-        <v-card variant="outlined" class="mb-4 pa-4 rounded-lg bg-surface">
-          <div class="d-flex justify-space-between align-center mb-3">
-            <div class="d-flex align-center">
-              <v-icon color="primary" class="mr-2">mdi-graph</v-icon>
-              <span class="text-subtitle-1 font-weight-bold">系统理解与语义事实</span>
+        <!-- Semantic Understanding & Facts Area -->
+        <v-card variant="outlined" class="mb-3 pa-3 bg-surface rounded-lg">
+          <div class="d-flex justify-space-between align-center mb-2 pb-1 border-b">
+            <div class="d-flex align-center gap-1">
+              <span class="section-label">系统理解与事实解析</span>
             </div>
             <v-btn
-              size="small"
+              size="x-small"
               variant="text"
               color="primary"
-              prepend-icon="mdi-refresh"
+              prepend-icon="mdi-sync"
               :loading="studioStore.isBuilding"
               @click="studioStore.buildPrompt(true)"
             >
@@ -170,193 +178,175 @@
             </v-btn>
           </div>
 
-          <div v-if="studioStore.facts.entities.length === 0 && studioStore.facts.statements.length === 0" class="text-center py-6 text-grey">
-            <v-icon size="40" class="mb-2">mdi-card-text-outline</v-icon>
-            <div>输入画面描述后点击“解析提示词”，系统将提取人物、服装归属与动作关系。</div>
+          <!-- Empty State -->
+          <div v-if="studioStore.facts.entities.length === 0 && studioStore.facts.statements.length === 0" class="text-center py-5 text-grey">
+            <v-icon size="32" class="mb-1 opacity-60">mdi-text-box-search-outline</v-icon>
+            <div class="text-caption">输入描述并解析后，此处将呈现结构化人物、服装与动作关系。</div>
           </div>
 
           <div v-else>
-            <!-- Identified Characters with Trigger & Caption editor -->
-            <div class="mb-4">
-              <div class="text-caption font-weight-bold text-grey mb-2">识别人物与 Trigger 映射</div>
-              <v-row dense>
-                <v-col
+            <!-- Character Entities List -->
+            <div class="mb-3">
+              <div class="text-caption font-weight-bold text-grey mb-1">人物实体与 Trigger 绑定:</div>
+              <div class="d-flex flex-column gap-1">
+                <div
                   v-for="entity in studioStore.facts.entities"
                   :key="entity.id"
-                  cols="12"
-                  sm="6"
+                  :class="[
+                    'pa-2 rounded border',
+                    entity.source === 'model_character' && !entity.canonical_tag
+                      ? 'border-error bg-red-lighten-5'
+                      : 'bg-surface-variant'
+                  ]"
                 >
-                  <v-card
-                    :variant="entity.source === 'model_character' && !entity.canonical_tag ? 'outlined' : 'tonal'"
-                    :class="['pa-3', 'rounded-md', entity.source === 'model_character' && !entity.canonical_tag ? 'border-error bg-red-lighten-5' : '']"
-                  >
-                    <div class="d-flex justify-space-between align-center mb-2">
-                      <span class="font-weight-bold">{{ entity.name }}</span>
-                      <div class="d-flex align-center gap-1">
-                        <v-chip
-                          v-if="entity.source === 'model_character' && !entity.canonical_tag"
-                          size="x-small"
-                          color="error"
-                          variant="flat"
-                        >
-                          未解析 Trigger
-                        </v-chip>
-                        <v-chip
-                          size="x-small"
-                          :color="entity.source === 'user_defined' ? 'purple' : (entity.source === 'model_character' ? 'blue' : 'teal')"
-                          variant="flat"
-                        >
-                          {{ entity.source === 'user_defined' ? '用户角色书' : (entity.source === 'model_character' ? '模型角色' : '通用人物') }}
-                        </v-chip>
-                      </div>
-                    </div>
-
-                    <div v-if="entity.source === 'model_character'">
-                      <div v-if="!entity.canonical_tag || !entity.caption_name" class="text-caption text-error mb-1">
-                        未能自动识别该角色 Tag，Canonical Tag 与 Caption Name 均需填写后保存：
-                      </div>
-                      <div class="d-flex gap-1 align-center mb-1">
-                        <v-text-field
-                          v-model="entity.canonical_tag"
-                          label="Canonical Tag (如: suisui)"
-                          density="compact"
-                          variant="outlined"
-                          hide-details
-                          class="font-mono text-caption"
-                        />
-                        <v-text-field
-                          v-model="entity.caption_name"
-                          label="Caption Name (如: Suisui)"
-                          density="compact"
-                          variant="outlined"
-                          hide-details
-                          class="font-mono text-caption"
-                        />
-                        <v-btn
-                          icon="mdi-content-save"
-                          size="small"
-                          variant="text"
-                          color="primary"
-                          title="保存映射至缓存"
-                          :disabled="!entity.canonical_tag || !entity.caption_name"
-                          @click="saveEntityTrigger(entity)"
-                        />
-                      </div>
-                    </div>
-                    <div v-else-if="entity.source === 'user_defined'" class="text-caption text-grey">
-                      展开设定: {{ entity.custom_description || '无额外属性' }}
-                    </div>
-                    <div v-else class="text-caption text-grey font-mono">
-                      自然语言称谓: {{ entity.caption_name || 'the character' }}
-                    </div>
-                  </v-card>
-                </v-col>
-              </v-row>
-            </div>
-
-            <!-- Identified Statements -->
-            <div>
-              <div class="text-caption font-weight-bold text-grey mb-2">事实陈述列表</div>
-              <v-list density="compact" class="bg-transparent pa-0">
-                <v-list-item
-                  v-for="(statement, idx) in studioStore.facts.statements"
-                  :key="idx"
-                  class="mb-2 rounded border pa-2"
-                >
-                  <div class="d-flex align-center justify-space-between">
-                    <div class="d-flex align-center flex-grow-1 mr-2">
-                      <v-chip size="x-small" class="mr-2" variant="outlined">
-                        {{ statement.kind }}
-                      </v-chip>
-                      <span class="text-body-2 font-weight-medium">
-                        {{ statement.subject ? getEntityName(statement.subject) : '场景' }}
-                        <span class="text-grey mx-1">→</span>
-                        {{ statement.text }}
-                        <template v-if="statement.target">
-                          <span class="text-grey mx-1">→</span>
-                          {{ getEntityName(statement.target) }}
-                        </template>
-                      </span>
-                    </div>
-
-                    <div class="d-flex align-center">
+                  <div class="d-flex justify-space-between align-center">
+                    <div class="d-flex align-center gap-2">
+                      <span class="font-weight-bold text-body-2">{{ entity.name }}</span>
                       <v-chip
-                        v-if="statement.facet"
                         size="x-small"
-                        color="secondary"
+                        :color="entity.source === 'user_defined' ? 'purple' : (entity.source === 'model_character' ? 'primary' : 'teal')"
                         variant="tonal"
-                        class="mr-2"
                       >
-                        {{ statement.facet }}
+                        {{ entity.source === 'user_defined' ? '用户角色书' : (entity.source === 'model_character' ? '模型角色' : '通用人物') }}
                       </v-chip>
-                      <v-btn
-                        icon="mdi-close"
-                        size="x-small"
-                        variant="text"
-                        color="grey"
-                        @click="studioStore.removeStatement(idx)"
-                      />
+                    </div>
+
+                    <div v-if="entity.source === 'user_defined'" class="text-caption text-grey text-truncate">
+                      {{ entity.custom_description || '展开角色设定' }}
+                    </div>
+                    <div v-else-if="!entity.source" class="text-caption font-mono text-grey">
+                      {{ entity.caption_name || 'the character' }}
                     </div>
                   </div>
-                </v-list-item>
-              </v-list>
+
+                  <!-- Unresolved Trigger Editor -->
+                  <div v-if="entity.source === 'model_character' && (!entity.canonical_tag || !entity.caption_name)" class="mt-2 pt-2 border-t">
+                    <div class="text-caption text-error mb-1">
+                      未能自动识别该角色 Trigger，请手动填写保存：
+                    </div>
+                    <div class="d-flex gap-1 align-center">
+                      <v-text-field
+                        v-model="entity.canonical_tag"
+                        label="Canonical Tag (如: suisui)"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        class="font-mono text-caption"
+                      />
+                      <v-text-field
+                        v-model="entity.caption_name"
+                        label="Caption Name (如: Suisui)"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        class="font-mono text-caption"
+                      />
+                      <v-btn
+                        size="small"
+                        color="primary"
+                        variant="flat"
+                        :disabled="!entity.canonical_tag || !entity.caption_name"
+                        @click="saveEntityTrigger(entity)"
+                      >
+                        保存
+                      </v-btn>
+                    </div>
+                  </div>
+                  <div v-else-if="entity.source === 'model_character'" class="d-flex gap-2 text-caption font-mono text-grey mt-1">
+                    <span>Tag: <strong class="text-primary">{{ entity.canonical_tag }}</strong></span>
+                    <span>Caption: <strong class="text-primary">{{ entity.caption_name }}</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Statements List -->
+            <div>
+              <div class="text-caption font-weight-bold text-grey mb-1">事实陈述列表:</div>
+              <div class="d-flex flex-column gap-1">
+                <div
+                  v-for="(statement, idx) in studioStore.facts.statements"
+                  :key="idx"
+                  class="d-flex align-center justify-space-between px-2 py-1 rounded border bg-surface text-caption"
+                >
+                  <div class="d-flex align-center gap-1 text-truncate">
+                    <v-chip size="x-small" variant="outlined" class="text-uppercase" style="font-size: 0.65rem;">
+                      {{ statement.kind }}
+                    </v-chip>
+                    <span class="font-weight-medium">
+                      {{ statement.subject ? getEntityName(statement.subject) : '场景' }}
+                    </span>
+                    <span class="text-grey">→</span>
+                    <span class="font-mono text-high-emphasis">{{ statement.text }}</span>
+                    <template v-if="statement.target">
+                      <span class="text-grey">→</span>
+                      <span class="font-weight-medium">{{ getEntityName(statement.target) }}</span>
+                    </template>
+                  </div>
+
+                  <div class="d-flex align-center gap-1 flex-shrink-0">
+                    <v-chip v-if="statement.facet" size="x-small" color="secondary" variant="tonal">
+                      {{ statement.facet }}
+                    </v-chip>
+                    <v-btn
+                      icon="mdi-close"
+                      size="x-small"
+                      variant="text"
+                      color="grey"
+                      @click="studioStore.removeStatement(idx)"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </v-card>
 
-        <!-- IN-STUDIO ARTISTS & LORA CONTROLS -->
-        <v-row>
-          <!-- Artist In-Studio Selector -->
-          <v-col cols="12" md="6">
-            <v-card variant="outlined" class="pa-3 rounded-lg bg-surface h-100">
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-subtitle-2 font-weight-bold">
-                  <v-icon size="18" color="info" class="mr-1">mdi-brush</v-icon>
-                  本次画师
-                </span>
-                <v-btn size="small" variant="tonal" color="primary" prepend-icon="mdi-plus" @click="artistExplorerDialog = true">
-                  浏览添加
+        <!-- Active Artists & LoRAs Control Bar -->
+        <v-row dense>
+          <!-- Active Artists -->
+          <v-col cols="12" sm="6">
+            <v-card variant="outlined" class="pa-2 bg-surface rounded-lg h-100">
+              <div class="d-flex justify-space-between align-center mb-1">
+                <span class="section-label text-info">画师选择 (Artist)</span>
+                <v-btn size="x-small" variant="tonal" color="info" prepend-icon="mdi-plus" @click="artistExplorerDialog = true">
+                  添加画师
                 </v-btn>
               </div>
-
-              <div v-if="studioStore.selectedArtists.length === 0" class="text-caption text-grey py-3 text-center">
-                未选择画师（Prompt 中将不包含画师 Tag）
+              <div v-if="studioStore.selectedArtists.length === 0" class="text-caption text-grey py-2 text-center">
+                未选择画师
               </div>
               <div v-else class="d-flex flex-wrap gap-1">
                 <v-chip
                   v-for="art in studioStore.selectedArtists"
                   :key="art.id"
                   closable
-                  size="small"
+                  size="x-small"
                   color="info"
                   variant="tonal"
                   @click:close="studioStore.toggleArtist(art)"
                 >
-                  {{ art.name }} ({{ art.tags }})
+                  {{ art.name }}
                 </v-chip>
               </div>
             </v-card>
           </v-col>
 
-          <!-- LoRA In-Studio Selector & Strength Sliders -->
-          <v-col cols="12" md="6">
-            <v-card variant="outlined" class="pa-3 rounded-lg bg-surface h-100">
-              <div class="d-flex justify-space-between align-center mb-2">
-                <span class="text-subtitle-2 font-weight-bold">
-                  <v-icon size="18" color="purple" class="mr-1">mdi-toy-brick</v-icon>
-                  本次 LoRA (权重联动)
-                </span>
-                <span class="text-caption text-grey">已启用: {{ studioStore.activeLoras.filter(l => l.isEnabled).length }}</span>
+          <!-- Active LoRAs -->
+          <v-col cols="12" sm="6">
+            <v-card variant="outlined" class="pa-2 bg-surface rounded-lg h-100">
+              <div class="d-flex justify-space-between align-center mb-1">
+                <span class="section-label text-purple">本次 LoRA 挂载</span>
+                <span class="text-caption text-grey font-mono">{{ studioStore.activeLoras.filter(l => l.isEnabled).length }} 项启用</span>
               </div>
-
-              <div v-if="studioStore.activeLoras.length === 0" class="text-caption text-grey py-3 text-center">
-                LoRA 库为空，请先在 LoRA 库中扫描或添加。
+              <div v-if="studioStore.activeLoras.length === 0" class="text-caption text-grey py-2 text-center">
+                LoRA 库为空
               </div>
               <div v-else class="lora-scroll-area">
                 <div
                   v-for="item in studioStore.activeLoras"
                   :key="item.lora.id"
-                  class="d-flex align-center justify-space-between pa-1 border-b"
+                  class="d-flex align-center justify-space-between py-1 border-b text-caption"
                 >
                   <v-checkbox
                     v-model="item.isEnabled"
@@ -364,10 +354,10 @@
                     density="compact"
                     hide-details
                     color="purple"
-                    class="mr-2"
+                    class="mr-1 text-truncate"
                     @update:model-value="studioStore.buildPrompt()"
                   />
-                  <div class="d-flex align-center" style="width: 140px;">
+                  <div class="d-flex align-center" style="width: 120px;">
                     <v-slider
                       v-model="item.strength"
                       min="0.1"
@@ -375,12 +365,11 @@
                       step="0.05"
                       density="compact"
                       hide-details
-                      thumb-label
                       color="purple"
                       :disabled="!item.isEnabled"
                       @update:model-value="studioStore.buildPrompt()"
                     />
-                    <span class="text-caption ml-1 font-mono" style="width: 32px;">{{ item.strength.toFixed(2) }}</span>
+                    <span class="text-caption ml-1 font-mono text-grey" style="width: 28px;">{{ item.strength.toFixed(2) }}</span>
                   </div>
                 </div>
               </div>
@@ -389,90 +378,111 @@
         </v-row>
       </v-col>
 
-      <!-- RIGHT COLUMN: Output & ComfyUI Generation -->
+      <!-- RIGHT COLUMN (~54%): Code Editor Prompt, Generation Params & Large Image Canvas -->
       <v-col cols="12" lg="6">
-        <!-- Prompt Preview Card -->
-        <v-card variant="outlined" class="mb-4 pa-4 rounded-lg bg-surface">
-          <div class="d-flex justify-space-between align-center mb-2">
-            <div class="d-flex align-center">
-              <span class="text-subtitle-1 font-weight-bold mr-2">最终 Anima Prompt (英文)</span>
+        <!-- Prompt Editor Box -->
+        <v-card variant="outlined" class="mb-3 pa-3 bg-surface rounded-lg">
+          <!-- Positive Prompt -->
+          <div class="d-flex justify-space-between align-center mb-1">
+            <div class="d-flex align-center gap-1">
+              <span class="section-label text-success">Positive Prompt (Anima-2.9B)</span>
               <v-chip v-if="studioStore.isPositivePromptDirty" size="x-small" color="warning" variant="flat">
                 已手动编辑
               </v-chip>
             </div>
             <v-btn
-              size="small"
-              variant="tonal"
+              size="x-small"
+              variant="text"
               color="primary"
               prepend-icon="mdi-content-copy"
               @click="copyToClipboard(studioStore.positivePrompt)"
             >
-              复制 Prompt
+              复制
             </v-btn>
           </div>
-          <v-textarea
-            v-model="studioStore.positivePrompt"
-            rows="5"
-            variant="outlined"
-            density="compact"
-            auto-grow
-            class="font-mono text-body-2 mb-3"
-            hide-details
-            @input="studioStore.isPositivePromptDirty = true"
-          />
 
-          <!-- Negative Prompt Section -->
-          <div class="d-flex justify-space-between align-center mb-2">
-            <div class="d-flex align-center">
-              <span class="text-subtitle-2 font-weight-bold text-grey mr-2">Negative Prompt</span>
+          <div class="prompt-editor-card mb-2">
+            <v-textarea
+              v-model="studioStore.positivePrompt"
+              rows="4"
+              variant="plain"
+              density="compact"
+              auto-grow
+              hide-details
+              class="prompt-textarea px-2 py-1"
+              @input="studioStore.isPositivePromptDirty = true"
+            />
+          </div>
+
+          <!-- Negative Prompt -->
+          <div class="d-flex justify-space-between align-center mb-1">
+            <div class="d-flex align-center gap-1">
+              <span class="section-label text-secondary">Negative Prompt</span>
               <v-chip v-if="studioStore.isNegativePromptDirty" size="x-small" color="warning" variant="flat">
                 已手动编辑
               </v-chip>
             </div>
             <v-btn
-              size="small"
+              size="x-small"
               variant="text"
               color="grey"
               prepend-icon="mdi-content-copy"
               @click="copyToClipboard(studioStore.negativePrompt)"
             >
-              复制 Negative
+              复制
             </v-btn>
           </div>
-          
-          <v-textarea
-            v-model="studioStore.negativePrompt"
-            rows="3"
-            variant="outlined"
-            density="compact"
-            auto-grow
-            class="font-mono text-caption mb-3"
-            hide-details
-            @input="studioStore.isNegativePromptDirty = true"
-          />
+
+          <div class="prompt-editor-card mb-2">
+            <v-textarea
+              v-model="studioStore.negativePrompt"
+              rows="2"
+              variant="plain"
+              density="compact"
+              auto-grow
+              hide-details
+              class="prompt-textarea px-2 py-1"
+              @input="studioStore.isNegativePromptDirty = true"
+            />
+          </div>
 
           <v-text-field
             v-model="studioStore.extraNegative"
-            label="本次额外 Negative (如: extra hands, text)"
+            label="本次追加 Negative (如: text, lowres)"
             density="compact"
             variant="outlined"
             hide-details
+            class="text-caption"
             @update:model-value="studioStore.buildPrompt()"
           />
         </v-card>
 
-        <!-- ComfyUI Generation & Image Output Card -->
-        <v-card variant="outlined" class="pa-4 rounded-lg bg-surface">
+        <!-- Generation Controls & Parameters Bar -->
+        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg">
+          <!-- Generation Action Top Bar -->
           <div class="d-flex justify-space-between align-center mb-3">
-            <div class="d-flex align-center">
-              <v-icon color="success" class="mr-2">mdi-image-multiple</v-icon>
-              <span class="text-subtitle-1 font-weight-bold">ComfyUI 生图控制</span>
+            <div class="d-flex align-center gap-2">
+              <span class="section-label text-primary">ComfyUI 渲染工作区</span>
+              <!-- Workflow Mode Toggle -->
+              <v-btn-toggle
+                v-model="studioStore.workflowMode"
+                mandatory
+                density="compact"
+                color="primary"
+                variant="outlined"
+                rounded="md"
+              >
+                <v-btn value="builtin" size="x-small" class="px-2">内置 2.9B</v-btn>
+                <v-btn value="custom" size="x-small" class="px-2">自定义 API</v-btn>
+              </v-btn-toggle>
             </div>
+
             <v-btn
-              color="success"
+              color="primary"
               variant="flat"
               prepend-icon="mdi-play"
-              size="large"
+              size="default"
+              class="font-weight-bold px-5"
               :loading="studioStore.isGenerating"
               @click="studioStore.generateImage()"
             >
@@ -480,24 +490,14 @@
             </v-btn>
           </div>
 
-          <!-- Workflow Mode Selection & Custom Workflow JSON Uploader -->
-          <div class="mb-3 border rounded pa-2 bg-surface">
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-1">
-              <div class="d-flex align-center">
-                <span class="text-caption font-weight-bold mr-2">工作流:</span>
-                <v-btn-toggle
-                  v-model="studioStore.workflowMode"
-                  mandatory
-                  density="compact"
-                  color="primary"
-                  variant="outlined"
-                >
-                  <v-btn value="builtin" size="small">内置 Anima 2.9B</v-btn>
-                  <v-btn value="custom" size="small">自定义 API Workflow</v-btn>
-                </v-btn-toggle>
+          <!-- Custom Workflow File Input Row -->
+          <div v-if="studioStore.workflowMode === 'custom'" class="mb-3 pa-2 rounded border bg-surface-variant">
+            <div class="d-flex justify-space-between align-center flex-wrap gap-1 text-caption">
+              <div class="d-flex align-center gap-1">
+                <v-icon size="16" color="primary">mdi-file-code-outline</v-icon>
+                <span>{{ studioStore.customWorkflowName ? studioStore.customWorkflowName : '未选择 API Workflow JSON' }}</span>
               </div>
-
-              <div v-if="studioStore.workflowMode === 'custom'" class="d-flex align-center gap-2">
+              <div class="d-flex align-center gap-1">
                 <input
                   ref="workflowFileInput"
                   type="file"
@@ -505,184 +505,211 @@
                   style="display: none"
                   @change="handleWorkflowUpload"
                 />
-                <v-btn
-                  size="small"
-                  color="primary"
-                  variant="tonal"
-                  prepend-icon="mdi-upload"
-                  @click="triggerWorkflowUpload"
-                >
-                  {{ studioStore.customWorkflowName ? '重选 JSON' : '导入 API Workflow JSON' }}
+                <v-btn size="x-small" variant="tonal" color="primary" @click="triggerWorkflowUpload">
+                  导入 JSON
                 </v-btn>
                 <v-btn
                   v-if="studioStore.customWorkflowTemplate"
-                  size="small"
+                  size="x-small"
                   variant="text"
                   color="error"
                   @click="studioStore.resetToBuiltinWorkflow()"
                 >
-                  恢复内置
+                  重置
                 </v-btn>
-              </div>
-            </div>
-
-            <div v-if="studioStore.workflowMode === 'custom'" class="mt-2">
-              <div v-if="studioStore.customWorkflowName" class="d-flex justify-space-between align-center text-caption font-mono border rounded pa-2 bg-surface">
-                <div class="d-flex align-center text-truncate mr-2">
-                  <v-icon size="16" color="success" class="mr-1">mdi-file-check</v-icon>
-                  <span>当前文件: {{ studioStore.customWorkflowName }}</span>
-                </div>
-                <v-switch
-                  v-model="studioStore.overrideWorkflowModels"
-                  label="覆盖工作流中的模型"
-                  density="compact"
-                  color="primary"
-                  hide-details
-                />
-              </div>
-              <div v-else class="text-caption text-grey border border-dashed rounded pa-2 text-center">
-                请点击上方按钮导入从 ComfyUI [Save (API Format)] 导出的 JSON 文件。
               </div>
             </div>
           </div>
 
-          <!-- Generation Parameters (Anima-2.9B Blueprint standards) -->
+          <!-- Generation Parameters (Dense Row) -->
           <v-row dense class="mb-3">
             <v-col cols="6" sm="3">
               <v-select
                 v-model="studioStore.width"
                 :items="[812, 1024, 1152, 1280]"
-                label="宽度"
+                label="宽 (Width)"
                 density="compact"
                 variant="outlined"
                 hide-details
+                class="text-caption"
               />
             </v-col>
             <v-col cols="6" sm="3">
               <v-select
                 v-model="studioStore.height"
                 :items="[1216, 1536, 1792]"
-                label="高度"
+                label="高 (Height)"
                 density="compact"
                 variant="outlined"
                 hide-details
+                class="text-caption"
               />
             </v-col>
             <v-col cols="6" sm="3">
               <v-text-field
                 v-model.number="studioStore.steps"
-                label="Steps (28-50)"
+                label="步数 (Steps)"
                 density="compact"
                 variant="outlined"
                 type="number"
                 hide-details
+                class="text-caption"
               />
             </v-col>
             <v-col cols="6" sm="3">
               <v-text-field
                 v-model.number="studioStore.cfg"
-                label="CFG (3.5-5.0)"
+                label="CFG (Guidance)"
                 density="compact"
                 variant="outlined"
                 type="number"
                 step="0.5"
                 hide-details
+                class="text-caption"
               />
             </v-col>
           </v-row>
 
-          <!-- Generation Progress Bar -->
-          <div v-if="studioStore.isGenerating" class="mb-4">
+          <!-- Generation Progress & Messages -->
+          <div v-if="studioStore.isGenerating" class="mb-3 pa-2 rounded border bg-surface-variant">
             <div class="d-flex justify-space-between text-caption mb-1">
-              <span>{{ studioStore.generationMessage }}</span>
-              <span>{{ studioStore.generationProgress }}%</span>
+              <span class="font-weight-medium">{{ studioStore.generationMessage }}</span>
+              <span class="font-mono font-weight-bold">{{ studioStore.generationProgress }}%</span>
             </div>
             <v-progress-linear
               v-model="studioStore.generationProgress"
-              color="success"
+              color="primary"
               height="6"
               rounded
             />
           </div>
 
-          <!-- Generation Error or Timeout Message -->
-          <div v-if="!studioStore.isGenerating && studioStore.generationMessage && (studioStore.generationMessage.includes('失败') || studioStore.generationMessage.includes('超时') || studioStore.generationMessage.includes('错误'))" class="mb-3 text-caption text-error bg-red-lighten-5 pa-2 rounded border">
-            <v-icon size="16" color="error" class="mr-1">mdi-alert-circle</v-icon>
+          <!-- Error Alert Banner -->
+          <v-alert
+            v-if="!studioStore.isGenerating && studioStore.generationMessage && (studioStore.generationMessage.includes('失败') || studioStore.generationMessage.includes('超时') || studioStore.generationMessage.includes('错误'))"
+            type="error"
+            density="compact"
+            variant="tonal"
+            class="mb-3 text-caption"
+          >
             {{ studioStore.generationMessage }}
-          </div>
+          </v-alert>
 
-          <!-- Rendered Image Result -->
-          <div v-if="studioStore.generatedImageUrl" class="text-center mt-3">
-            <v-img
-              :src="studioStore.generatedImageUrl"
-              max-height="460"
-              contain
-              class="rounded-lg border bg-black cursor-pointer"
-            />
-          </div>
-          <div v-else-if="!studioStore.isGenerating" class="text-center py-8 text-grey border rounded-lg">
-            <v-icon size="48" class="mb-2">mdi-image-outline</v-icon>
-            <div>准备就绪，点击“开始生图”由 ComfyUI 渲染。</div>
+          <!-- Image Render Stage (Visual Hero) -->
+          <div class="image-stage-box rounded-lg border bg-surface-variant d-flex align-center justify-center position-relative overflow-hidden">
+            <div v-if="studioStore.generatedImageUrl" class="w-100 text-center position-relative">
+              <v-img
+                :src="studioStore.generatedImageUrl"
+                max-height="520"
+                contain
+                class="bg-black cursor-pointer rounded"
+                @click="openImagePreview(studioStore.generatedImageUrl)"
+              />
+              <!-- Image Quick Action Overlay Toolbar -->
+              <div class="image-overlay-actions d-flex align-center justify-space-between px-3 py-1 bg-surface border-t">
+                <span class="text-caption font-mono text-grey">
+                  {{ studioStore.width }}×{{ studioStore.height }} | Steps: {{ studioStore.steps }} | CFG: {{ studioStore.cfg }}
+                </span>
+                <div class="d-flex align-center gap-1">
+                  <v-btn
+                    size="x-small"
+                    variant="text"
+                    prepend-icon="mdi-magnify-plus-outline"
+                    @click="openImagePreview(studioStore.generatedImageUrl)"
+                  >
+                    查看大图
+                  </v-btn>
+                  <v-btn
+                    size="x-small"
+                    variant="text"
+                    prepend-icon="mdi-download"
+                    @click="downloadImage(studioStore.generatedImageUrl)"
+                  >
+                    保存
+                  </v-btn>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty Ready State -->
+            <div v-else-if="!studioStore.isGenerating" class="text-center py-12 text-grey">
+              <v-icon size="48" class="mb-2 opacity-50">mdi-image-outline</v-icon>
+              <div class="text-body-2 font-weight-medium">生图渲染画板</div>
+              <div class="text-caption mt-1">设置参数并点击“开始生图”，ComfyUI 将在此渲染高精画作。</div>
+            </div>
           </div>
         </v-card>
       </v-col>
     </v-row>
 
-    <!-- ARTIST EXPLORER MODAL DIALOG (Mini Anima Style Explorer) -->
-    <v-dialog v-model="artistExplorerDialog" max-width="800px">
+    <!-- Mini Artist Explorer Dialog -->
+    <v-dialog v-model="artistExplorerDialog" max-width="820px">
       <v-card class="pa-4 rounded-lg bg-surface">
         <div class="d-flex justify-space-between align-center mb-3">
-          <div class="d-flex align-center">
-            <v-icon color="primary" class="mr-2">mdi-palette-swatch</v-icon>
-            <span class="text-h6 font-weight-bold">画师库浏览器</span>
+          <div class="d-flex align-center gap-1">
+            <v-icon color="info" size="20">mdi-palette-swatch-outline</v-icon>
+            <span class="font-weight-bold text-subtitle-1">画师库快速选择</span>
           </div>
           <v-btn icon="mdi-close" variant="text" size="small" @click="artistExplorerDialog = false" />
         </div>
 
         <v-text-field
           v-model="artistSearchQuery"
-          label="搜索画师名称或 Tag"
+          label="搜索画师名称、风格或 Tag"
           prepend-inner-icon="mdi-magnify"
           density="compact"
           variant="outlined"
           hide-details
-          class="mb-3"
+          class="mb-3 text-caption"
           clearable
         />
 
         <div class="artist-grid">
-          <v-card
+          <div
             v-for="art in filteredArtists"
             :key="art.id"
-            variant="outlined"
-            :class="['pa-3', 'rounded-lg', 'artist-card', isArtistSelected(art) ? 'selected-card' : '']"
+            :class="['artist-card', 'pa-2', 'rounded-lg', 'border', isArtistSelected(art) ? 'selected-card' : '']"
             @click="studioStore.toggleArtist(art)"
           >
             <div class="d-flex justify-space-between align-center mb-1">
-              <span class="font-weight-bold text-subtitle-2">{{ art.name }}</span>
-              <v-icon :color="isArtistSelected(art) ? 'primary' : 'grey'">
-                {{ isArtistSelected(art) ? 'mdi-checkbox-marked-circle' : 'mdi-checkbox-blank-circle-outline' }}
+              <span class="font-weight-bold text-caption">{{ art.name }}</span>
+              <v-icon size="16" :color="isArtistSelected(art) ? 'primary' : 'grey'">
+                {{ isArtistSelected(art) ? 'mdi-check-circle' : 'mdi-circle-outline' }}
               </v-icon>
             </div>
-            <div class="text-caption font-mono text-primary mb-1">
+            <div class="text-caption font-mono text-primary text-truncate mb-1">
               <code>{{ art.tags }}</code>
             </div>
             <div class="text-caption text-grey text-truncate">
               {{ art.description || art.category }}
             </div>
-          </v-card>
+          </div>
         </div>
 
-        <v-card-actions class="justify-end mt-3">
-          <v-btn color="primary" variant="flat" @click="artistExplorerDialog = false">完成选择</v-btn>
+        <v-card-actions class="justify-end mt-3 pt-2 border-t">
+          <v-btn color="primary" variant="flat" size="small" @click="artistExplorerDialog = false">完成选择</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
+    <!-- Large Image Preview Dialog -->
+    <v-dialog v-model="imagePreviewDialog" max-width="1100px">
+      <v-card class="bg-surface rounded-lg overflow-hidden">
+        <div class="d-flex justify-space-between align-center px-4 py-2 border-b">
+          <span class="text-subtitle-2 font-weight-bold">渲染画作原图预览</span>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="imagePreviewDialog = false" />
+        </div>
+        <div class="pa-2 bg-black text-center">
+          <v-img :src="previewImageUrl" max-height="82vh" contain />
+        </div>
+      </v-card>
+    </v-dialog>
+
+    <!-- System Notification Snackbar -->
     <v-snackbar v-model="snackbar" :timeout="2500" :color="snackbarColor">
       {{ snackbarText }}
     </v-snackbar>
-  </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -704,6 +731,9 @@ const ruleStore = useRuleStore()
 
 const artistExplorerDialog = ref(false)
 const artistSearchQuery = ref('')
+const imagePreviewDialog = ref(false)
+const previewImageUrl = ref('')
+
 const snackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('primary')
@@ -850,7 +880,6 @@ function handleWorkflowUpload(event: Event) {
         throw new Error('JSON 根节点必须是一个对象')
       }
       
-      // Basic check: must contain node dictionaries
       const keys = Object.keys(json)
       if (keys.length === 0) {
         throw new Error('工作流 JSON 为空')
@@ -862,6 +891,7 @@ function handleWorkflowUpload(event: Event) {
 
       studioStore.setWorkflowTemplate(file.name, json)
       snackbarText.value = `已导入工作流: ${file.name}`
+      snackbarColor.value = 'success'
       snackbar.value = true
     } catch (err: any) {
       alert(`导入工作流失败: ${err.message || err}`)
@@ -875,7 +905,20 @@ function copyToClipboard(text: string) {
   if (!text) return
   navigator.clipboard.writeText(text)
   snackbarText.value = '已复制到剪贴板'
+  snackbarColor.value = 'success'
   snackbar.value = true
+}
+
+function openImagePreview(url: string) {
+  previewImageUrl.value = url
+  imagePreviewDialog.value = true
+}
+
+function downloadImage(url: string) {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `ImageForge_Anima_${Date.now()}.png`
+  link.click()
 }
 
 async function saveEntityTrigger(entity: any) {
@@ -905,25 +948,29 @@ async function saveEntityTrigger(entity: any) {
 .gap-2 { gap: 8px; }
 .font-mono { font-family: monospace; }
 .lora-scroll-area {
-  max-height: 140px;
+  max-height: 120px;
   overflow-y: auto;
+}
+.image-stage-box {
+  min-height: 320px;
 }
 .artist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 8px;
-  max-height: 400px;
+  max-height: 420px;
   overflow-y: auto;
 }
 .artist-card {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  background-color: var(--v-theme-surface);
 }
 .artist-card:hover {
-  border-color: #3F51B5;
+  border-color: #4F46E5 !important;
 }
 .selected-card {
-  border-color: #3F51B5 !important;
-  background-color: rgba(63, 81, 181, 0.08) !important;
+  border-color: #4F46E5 !important;
+  background-color: rgba(79, 70, 229, 0.08) !important;
 }
 </style>

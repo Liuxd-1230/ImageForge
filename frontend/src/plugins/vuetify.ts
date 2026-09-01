@@ -7,33 +7,80 @@ import * as directives from 'vuetify/directives'
 export default createVuetify({
   components,
   directives,
+  defaults: {
+    VCard: {
+      elevation: 0,
+      rounded: 'lg',
+    },
+    VBtn: {
+      elevation: 0,
+      rounded: 'md',
+    },
+    VTextField: {
+      density: 'compact',
+      variant: 'outlined',
+      hideDetails: 'auto',
+    },
+    VTextarea: {
+      density: 'compact',
+      variant: 'outlined',
+      hideDetails: 'auto',
+    },
+    VSelect: {
+      density: 'compact',
+      variant: 'outlined',
+      hideDetails: 'auto',
+    },
+    VAutocomplete: {
+      density: 'compact',
+      variant: 'outlined',
+      hideDetails: 'auto',
+    },
+    VChip: {
+      density: 'compact',
+      rounded: 'md',
+      variant: 'tonal',
+    },
+    VTable: {
+      density: 'compact',
+    },
+    VDialog: {
+      rounded: 'lg',
+    },
+  },
   theme: {
-    defaultTheme: 'dark',
+    defaultTheme: 'light',
     themes: {
       light: {
         dark: false,
         colors: {
-          primary: '#3F51B5',
-          secondary: '#5C6BC0',
+          primary: '#4F46E5', // Indigo 600
+          'primary-darken-1': '#4338CA',
+          secondary: '#475569', // Slate 600
           surface: '#FFFFFF',
-          background: '#F4F5F7',
-          error: '#BA1A1A',
-          info: '#0288D1',
-          success: '#2E7D32',
-          warning: '#ED6C02',
+          'surface-variant': '#F8FAFC',
+          background: '#F1F5F9',
+          outline: '#CBD5E1',
+          error: '#DC2626',
+          info: '#2563EB',
+          success: '#16A34A',
+          warning: '#D97706',
         },
       },
       dark: {
         dark: true,
         colors: {
-          primary: '#8C9EFF',
-          secondary: '#B0BEC5',
-          surface: '#1A1C22',
-          background: '#121316',
-          error: '#FFB4AB',
-          info: '#81D4FA',
-          success: '#81C784',
-          warning: '#FFD54F',
+          primary: '#818CF8', // Indigo 400
+          'primary-darken-1': '#6366F1',
+          secondary: '#94A3B8',
+          surface: '#1E222B',
+          'surface-variant': '#282D37',
+          background: '#12141A',
+          outline: '#333946',
+          error: '#F87171',
+          info: '#60A5FA',
+          success: '#4ADE80',
+          warning: '#FBBF24',
         },
       },
     },

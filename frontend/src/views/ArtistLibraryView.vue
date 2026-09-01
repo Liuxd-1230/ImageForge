@@ -1,18 +1,19 @@
 <template>
-  <v-container fluid class="pa-4">
-    <div class="d-flex justify-space-between align-center mb-4">
+  <div class="app-page-container">
+    <!-- Top Header -->
+    <div class="d-flex justify-space-between align-center mb-3">
       <div>
-        <h1 class="text-h5 font-weight-bold">画师风格库</h1>
-        <div class="text-caption text-grey">精选 Anima-2.9B 适配画师（推荐使用 @artist 格式），支持画风预览、风格分类与创作台实时同步。</div>
+        <div class="page-header-title">画师风格库 (Artist Gallery)</div>
+        <div class="text-caption text-grey">精选 Anima 适配画师（标准 @artist 规范），支持视觉画风预览与分类管理。</div>
       </div>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
+      <v-btn color="primary" variant="flat" size="small" prepend-icon="mdi-plus" class="px-3" @click="openCreateDialog">
         添加画师
       </v-btn>
     </div>
 
-    <!-- Search & Filter Bar -->
-    <v-row class="mb-2">
-      <v-col cols="12" md="4">
+    <!-- Filter Bar -->
+    <v-card variant="outlined" class="pa-2 mb-3 bg-surface rounded-lg">
+      <div class="d-flex align-center gap-2 flex-wrap">
         <v-text-field
           v-model="searchQuery"
           label="搜索画师名称或 Tag"
@@ -20,42 +21,52 @@
           density="compact"
           variant="outlined"
           hide-details
+          class="text-caption"
+          style="min-width: 220px; max-width: 320px;"
           clearable
         />
-      </v-col>
-      <v-col cols="12" md="8" class="d-flex align-center gap-2 overflow-x-auto">
-        <v-chip
-          :color="selectedCategory === '' ? 'primary' : undefined"
-          :variant="selectedCategory === '' ? 'flat' : 'outlined'"
-          size="small"
-          @click="selectedCategory = ''"
-        >
-          全部画师 ({{ artistStore.artists.length }})
-        </v-chip>
-        <v-chip
-          v-for="cat in categories"
-          :key="cat"
-          :color="selectedCategory === cat ? 'primary' : undefined"
-          :variant="selectedCategory === cat ? 'flat' : 'outlined'"
-          size="small"
-          @click="selectedCategory = cat"
-        >
-          {{ cat }}
-        </v-chip>
-        <v-chip
-          :color="onlyFavorites ? 'amber' : undefined"
-          :variant="onlyFavorites ? 'flat' : 'outlined'"
-          size="small"
-          prepend-icon="mdi-star"
-          @click="onlyFavorites = !onlyFavorites"
-        >
-          仅看收藏
-        </v-chip>
-      </v-col>
-    </v-row>
 
-    <!-- Artists Grid -->
-    <v-row>
+        <div class="d-flex align-center gap-1 overflow-x-auto py-1">
+          <v-chip
+            :color="selectedCategory === '' ? 'primary' : undefined"
+            :variant="selectedCategory === '' ? 'flat' : 'outlined'"
+            size="x-small"
+            @click="selectedCategory = ''"
+          >
+            全部 ({{ artistStore.artists.length }})
+          </v-chip>
+          <v-chip
+            v-for="cat in categories"
+            :key="cat"
+            :color="selectedCategory === cat ? 'primary' : undefined"
+            :variant="selectedCategory === cat ? 'flat' : 'outlined'"
+            size="x-small"
+            @click="selectedCategory = cat"
+          >
+            {{ cat }}
+          </v-chip>
+          <v-chip
+            :color="onlyFavorites ? 'amber' : undefined"
+            :variant="onlyFavorites ? 'flat' : 'outlined'"
+            size="x-small"
+            prepend-icon="mdi-star"
+            @click="onlyFavorites = !onlyFavorites"
+          >
+            仅看收藏
+          </v-chip>
+        </div>
+      </div>
+    </v-card>
+
+    <!-- Empty State -->
+    <div v-if="filteredArtists.length === 0" class="text-center py-12 text-grey border rounded-lg bg-surface">
+      <v-icon size="40" class="mb-2 opacity-50">mdi-palette-outline</v-icon>
+      <div class="text-body-2 font-weight-medium">未找到符合条件的画师</div>
+      <div class="text-caption mt-1">请尝试调整搜索词或分类筛选。</div>
+    </div>
+
+    <!-- Image-First Grid -->
+    <v-row v-else dense>
       <v-col
         v-for="art in filteredArtists"
         :key="art.id"
@@ -64,79 +75,88 @@
         md="4"
         lg="3"
       >
-        <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden">
-          <!-- Preview Image Container -->
-          <div class="artist-preview-container bg-grey-lighten-4 d-flex align-center justify-center border-b">
+        <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden artist-item-card">
+          <!-- Image Preview Area (Hero) -->
+          <div class="artist-preview-box bg-surface-variant d-flex align-center justify-center border-b position-relative">
             <v-img
               v-if="art.preview_url"
               :src="art.preview_url"
-              height="160"
+              height="180"
               cover
               class="w-100"
             >
               <template #placeholder>
                 <div class="d-flex align-center justify-center fill-height bg-surface">
-                  <v-icon size="36" color="grey-lighten-1">mdi-palette</v-icon>
+                  <v-icon size="32" color="grey-lighten-1">mdi-palette</v-icon>
                 </div>
               </template>
               <template #error>
                 <div class="d-flex flex-column align-center justify-center fill-height bg-surface text-grey text-caption">
-                  <v-icon size="32" color="grey">mdi-image-broken</v-icon>
-                  <div>预览图加载失败</div>
+                  <v-icon size="28" color="grey">mdi-image-broken</v-icon>
+                  <div style="font-size: 0.7rem;">预览加载失败</div>
                 </div>
               </template>
             </v-img>
-            <div v-else class="d-flex flex-column align-center justify-center fill-height py-8 text-grey text-caption">
+            <div v-else class="d-flex flex-column align-center justify-center fill-height py-10 text-grey text-caption">
               <v-icon size="36" color="grey-lighten-1" class="mb-1">mdi-palette-outline</v-icon>
-              <div>未设置画风预览图</div>
+              <div style="font-size: 0.75rem;">无样式预览图</div>
             </div>
+
+            <v-btn
+              :icon="art.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
+              :color="art.is_favorite ? 'amber' : 'white'"
+              size="x-small"
+              variant="flat"
+              class="position-absolute favorite-badge"
+              style="top: 8px; right: 8px; background: rgba(0, 0, 0, 0.45) !important;"
+              @click.stop="artistStore.toggleFavorite(art)"
+            />
           </div>
 
-          <div class="pa-4 d-flex flex-column flex-grow-1">
+          <!-- Metadata & Actions -->
+          <div class="pa-3 d-flex flex-column flex-grow-1">
             <div class="d-flex justify-space-between align-center mb-1">
-              <span class="text-subtitle-1 font-weight-bold text-truncate">{{ art.name }}</span>
-              <v-btn
-                :icon="art.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
-                :color="art.is_favorite ? 'amber' : 'grey'"
-                size="small"
-                variant="text"
-                @click="artistStore.toggleFavorite(art)"
-              />
+              <span class="font-weight-bold text-body-2 text-truncate">{{ art.name }}</span>
+              <v-chip size="x-small" variant="tonal" color="secondary" class="ml-1 flex-shrink-0">
+                {{ art.category }}
+              </v-chip>
             </div>
 
-            <div class="text-caption font-mono text-primary mb-2">
+            <div class="text-caption font-mono text-primary mb-1 text-truncate">
               <code>{{ art.tags }}</code>
             </div>
 
-            <div class="text-caption text-grey flex-grow-1 mb-3">
-              {{ art.description || art.category }}
+            <div class="text-caption text-grey flex-grow-1 mb-2 text-truncate-2" style="font-size: 0.75rem !important;">
+              {{ art.description || '暂无画风描述' }}
             </div>
 
             <div class="d-flex justify-space-between align-center mt-auto pt-2 border-t">
               <v-btn
-                size="small"
+                size="x-small"
                 :variant="isArtistSelectedInStudio(art) ? 'flat' : 'tonal'"
                 :color="isArtistSelectedInStudio(art) ? 'success' : 'primary'"
                 :prepend-icon="isArtistSelectedInStudio(art) ? 'mdi-check' : 'mdi-plus'"
+                class="px-2"
                 @click="toggleStudioArtist(art)"
               >
-                {{ isArtistSelectedInStudio(art) ? '已加入创作台' : '加入创作台' }}
+                {{ isArtistSelectedInStudio(art) ? '已在创作台' : '加入创作台' }}
               </v-btn>
+
               <div class="d-flex gap-1">
                 <v-btn
-                  icon="mdi-pencil"
-                  size="small"
+                  icon="mdi-pencil-outline"
+                  size="x-small"
                   variant="text"
                   color="primary"
-                  title="编辑画师"
+                  title="编辑"
                   @click="openEditDialog(art)"
                 />
                 <v-btn
-                  icon="mdi-delete"
-                  size="small"
+                  icon="mdi-delete-outline"
+                  size="x-small"
                   variant="text"
                   color="error"
-                  title="删除画师"
+                  title="删除"
                   @click="deleteArt(art.id)"
                 />
               </div>
@@ -146,20 +166,25 @@
       </v-col>
     </v-row>
 
-    <!-- Add/Edit Artist Dialog -->
+    <!-- Create / Edit Dialog -->
     <v-dialog v-model="dialog" max-width="500px">
-      <v-card class="pa-4 rounded-lg bg-surface">
-        <v-card-title class="font-weight-bold">{{ isEdit ? '编辑画师' : '添加画师' }}</v-card-title>
-        <v-card-text class="pt-2">
-          <v-text-field v-model="form.name" label="画师名称 (如: Mika Pikazo)" density="compact" variant="outlined" class="mb-2" />
-          <v-text-field v-model="form.tags" label="画师 Tag (推荐格式: @mika_pikazo)" density="compact" variant="outlined" class="mb-2" />
-          <v-text-field v-model="form.category" label="风格分类 (如: 高饱和/活力、厚涂/光影)" density="compact" variant="outlined" class="mb-2" />
-          <v-text-field v-model="form.preview_url" label="样例预览图 URL (可选)" density="compact" variant="outlined" class="mb-2" />
-          <v-textarea v-model="form.description" label="画风特点与描述" density="compact" variant="outlined" rows="2" />
-        </v-card-text>
-        <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="dialog = false">取消</v-btn>
-          <v-btn color="primary" variant="flat" :disabled="!form.name || !form.tags" @click="saveArtist">保存</v-btn>
+      <v-card class="pa-4 bg-surface rounded-lg">
+        <div class="d-flex justify-space-between align-center mb-3">
+          <span class="text-subtitle-1 font-weight-bold">{{ isEdit ? '编辑画师' : '添加画师' }}</span>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="dialog = false" />
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+          <v-text-field v-model="form.name" label="画师名称 (如: Mika Pikazo)" density="compact" variant="outlined" />
+          <v-text-field v-model="form.tags" label="画师 Tag (规范格式: @mika_pikazo)" density="compact" variant="outlined" />
+          <v-text-field v-model="form.category" label="风格分类 (如: 高饱和/活力、厚涂/光影)" density="compact" variant="outlined" />
+          <v-text-field v-model="form.preview_url" label="样例预览图 URL (网络或本地静态地址)" density="compact" variant="outlined" />
+          <v-textarea v-model="form.description" label="画风特点与描述" density="compact" variant="outlined" rows="2" hide-details />
+        </div>
+
+        <v-card-actions class="justify-end mt-3 pt-2 border-t">
+          <v-btn variant="text" size="small" @click="dialog = false">取消</v-btn>
+          <v-btn color="primary" variant="flat" size="small" :disabled="!form.name || !form.tags" @click="saveArtist">保存</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -167,7 +192,7 @@
     <v-snackbar v-model="snackbar" :timeout="1500" color="success">
       {{ snackbarText }}
     </v-snackbar>
-  </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -200,21 +225,20 @@ const form = ref({
 
 const categories = computed(() => {
   const set = new Set<string>()
-  artistStore.artists.forEach((a: Artist) => {
-    if (a.category && a.category.trim()) set.add(a.category.trim())
+  artistStore.artists.forEach(a => {
+    if (a.category) set.add(a.category)
   })
   return Array.from(set)
 })
 
 const filteredArtists = computed(() => {
-  return artistStore.artists.filter((a: Artist) => {
-    if (onlyFavorites.value && !a.is_favorite) return false
-    if (selectedCategory.value && a.category !== selectedCategory.value) return false
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      return a.name.toLowerCase().includes(q) || a.tags.toLowerCase().includes(q) || (a.description || '').toLowerCase().includes(q)
-    }
-    return true
+  return artistStore.artists.filter(a => {
+    const matchCat = !selectedCategory.value || a.category === selectedCategory.value
+    const matchFav = !onlyFavorites.value || a.is_favorite
+    const matchQuery = !searchQuery.value ||
+      a.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      a.tags.toLowerCase().includes(searchQuery.value.toLowerCase())
+    return matchCat && matchFav && matchQuery
   })
 })
 
@@ -228,8 +252,6 @@ function isArtistSelectedInStudio(art: Artist): boolean {
 
 function toggleStudioArtist(art: Artist) {
   studioStore.toggleArtist(art)
-  snackbarText.value = isArtistSelectedInStudio(art) ? `已添加画师 ${art.name}` : `已移除画师 ${art.name}`
-  snackbar.value = true
 }
 
 function openCreateDialog() {
@@ -257,17 +279,17 @@ function openEditDialog(art: Artist) {
     description: art.description || '',
     preview_url: art.preview_url || '',
     is_favorite: art.is_favorite,
-    is_custom: art.is_custom
+    is_custom: art.is_custom ?? true
   }
   dialog.value = true
 }
 
 async function saveArtist() {
+  if (!form.value.name || !form.value.tags) return
   await artistStore.saveArtist(form.value)
-  // Synchronize with Studio selected artists and re-build prompt immediately
   studioStore.syncArtistsFromLibrary(artistStore.artists)
-  snackbarText.value = isEdit.value ? '画师信息已更新' : '画师已创建'
   dialog.value = false
+  snackbarText.value = '画师信息已保存并同步至创作台'
   snackbar.value = true
 }
 
@@ -275,8 +297,6 @@ async function deleteArt(id: number) {
   if (confirm('确定删除该画师记录吗？')) {
     await artistStore.deleteArtist(id)
     studioStore.syncArtistsFromLibrary(artistStore.artists)
-    snackbarText.value = '画师已删除'
-    snackbar.value = true
   }
 }
 </script>
@@ -284,12 +304,16 @@ async function deleteArt(id: number) {
 <style scoped>
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
-.artist-preview-container {
-  height: 160px;
-  width: 100%;
+.artist-item-card {
+  transition: border-color 0.15s ease;
 }
-.overflow-x-auto {
-  overflow-x: auto;
-  white-space: nowrap;
+.artist-item-card:hover {
+  border-color: #4F46E5 !important;
+}
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

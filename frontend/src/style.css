@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Roboto Mono', Menlo, Consolas, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom Desktop Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 145, 160, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 145, 160, 0.45);
+}
+
+/* Typography & Hierarchy */
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+.page-header-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+}
+
+/* Layout Utilities */
+.app-page-container {
+  max-width: 1720px;
+  margin: 0 auto;
+  padding: 14px 20px;
+}
+
+/* Status Dot Component */
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-indicator.online {
+  background-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.status-indicator.offline {
+  background-color: #9CA3AF;
+}
+.status-indicator.error {
+  background-color: #EF4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+.status-indicator.busy {
+  background-color: #F59E0B;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+/* Code Editor Prompt Box */
+.prompt-editor-card {
+  border: 1px solid var(--v-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.prompt-editor-card:focus-within {
+  border-color: #4F46E5 !important;
+}
+
+.prompt-textarea textarea {
+  font-family: var(--font-mono) !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.55 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Clean Density Adjustments */
+.v-btn {
+  letter-spacing: 0.01em;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.v-card {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.v-chip {
+  font-weight: 500;
+}

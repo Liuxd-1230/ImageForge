@@ -1,63 +1,123 @@
 <template>
   <v-app>
-    <!-- Navigation Drawer / Rail -->
+    <!-- Desktop Navigation Sidebar -->
     <v-navigation-drawer
       v-model="drawer"
       :rail="rail"
       permanent
-      @click="rail = false"
+      border="e"
+      width="230"
+      class="app-sidebar"
     >
-      <v-list-item
-        prepend-icon="mdi-creation"
-        title="ImageForge"
-        subtitle="Anima 提示词工作台"
-        class="py-3"
-      >
-        <template #append>
+      <div class="d-flex align-center justify-space-between px-3 py-3 app-brand-header">
+        <div v-if="!rail" class="d-flex align-center gap-2">
+          <v-icon icon="mdi-creation" color="primary" size="22" />
+          <div class="d-flex flex-column">
+            <span class="font-weight-bold text-body-2 tracking-tight">ImageForge</span>
+            <span class="text-caption text-grey text-truncate" style="font-size: 0.68rem !important; line-height: 1;">Anima 工作台</span>
+          </div>
+        </div>
+        <v-icon v-else icon="mdi-creation" color="primary" class="mx-auto" />
+        
+        <v-btn
+          variant="text"
+          density="compact"
+          :icon="rail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
+          size="small"
+          @click.stop="rail = !rail"
+        />
+      </div>
+
+      <v-divider class="my-1 opacity-20" />
+
+      <v-list density="compact" nav class="px-2 py-1">
+        <v-list-item
+          prepend-icon="mdi-brush-variant"
+          title="创作台"
+          to="/"
+          value="studio"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-account-box-multiple-outline"
+          title="角色书"
+          to="/characters"
+          value="characters"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-palette-outline"
+          title="画师库"
+          to="/artists"
+          value="artists"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-toy-brick-outline"
+          title="LoRA 库"
+          to="/loras"
+          value="loras"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-file-code-outline"
+          title="规则文件"
+          to="/rules"
+          value="rules"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-tune-variant"
+          title="提示词预设"
+          to="/presets"
+          value="presets"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-history"
+          title="生图历史"
+          to="/history"
+          value="history"
+          rounded="md"
+          class="mb-1"
+        />
+        <v-list-item
+          prepend-icon="mdi-cog-outline"
+          title="系统设置"
+          to="/settings"
+          value="settings"
+          rounded="md"
+          class="mb-1"
+        />
+      </v-list>
+
+      <template #append>
+        <div class="pa-2 border-t text-center">
           <v-btn
             variant="text"
-            icon="mdi-chevron-left"
-            @click.stop="rail = !rail"
-          />
-        </template>
-      </v-list-item>
-
-      <v-divider />
-
-      <v-list density="compact" nav class="mt-2">
-        <v-list-item prepend-icon="mdi-brush" title="创作台" to="/" value="studio" />
-        <v-list-item prepend-icon="mdi-account-group" title="角色书" to="/characters" value="characters" />
-        <v-list-item prepend-icon="mdi-palette" title="画师库" to="/artists" value="artists" />
-        <v-list-item prepend-icon="mdi-toy-brick" title="LoRA" to="/loras" value="loras" />
-        <v-list-item prepend-icon="mdi-file-document" title="规则文件" to="/rules" value="rules" />
-        <v-list-item prepend-icon="mdi-tune" title="预设管理" to="/presets" value="presets" />
-        <v-list-item prepend-icon="mdi-history" title="生图历史" to="/history" value="history" />
-        <v-list-item prepend-icon="mdi-cog" title="设置" to="/settings" value="settings" />
-      </v-list>
+            block
+            density="compact"
+            size="small"
+            class="text-caption text-grey"
+            @click="toggleTheme"
+          >
+            <v-icon size="16" class="mr-1">
+              {{ theme.global.current.value.dark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}
+            </v-icon>
+            <span v-if="!rail">{{ theme.global.current.value.dark ? '浅色模式' : '深色模式' }}</span>
+          </v-btn>
+        </div>
+      </template>
     </v-navigation-drawer>
 
-    <!-- Top App Bar -->
-    <v-app-bar density="compact" elevation="0" border="b">
-      <v-app-bar-nav-icon @click="drawer = !drawer" />
-      <v-app-bar-title class="text-subtitle-1 font-weight-bold">
-        ImageForge — Anima 二次元生图提示词工作台
-      </v-app-bar-title>
-
-      <v-spacer />
-
-      <!-- Dark / Light Theme Toggle -->
-      <v-btn
-        icon
-        variant="text"
-        size="small"
-        @click="toggleTheme"
-      >
-        <v-icon>{{ theme.global.current.value.dark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
-      </v-btn>
-    </v-app-bar>
-
-    <!-- Main Content View -->
-    <v-main>
+    <!-- Main Content Canvas -->
+    <v-main class="bg-background">
       <router-view />
     </v-main>
   </v-app>
@@ -76,17 +136,14 @@ function toggleTheme() {
 }
 </script>
 
-<style>
-/* Global smooth scrollbar & typography adjustments */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+<style scoped>
+.app-brand-header {
+  height: 48px;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.tracking-tight {
+  letter-spacing: -0.02em;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.3);
-  border-radius: 3px;
+.gap-2 {
+  gap: 8px;
 }
 </style>
