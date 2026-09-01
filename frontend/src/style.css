@@ -1,8 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* ============================================================
+   ImageForge — Material 3 Expressive global styles
+   ============================================================ */
 
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Roboto Mono', Menlo, Consolas, monospace;
+  /* Typography — Google Sans Flex preferred, then high-quality system fallbacks.
+     No unstable online font dependency (local-first product). */
+  --font-sans: 'Google Sans Flex', 'Google Sans', 'Product Sans', 'Segoe UI Variable Display',
+    'Segoe UI', system-ui, -apple-system, 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: 'Roboto Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Menlo', 'Consolas',
+    monospace;
+
+  /* Motion tokens — M3 expressive, never `transition: all` */
+  --motion-fast: 160ms;
+  --motion-base: 200ms;
+  --motion-spring: cubic-bezier(0.2, 0.85, 0.25, 1.08);
+  --motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* MAX signature gradient (Cloud reasoning = max only) */
+  --max-gradient: linear-gradient(90deg, #7c4dff 0%, #35cfff 33%, #ff4fba 66%, #7c4dff 100%);
+  --max-gradient-size: 250% 100%;
+}
+
+html {
+  /* Vuetify reset forces `overflow-y: scroll`; relax to auto so normal pages
+     only show the scrollbar when needed and the Studio (100vh, no page scroll)
+     doesn't carry a permanent empty gutter. */
+  overflow-y: auto;
 }
 
 body {
@@ -12,103 +36,116 @@ body {
   margin: 0;
   padding: 0;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
-/* Custom Desktop Scrollbars */
+/* Custom tonal desktop scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(140, 145, 160, 0.25);
-  border-radius: 4px;
+  background: rgba(120, 110, 140, 0.28);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(140, 145, 160, 0.45);
+  background: rgba(120, 110, 140, 0.48);
+  background-clip: padding-box;
 }
 
-/* Typography & Hierarchy */
+/* Typography helpers */
 .font-mono {
   font-family: var(--font-mono) !important;
 }
 
 .page-header-title {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.015em;
 }
 
 .section-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.75;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--v-theme-on-surface);
+  opacity: 0.82;
 }
 
-/* Layout Utilities */
+/* Layout utility (kept for other views) */
 .app-page-container {
   max-width: 1720px;
   margin: 0 auto;
-  padding: 14px 20px;
+  padding: 20px 24px;
 }
 
-/* Status Dot Component */
+/* Status dot — small, calm, never a glowing beacon */
 .status-indicator {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  transition: background-color var(--motion-fast) var(--motion-emphasized);
 }
 .status-indicator.online {
-  background-color: #10B981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  background-color: var(--v-theme-success);
 }
 .status-indicator.offline {
-  background-color: #9CA3AF;
+  background-color: var(--v-theme-outline);
 }
 .status-indicator.error {
-  background-color: #EF4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  background-color: var(--v-theme-error);
 }
 .status-indicator.busy {
-  background-color: #F59E0B;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  background-color: var(--v-theme-warning);
 }
 
-/* Code Editor Prompt Box */
-.prompt-editor-card {
-  border: 1px solid var(--v-border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.15s ease;
-}
-.prompt-editor-card:focus-within {
-  border-color: #4F46E5 !important;
-}
-
-.prompt-textarea textarea {
-  font-family: var(--font-mono) !important;
-  font-size: 0.8125rem !important;
-  line-height: 1.55 !important;
-  letter-spacing: -0.01em !important;
-}
-
-/* Clean Density Adjustments */
+/* Buttons: calm, sentence case, no uppercase shouting */
 .v-btn {
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   text-transform: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.v-card {
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+/* MAX signature animated gradient — exclusive to Cloud reasoning = MAX */
+@keyframes if-max-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 250% 50%; }
+}
+@keyframes if-max-breath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.if-max-gradient {
+  background-image: var(--max-gradient);
+  background-size: var(--max-gradient-size);
+  animation: if-max-flow 7s linear infinite;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.if-max-track {
+  background-image: var(--max-gradient);
+  background-size: var(--max-gradient-size);
+  animation: if-max-flow 7s linear infinite;
+}
+.if-max-thumb {
+  animation: if-max-breath 3.2s ease-in-out infinite;
 }
 
-.v-chip {
-  font-weight: 500;
+/* Accessibility: shut down ALL decorative motion for reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
