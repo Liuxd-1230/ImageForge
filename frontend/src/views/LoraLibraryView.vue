@@ -139,6 +139,12 @@
           <span class="pv-label">实际解析路径</span>
           <span class="mono pv-path">{{ newSourceResolved }}</span>
         </p>
+        <p v-if="resolveStatus && resolveStatus.ok" class="path-preview">
+          <span class="pv-dot" /> 可访问 · {{ resolveStatus.count }} 个候选文件
+        </p>
+        <p v-else-if="resolveStatus && !resolveStatus.ok && resolveStatus.error" class="path-preview">
+          <span class="pv-dot bad" /> {{ resolveStatus.error }}
+        </p>
 
         <!-- 来源列表 -->
         <div class="source-list">
@@ -353,6 +359,8 @@ const newSourceRecursive = ref(true)
 const addingSource = ref(false)
 const sourceError = ref('')
 const newSourceResolved = ref('')
+const resolveStatus = ref<{ ok: boolean; error?: string; count?: number } | null>(null)
+let resolveTimer: ReturnType<typeof setTimeout> | null = null
 
 /* ── 扫描预览 ── */
 const scanDialog = ref(false)
@@ -418,11 +426,29 @@ async function openSourceDialog() {
 }
 
 function resolvePreview() {
-  if (!newSourcePath.value.trim()) { newSourceResolved.value = ''; return }
-  // 前端只做展示性转译；权威解析在后端（WSL 检测以后端环境为准）
-  const p = newSourcePath.value.trim().replace(/\\/g, '/')
-  const m = p.match(/^([A-Za-z]):\/(.*)$/)
-  newSourceResolved.value = m ? `/mnt/${m[1].toLowerCase()}/${m[2]}` : p
+  const p = newSourcePath.value.trim()
+  if (!p) {
+    newSourceResolved.value = ''
+    resolveStatus.value = null
+    sourceError.value = ''
+    return
+  }
+  // WSL 判定以后端为准：调 resolve-path 预览 API，前端不猜 /mnt/<drive>
+  if (resolveTimer) clearTimeout(resolveTimer)
+  resolveTimer = setTimeout(async () => {
+    try {
+      const r = await loraStore.resolvePath(p)
+      newSourceResolved.value = r.resolved_path
+      if (r.exists && r.is_dir && r.readable) {
+        resolveStatus.value = { ok: true, count: r.lora_file_count }
+        sourceError.value = ''
+      } else {
+        resolveStatus.value = { ok: false, error: r.error || '路径不可访问' }
+      }
+    } catch {
+      resolveStatus.value = { ok: false, error: '路径解析失败' }
+    }
+  }, 200)
 }
 
 async function addSource() {
@@ -447,9 +473,8 @@ async function runScan(s: LoraSource) {
     const result = await loraStore.scanSource(s.id)
     if (result) {
       scanResult.value = result
-      selectedPaths.value = new Set(
-        result.candidates.filter(c => !c.exists_in_db).map(c => c.full_path),
-      )
+      // 默认一个都不选；「全选新增」是用户的主动操作
+      selectedPaths.value = new Set()
       scanDialog.value = true
     }
   } catch (err: any) {
@@ -489,12 +514,18 @@ function clearSelection() {
   selectedPaths.value = new Set()
 }
 async function doImport() {
-  if (selectedCandidates.value.length === 0) return
+  if (selectedCandidates.value.length === 0 || !scanResult.value) return
   importing.value = true
   try {
-    const res = await loraStore.importCandidates(selectedCandidates.value)
+    // 只传 source_id + relative_paths，服务器重新验证（路径归属/存在/识别/重复）
+    const res = await loraStore.importCandidates(
+      scanResult.value.source.id,
+      selectedCandidates.value.map(c => c.relative_path),
+    )
     studioStore.syncLorasFromLibrary(loraStore.loras)
-    notify(`已导入 ${res.imported.length} 项，跳过 ${res.skipped.length} 项`)
+    const skippedN = (res.skipped || []).length
+    const errN = (res.errors || []).length
+    notify(`已导入 ${res.imported.length} 项${skippedN ? `，跳过 ${skippedN}` : ''}${errN ? `，${errN} 项失败` : ''}`)
     scanDialog.value = false
   } catch (err: any) {
     notify(err.response?.data?.detail || err.message || '导入失败', 'error')
@@ -929,6 +960,8 @@ function onStrengthDown(e: PointerEvent) {
 }
 .pv-label { color: rgb(var(--v-theme-on-surface-variant)); flex-shrink: 0; }
 .pv-path { color: rgb(var(--v-theme-primary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-dot { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--v-theme-success)); flex-shrink: 0; }
+.pv-dot.bad { background: rgb(var(--v-theme-error)); }
 .source-list {
   max-height: 44vh;
   overflow-y: auto;

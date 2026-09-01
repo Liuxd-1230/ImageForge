@@ -127,3 +127,35 @@ http://127.0.0.1:5173/（Vite dev server，cwd=frontend），模拟点击 + 几�
 - 未接 ComfyUI 真实 queue/progress/cancel（按要求用阶段+indeterminate）。
 - 未重做 Prompt Engine；Settings/Character 页仍未换 M3 视觉（用户优先级未含）。
 
+---
+
+# 第三轮：correctness follow-up（ae14f71 审计 15 项）
+
+## 后端修复（`.verify/backend_test.py` 42/42）
+
+| # | 审计项 | 修复 |
+|---|--------|------|
+| 1 | **fresh DB 首次启动崩溃(P0)** | `_migrate_legacy_sqlite()` 先查 sqlite_master，`loras` 表不存在即 no-op（create_all 后再建）；新增「全新空目录 + 全新 DB 首次启动」测试（迁移→建表→写入→列 nullable 断言） |
+| 2 | **import 信任前端路径(P0)** | 契约改为 `{source_id, relative_paths[]}`；服务端重验：realpath(root/rel) 必须仍在 source root 内（commonpath）、文件存在、扩展名、重新查询 ComfyUI、重新判重复/冲突；恶意路径（`../`、绝对、盘符、非 lora 扩展名）与过期路径（文件已删）分别返回 errors |
+| 3 | **同批同 filename 重复写入(P0/P1)** | import 循环内即时更新 `seen_filenames`/`db_filenames`/`seen_src_paths`，同请求重复提交第二个被跳过（测试通过） |
+| 4 | **跨来源同 basename / basename fallback(P0/P1)** | 纯函数 `_match_comfy`：exact/相对路径匹配优先；basename fallback 仅当「ComfyUI 中该 basename 唯一 且 本批无同名」时启用；`scan`/`import` 计算跨来源同名（`_other_sources_basenames`）计入 `ambiguous` → 两个不同文件不会同时标「已识别」（单元测试断言三种情形） |
+| 5 | **ComfyUI 离线检测(P1)** | `_fetch_comfy_loras()` 显式 `check_health()` 判定（get_loras 吞异常返回 [] 不再导致误报在线）；可注入 client 便于测试（不可达端口 → False） |
+| 7 | **路径预览由后端解析(P0/P1)** | 新增 `POST /api/loras/resolve-path`（resolved + exists/readable + lora 文件计数）；前端删除「见 D: 就猜 /mnt」逻辑，改调后端 API（Playwright 断言确实发出该请求、显示值=后端返回值；本机为 WSL2 故 `/mnt/d/` 正确） |
+| 14 | **GENERATED_DIR 受 cwd 影响(P1)** | 改为属性：锚定在数据库文件所在目录下 `data/generated`，repo root 或 `cd backend` 启动均指向同一稳定绝对路径 |
+| 15 | **Settings 无差别 int 转换(P2)** | `_parse_value(key, val)` 按声明字段类型解析（bool/int/其余保持 str）；数字形式 API Key/model 不再被转成 int（测试：timeout=int、base url=str） |
+
+## 前端修复（`.verify/r3/verify3.cjs` + `r2/verify2.cjs` 回归，全部 PASS）
+
+| # | 审计项 | 修复 |
+|---|--------|------|
+| 6 | 扫描预览默认全选(P1) | 默认 0 选中；「全选新增」为主动操作（实测 foot-hint「已选 0 项」+ 无 `.on` 行） |
+| 8 | 草稿未保存语义状态(P1) | draft v2：保存 `facts/lastParsedInput/isSemanticDirty/isPositive/negativePromptDirty`；无可信 facts（旧版 v1/异常）→ `isSemanticDirty=true`；`buildPrompt` 增加空 facts 保护——非 force 时若 facts 为空且 Prompt 非空，不用空 facts 重编译覆盖恢复的 Prompt（实测：恢复后改 Safety，Prompt 保持不变） |
+| 9 | 清空创作台不清语义(P1) | `clearDraft()` 清 facts/lastParsedInput/dirty flags/generation stale state（实测：清空后展开解析详情为空态） |
+| 10 | 尺寸静默 clamp(P1) | 输入不再 `Math.min/max` 修正，原值保留（实测 9000 保留）；Generate 前硬校验（64–8192 + 宽高比 0.25–4），越界明确报错且「未修改你的输入」 |
+| 11 | 锁比例 swap 不反转 ratio(P1) | `swapSize()` 在锁定时 `lockedRatio = 1/lockedRatio`（实测 1000×2000 锁 0.5 → swap 后 ratio 2 → 改宽 500 → 高 250） |
+| 12 | 生成可重复提交(P1) | `generateImage()` 顶部 `if (isGenerating) return`；Generate 与「再生成」按钮生成期间 disabled（实测同步双击仅 1 次提交 + 生成中按钮 disabled） |
+| 13 | 本地持久化失败伪装成功(P1) | 新增 `generationPersisted`；persist 失败不再显示「生成完成！」而是「图片已生成，但本地历史归档失败——历史记录当前依赖 ComfyUI output」；history metadata 记录 `persisted` |
+
+## 截图（`.verify/r2/`，本轮无视觉改动）
+沿用 `01_lora_library.png` … `09_library_search.png`；本轮只改行为不改外观。
+

@@ -29,19 +29,26 @@ def ensure_data_dirs() -> None:
             logger.warning(f"Failed to create data dir {d}: {e}")
 
 
-def _migrate_legacy_sqlite() -> None:
+def _migrate_legacy_sqlite(database_url: str | None = None) -> None:
     """Lightweight migrations for legacy SQLite schemas.
 
-    1. `loras.is_enabled` was NOT NULL in older databases while the ORM now
-       declares it Optional — INSERTs then fail with NOT NULL constraint
-       (POST /api/loras 500). Rebuild the table with a nullable column.
-    2. `loras.source_path` column added for source-scan imports.
+    - Only touches tables that actually exist: on a fresh database (no `loras`
+      table yet) this is a strict no-op — `create_all()` runs afterwards.
+    - `loras.is_enabled` was NOT NULL in older databases while the ORM now
+      declares it Optional — INSERTs then fail with NOT NULL constraint
+      (POST /api/loras 500). Rebuild the table with a nullable column.
+    - `loras.source_path` column added for source-scan imports.
     """
-    if "sqlite" not in settings.DATABASE_URL:
+    url = database_url or settings.DATABASE_URL
+    if "sqlite" not in url:
         return
-    conn = sqlite3.connect(settings.DATABASE_URL.replace("sqlite:///", ""))
+    path = url.replace("sqlite:///", "").split("?")[0]
+    conn = sqlite3.connect(path)
     try:
         cur = conn.cursor()
+        tables = {r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        if "loras" not in tables:
+            return  # fresh DB: nothing to migrate (create_all will build the schema)
 
         # -- 1. loras.is_enabled NOT NULL -> nullable with default 0 ----------
         cols = {r[1]: r for r in cur.execute("PRAGMA table_info(loras)").fetchall()}

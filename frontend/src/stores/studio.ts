@@ -63,6 +63,7 @@ export const useStudioStore = defineStore('studio', {
     seed: -1,
     generatedImageUrl: '' as string,
     generationComfyUrl: '' as string,
+    generationPersisted: false,
     generationProgress: 0,
     generationStage: 'idle' as 'idle' | 'preparing' | 'submitted' | 'done' | 'timeout' | 'error',
     generationMessage: '',
@@ -288,11 +289,15 @@ export const useStudioStore = defineStore('studio', {
           lora_items: loraBuildItems
         })
 
-        if (!this.isPositivePromptDirty || force) {
+        // 空 facts 保护：恢复的 Prompt 若没有对应 facts（如旧版草稿/未解析），
+        // 非 force 的 build 不得用空 facts 重编译覆盖用户已看到的场景 Prompt；
+        // 此时应保持 isSemanticDirty=true，引导用户重新解析。
+        const hasFacts = this.facts.entities.length > 0 || this.facts.statements.length > 0
+        if ((!this.isPositivePromptDirty && (hasFacts || !this.positivePrompt.trim())) || force) {
           this.positivePrompt = resp.data.prompt
           this.isPositivePromptDirty = false
         }
-        if (!this.isNegativePromptDirty || force) {
+        if ((!this.isNegativePromptDirty && (hasFacts || !this.negativePrompt.trim())) || force) {
           this.negativePrompt = resp.data.negative_prompt
           this.isNegativePromptDirty = false
         }
@@ -307,6 +312,7 @@ export const useStudioStore = defineStore('studio', {
     },
 
     async generateImage() {
+      if (this.isGenerating) return  // 并发保护：防止双击重复提交 ComfyUI 任务
       if (this.workflowMode === 'custom' && !this.customWorkflowTemplate) {
         this.generationProgress = 0
         this.generationStage = 'error'
@@ -331,10 +337,28 @@ export const useStudioStore = defineStore('studio', {
         }
       }
 
+      // 尺寸硬校验：不静默修改输入，越界则明确阻止并解释
+      const wNum = Number(this.width)
+      const hNum = Number(this.height)
+      if (!Number.isInteger(wNum) || !Number.isInteger(hNum) || wNum < 64 || hNum < 64 || wNum > 8192 || hNum > 8192) {
+        this.generationProgress = 0
+        this.generationStage = 'error'
+        this.generationMessage = `尺寸超出可生成范围（64–8192）：当前 ${this.width}×${this.height}。未修改你的输入，请调整后再生成。`
+        return
+      }
+      const sizeRatio = wNum / hNum
+      if (sizeRatio < 0.25 || sizeRatio > 4) {
+        this.generationProgress = 0
+        this.generationStage = 'error'
+        this.generationMessage = `尺寸宽高比超出可生成范围（0.25:1 – 4:1）：当前 ${this.width}×${this.height}。未修改你的输入，请调整后再生成。`
+        return
+      }
+
       this.isGenerating = true
       this.generationProgress = 10
       this.generationStage = 'preparing'
       this.generationMessage = '正在组装工作流并提交 ComfyUI…'
+      this.generationPersisted = false
 
       const actualSeed = this.seed === -1 ? Math.floor(Math.random() * 1000000000) : this.seed
 
@@ -395,7 +419,7 @@ export const useStudioStore = defineStore('studio', {
                   const img = nodeOut.images[0]
                   done = true
                   this.generationStage = 'done'
-                  // 保存到 ImageForge 自己的 data/generated，历史不再依赖 ComfyUI output
+                  // 保存到 ImageForge 自己的 data/generated；失败不伪装成完整成功
                   try {
                     this.generationMessage = '生成完成，正在保存到本地…'
                     const persist = await axios.post('/api/comfyui/persist-image', {
@@ -405,12 +429,15 @@ export const useStudioStore = defineStore('studio', {
                     })
                     this.generatedImageUrl = persist.data.image_path
                     this.generationComfyUrl = persist.data.comfy_view_url
+                    this.generationPersisted = true
+                    this.generationMessage = '生成完成！'
                   } catch {
                     this.generatedImageUrl = `/api/comfyui/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`
                     this.generationComfyUrl = this.generatedImageUrl
+                    this.generationPersisted = false
+                    this.generationMessage = '图片已生成，但本地历史归档失败——历史记录当前依赖 ComfyUI output（清理 ComfyUI output 后历史图片可能失效）。'
                   }
                   this.generationProgress = 100
-                  this.generationMessage = '生成完成！'
                   await this.saveHistory(promptId, actualSeed)
                   break
                 }
@@ -461,6 +488,7 @@ export const useStudioStore = defineStore('studio', {
             seed: actualSeed,
             comfy_prompt_id: promptId,
             comfy_image_url: this.generationComfyUrl || undefined,
+            persisted: this.generationPersisted,
             studio: {
               selectedPresetId: this.selectedPresetId,
               extraNegative: this.extraNegative,
@@ -485,8 +513,9 @@ export const useStudioStore = defineStore('studio', {
     persistDraft() {
       try {
         const draft = {
-          v: 1,
+          v: 2,
           rawInput: this.rawInput,
+          lastParsedInput: this.lastParsedInput,
           safety: this.safety,
           selectedPresetId: this.selectedPresetId,
           selectedRuleIds: this.selectedRuleIds,
@@ -495,6 +524,10 @@ export const useStudioStore = defineStore('studio', {
           positivePrompt: this.positivePrompt,
           negativePrompt: this.negativePrompt,
           extraNegative: this.extraNegative,
+          facts: this.facts,
+          isSemanticDirty: this.isSemanticDirty,
+          isPositivePromptDirty: this.isPositivePromptDirty,
+          isNegativePromptDirty: this.isNegativePromptDirty,
           width: this.width,
           height: this.height,
           steps: this.steps,
@@ -527,10 +560,12 @@ export const useStudioStore = defineStore('studio', {
         const raw = localStorage.getItem('imageforge_studio_draft_v1')
         if (!raw) return false
         const d = JSON.parse(raw)
-        if (!d || d.v !== 1 || typeof d.rawInput !== 'string') return false
+        if (!d || typeof d.rawInput !== 'string') return false
+        if (d.v !== 1 && d.v !== 2) return false
 
         // 逐字段安全恢复：类型不符的字段安全忽略，绝不因旧/脏草稿导致 Studio 启动失败
         if (typeof d.rawInput === 'string') this.rawInput = d.rawInput
+        if (typeof d.lastParsedInput === 'string') this.lastParsedInput = d.lastParsedInput
         if (d.safety && ['Safe', 'Sensitive', 'NSFW', 'Explicit'].includes(d.safety)) this.safety = d.safety
         if (typeof d.selectedPresetId === 'number' || d.selectedPresetId === null) this.selectedPresetId = d.selectedPresetId
         if (Array.isArray(d.selectedRuleIds)) this.selectedRuleIds = d.selectedRuleIds.filter((x: any) => typeof x === 'number')
@@ -557,6 +592,24 @@ export const useStudioStore = defineStore('studio', {
           if (m.lm_studio && typeof m.lm_studio.reasoning === 'string') this.providerMemory.lm_studio.reasoning = m.lm_studio.reasoning as ReasoningEffort
           if (m.cloud && typeof m.cloud.reasoning === 'string') this.providerMemory.cloud.reasoning = m.cloud.reasoning as ReasoningEffort
         }
+
+        // ── 语义状态：facts / dirty ──
+        // v2 草稿：完整恢复 facts 与 dirty 标记。
+        // 无可信 facts（旧版 v1 或字段异常）：保留恢复出的 Prompt，但标记需要重新解析，
+        // 绝不用空 facts 自动 build 覆盖恢复的 Prompt（buildPrompt 已加空 facts 保护）。
+        const hasFacts = d.facts
+          && Array.isArray(d.facts.entities)
+          && Array.isArray(d.facts.statements)
+        if (hasFacts) {
+          this.facts = { entities: d.facts.entities, statements: d.facts.statements }
+          if (typeof d.isSemanticDirty === 'boolean') this.isSemanticDirty = d.isSemanticDirty
+          if (typeof d.isPositivePromptDirty === 'boolean') this.isPositivePromptDirty = d.isPositivePromptDirty
+          if (typeof d.isNegativePromptDirty === 'boolean') this.isNegativePromptDirty = d.isNegativePromptDirty
+        } else {
+          this.facts = { entities: [], statements: [] }
+          this.isSemanticDirty = true
+        }
+
         this.draftRestored = true
         return true
       } catch (e) {
@@ -592,6 +645,7 @@ export const useStudioStore = defineStore('studio', {
       this._skipNextDraftSave = true
       if (this._draftTimer) clearTimeout(this._draftTimer)
       this.rawInput = ''
+      this.lastParsedInput = ''
       this.isSemanticDirty = false
       this.safety = 'Safe'
       this.selectedPresetId = null
@@ -601,7 +655,17 @@ export const useStudioStore = defineStore('studio', {
       this.positivePrompt = ''
       this.negativePrompt = ''
       this.extraNegative = ''
+      this.isPositivePromptDirty = false
+      this.isNegativePromptDirty = false
+      // 语义状态彻底清空，防止旧场景残留
+      this.facts = { entities: [], statements: [] }
+      // 生成 stale 状态清空
       this.generatedImageUrl = ''
+      this.generationComfyUrl = ''
+      this.generationPersisted = false
+      this.generationProgress = 0
+      this.generationStage = 'idle'
+      this.generationMessage = ''
       this.draftRestored = false
     },
   }

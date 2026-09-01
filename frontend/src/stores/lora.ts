@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import type { Lora, LoraSource, ScanResult, ScanCandidate } from '../types'
+import type { Lora, LoraSource, ScanResult } from '../types'
 
 export const useLoraStore = defineStore('lora', {
   state: () => ({
@@ -76,16 +76,18 @@ export const useLoraStore = defineStore('lora', {
       }
     },
 
-    async importCandidates(items: ScanCandidate[]) {
-      const payload = items.map(c => ({
-        relative_path: c.relative_path,
-        full_path: c.full_path,
-        comfy_name: c.comfy_name,
-        comfy_recognized: c.comfy_recognized,
-        name_hint: c.name_hint,
-      }))
-      const resp = await axios.post('/api/loras/import', { items: payload })
+    async importCandidates(sourceId: number, relativePaths: string[]) {
+      // 前端只提交 source_id + 相对路径；服务端重新验证归属/存在/扩展名/识别/重复
+      const resp = await axios.post('/api/loras/import', {
+        source_id: sourceId,
+        relative_paths: relativePaths,
+      })
       await this.fetchLoras()
+      return resp.data
+    },
+
+    async resolvePath(displayPath: string) {
+      const resp = await axios.post('/api/loras/resolve-path', { display_path: displayPath })
       return resp.data
     },
 

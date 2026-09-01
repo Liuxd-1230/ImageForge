@@ -482,6 +482,7 @@
             type="button"
             class="generate-btn"
             :class="{ generating: studioStore.isGenerating }"
+            :disabled="studioStore.isGenerating"
             @click="studioStore.generateImage()"
           >
             <span class="gen-fill" :class="{ indeterminate: studioStore.isGenerating }" />
@@ -519,7 +520,7 @@
               <button type="button" class="toolbar-btn" @click="downloadImage(studioStore.generatedImageUrl)">
                 <span class="mdi mdi-tray-arrow-down" />保存
               </button>
-              <button type="button" class="toolbar-btn strong" @click="studioStore.generateImage()">
+              <button type="button" class="toolbar-btn strong" :disabled="studioStore.isGenerating" @click="studioStore.generateImage()">
                 <span class="mdi mdi-refresh" />再生成
               </button>
             </div>
@@ -931,26 +932,23 @@ const sizeWarning = computed(() => {
 
 function commitWidth() {
   const w = Math.round(Number(widthInput.value) || 0)
-  const clamped = Math.min(8192, Math.max(64, w))
-  studioStore.width = clamped
-  widthInput.value = clamped
-  if (lockAspect.value && lockedRatio && clamped > 0) {
-    const h = Math.round(clamped / lockedRatio)
-    const ch = Math.min(8192, Math.max(64, h))
-    studioStore.height = ch
-    heightInput.value = ch
+  // 不静默修改用户输入（越界只 warning，Generate 前再硬校验并明确阻止）
+  studioStore.width = w
+  widthInput.value = w
+  if (lockAspect.value && lockedRatio && w > 0) {
+    const h = Math.round(w / lockedRatio)
+    studioStore.height = h
+    heightInput.value = h
   }
 }
 function commitHeight() {
   const h = Math.round(Number(heightInput.value) || 0)
-  const clamped = Math.min(8192, Math.max(64, h))
-  studioStore.height = clamped
-  heightInput.value = clamped
-  if (lockAspect.value && lockedRatio && clamped > 0) {
-    const w = Math.round(clamped * lockedRatio)
-    const cw = Math.min(8192, Math.max(64, w))
-    studioStore.width = cw
-    widthInput.value = cw
+  studioStore.height = h
+  heightInput.value = h
+  if (lockAspect.value && lockedRatio && h > 0) {
+    const w = Math.round(h * lockedRatio)
+    studioStore.width = w
+    widthInput.value = w
   }
 }
 function swapSize() {
@@ -960,6 +958,10 @@ function swapSize() {
   studioStore.height = w
   widthInput.value = h
   heightInput.value = w
+  // 锁定比例时同步反转 ratio（1024×1536 ⇄ 1536×1024）
+  if (lockAspect.value && lockedRatio) {
+    lockedRatio = 1 / lockedRatio
+  }
 }
 function toggleLockAspect() {
   lockAspect.value = !lockAspect.value
@@ -2412,6 +2414,10 @@ function clearDraftWorkbench() {
 .generate-btn:hover {
   background: rgb(var(--v-theme-primary-darken-1));
 }
+.generate-btn:disabled {
+  opacity: 0.85;
+  cursor: default;
+}
 .generate-btn.generating {
   border-radius: 22px;
   box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.22);
@@ -2594,6 +2600,10 @@ function clearDraftWorkbench() {
 }
 .toolbar-btn:hover {
   background: rgb(var(--v-theme-surface-container));
+}
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .toolbar-btn.strong {
   color: rgb(var(--v-theme-primary));

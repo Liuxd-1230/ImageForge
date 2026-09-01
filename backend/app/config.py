@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -31,7 +32,14 @@ class Settings(BaseSettings):
 
     # Local data (ImageForge-owned files)
     DATA_DIR: str = "data"
-    GENERATED_DIR: str = "data/generated"
+
+    @property
+    def GENERATED_DIR(self) -> str:
+        """ImageForge 自己的生成图目录——锚定在数据库文件所在目录下，
+        与启动 cwd 无关（repo root 启动或 cd backend 启动都指向同一目录）。"""
+        db_path = self.DATABASE_URL.replace("sqlite:///", "").split("?")[0]
+        base = os.path.dirname(os.path.abspath(db_path)) or os.getcwd()
+        return os.path.join(base, self.DATA_DIR, "generated")
     
     # Defaults
     DEFAULT_SAFETY: str = "Safe"

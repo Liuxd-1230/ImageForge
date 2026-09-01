@@ -77,3 +77,54 @@ def path_status(path: str) -> dict:
         "readable": readable,
         "error": None if readable else "目录不可读",
     }
+
+
+def safe_relative(relative: str) -> str | None:
+    """Validate a user-supplied relative path for scan-import.
+
+    Returns the POSIX-normalized relative path, or None if it is unsafe:
+    absolute paths (incl. Windows drive), `..` traversal, empty, or leading slash.
+    """
+    if not relative:
+        return None
+    p = normalize_separators(relative.strip())
+    if p.startswith("/") or _WINDOWS_DRIVE_RE.match(p):
+        return None
+    parts = [x for x in p.split("/") if x not in ("", ".")]
+    if ".." in parts:
+        return None
+    return "/".join(parts)
+
+
+def join_within_root(root: str, relative: str) -> str | None:
+    """Join `root` with a safe relative path; returns the realpath only if it
+    stays inside `root` (lexical containment), else None."""
+    safe = safe_relative(relative)
+    if safe is None:
+        return None
+    root_real = os.path.realpath(root)
+    candidate = os.path.realpath(os.path.join(root_real, *safe.split("/")))
+    try:
+        common = os.path.commonpath([root_real, candidate])
+    except ValueError:
+        return None
+    if common != root_real:
+        return None
+    return candidate
+
+
+def match_comfy_lora(rel: str, basename: str, comfy_norm: list[str]) -> str | None:
+    """Match a candidate (relative to its source root) against ComfyUI's lora list.
+
+    Rules (avoid the 'same basename from two dirs both marked recognized' trap):
+    - exact relative-path match wins;
+    - a comfy entry that *ends with* `/rel` (candidate sits in a deeper folder
+      inside the comfy lora root) also matches;
+    - basename fallback ONLY when exactly one comfy entry has that basename AND
+      no other candidate conflicts — callers decide ambiguity via `comfy_basenames`
+      multiplicity. Here we return the comfy name only for the unambiguous case.
+    """
+    for n in comfy_norm:
+        if n == rel or n.endswith("/" + rel):
+            return n
+    return None

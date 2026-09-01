@@ -40,6 +40,16 @@ async function api(method, path, body) {
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
+  // recreate fixture (backend_test / verify3 may have cleaned it)
+  const path = require('path');
+  for (const rel of [
+    'Anima/foo_style_v1.safetensors', 'bar_boost.safetensors', 'baz_detail.ckpt',
+    'deep/nested/thing.pt', 'Anima/dup_name.safetensors', 'dup_name.safetensors',
+  ]) {
+    const p = path.join(FIXTURE, ...rel.split('/'));
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    if (!fs.existsSync(p)) fs.writeFileSync(p, Buffer.from([0, 0, 0, 1]));
+  }
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 
   // ---- API setup: a DISABLED rule for the rules-filter test ----
@@ -138,7 +148,9 @@ async function api(method, path, body) {
     await sizeInputs[1].evaluate(el => el.blur());
     await page.waitForTimeout(300);
     const warn = await page.textContent('.size-warning').catch(() => '');
-    check('异常尺寸 100×9000 显示 warning', warn.includes('尺寸异常'), warn.trim());
+    check('异常尺寸 100×9000 显示 warning 且不静默修正', warn.includes('尺寸') && (warn.includes('超出常见范围') || warn.includes('尺寸异常')), warn.trim());
+    const rawH = await page.$$eval('.size-input', els => els.map(e => e.value));
+    check('异常尺寸保留原值(9000 不被 clamp)', rawH[1] === '9000', rawH.join('×'));
 
     // preset
     await page.click('.size-chip:has-text("1152×1536")');
