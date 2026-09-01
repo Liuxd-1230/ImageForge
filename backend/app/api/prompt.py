@@ -56,6 +56,10 @@ async def parse_prompt(
             reasoning_effort=req.reasoning_effort or (settings.LM_STUDIO_REASONING_EFFORT if provider_type == "lm_studio" else settings.CLOUD_REASONING_EFFORT)
         )
         return facts
+    except RuntimeError as re:
+        raise HTTPException(status_code=502, detail=str(re))
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=f"语义解析服务异常: {str(ex)}")
     finally:
         # 2. Auto unload if enabled
         if provider_type == "lm_studio" and settings.LM_STUDIO_AUTO_UNLOAD and instance_id:

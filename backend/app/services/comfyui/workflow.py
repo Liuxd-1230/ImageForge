@@ -97,7 +97,7 @@ def build_anima_29b_workflow(
 
     current_model = ["1", 0]
     current_clip = ["2", 0]
-    node_id_counter = 10
+    node_id_counter = 100  # Start dynamic LoRA node IDs from 100 to avoid conflicts
 
     # Chain LoRA loaders
     if loras:
@@ -172,8 +172,8 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 10: Save Image
-    prompt_nodes["10"] = {
+    # Node 99: Save Image
+    prompt_nodes["99"] = {
         "class_type": "SaveImage",
         "inputs": {
             "filename_prefix": "Anima29B_ImageForge",

@@ -202,7 +202,7 @@ export const useStudioStore = defineStore('studio', {
         
         let done = false
         let attempts = 0
-        while (!done && attempts < 60) {
+        while (!done && attempts < 120) {
           await new Promise(r => setTimeout(r, 1500))
           attempts++
           this.generationProgress = Math.min(95, 30 + attempts * 2)
