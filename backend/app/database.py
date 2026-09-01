@@ -15,21 +15,30 @@ engine = create_engine(settings.DATABASE_URL, echo=False, connect_args=connect_a
 def init_db():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        # Seed default preset
+        # 1. Synchronize SQLite AppSetting table into memory settings
+        db_settings = session.exec(select(AppSetting)).all()
+        for s in db_settings:
+            if hasattr(settings, s.key):
+                val = s.value
+                field_type = type(getattr(settings, s.key))
+                if field_type == bool:
+                    val = str(val).lower() in ("true", "1", "yes")
+                setattr(settings, s.key, val)
+
+        # 2. Seed default preset
         stmt = select(Preset).where(Preset.is_default == True)
         default_preset = session.exec(stmt).first()
         if not default_preset:
             preset = Preset(
                 name="标准 Anima-2.9B (默认)",
-                positive_prefix="",  # Anima 2.9B doesn't require hardcoded quality score tags
+                positive_prefix="",
                 default_negative="lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
-                default_safety="Safe",
                 is_default=True
             )
             session.add(preset)
             session.commit()
             
-        # Seed initial sample artists with @artist format
+        # 3. Seed initial sample artists with @artist format
         stmt_art = select(Artist)
         first_art = session.exec(stmt_art).first()
         if not first_art:
@@ -45,7 +54,7 @@ def init_db():
                 session.add(a)
             session.commit()
 
-        # Seed initial sample rule
+        # 4. Seed initial sample rule
         stmt_rule = select(RuleFile)
         first_rule = session.exec(stmt_rule).first()
         if not first_rule:

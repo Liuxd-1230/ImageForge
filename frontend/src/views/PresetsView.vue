@@ -74,7 +74,7 @@ const form = ref({
   id: undefined as number | undefined,
   name: '',
   positive_prefix: '',
-  default_negative: 'lowres, bad anatomy, bad hands, text',
+  default_negative: 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry',
   is_default: false
 })
 
@@ -88,7 +88,7 @@ function openCreateDialog() {
     id: undefined,
     name: '',
     positive_prefix: '',
-    default_negative: 'lowres, bad anatomy, bad hands, text',
+    default_negative: 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry',
     is_default: false
   }
   dialog.value = true

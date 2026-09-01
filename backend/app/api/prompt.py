@@ -53,7 +53,7 @@ async def parse_prompt(
             raw_text=req.text,
             rule_ids=req.rule_ids,
             model=target_model,
-            reasoning_effort=req.reasoning_effort or (settings.LM_STUDIO_REASONING_EFFORT if provider_type == "lm_studio" else settings.CLOUD_REASONING_EFFORT)
+            reasoning_effort=req.reasoning_effort or "instruct"
         )
         return facts
     except RuntimeError as re:

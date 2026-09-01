@@ -6,8 +6,6 @@ export const useArtistStore = defineStore('artist', {
   state: () => ({
     artists: [] as Artist[],
     isLoading: false,
-    selectedCategory: '全部',
-    searchQuery: '',
   }),
 
   actions: {

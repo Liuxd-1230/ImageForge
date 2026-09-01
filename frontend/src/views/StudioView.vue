@@ -118,6 +118,7 @@
             auto-grow
             hide-details
             class="mb-3"
+            @input="studioStore.isSemanticDirty = true"
           />
 
           <!-- Rule Files Selection Chips (Only show enabled rules) -->
@@ -185,19 +186,35 @@
                   cols="12"
                   sm="6"
                 >
-                  <v-card variant="tonal" class="pa-3 rounded-md">
+                  <v-card
+                    :variant="entity.source === 'model_character' && !entity.canonical_tag ? 'outlined' : 'tonal'"
+                    :class="['pa-3', 'rounded-md', entity.source === 'model_character' && !entity.canonical_tag ? 'border-error bg-red-lighten-5' : '']"
+                  >
                     <div class="d-flex justify-space-between align-center mb-2">
                       <span class="font-weight-bold">{{ entity.name }}</span>
-                      <v-chip
-                        size="x-small"
-                        :color="entity.source === 'user_defined' ? 'purple' : 'blue'"
-                        variant="flat"
-                      >
-                        {{ entity.source === 'user_defined' ? '用户角色书' : '模型角色' }}
-                      </v-chip>
+                      <div class="d-flex align-center gap-1">
+                        <v-chip
+                          v-if="entity.source === 'model_character' && !entity.canonical_tag"
+                          size="x-small"
+                          color="error"
+                          variant="flat"
+                        >
+                          未解析 Trigger
+                        </v-chip>
+                        <v-chip
+                          size="x-small"
+                          :color="entity.source === 'user_defined' ? 'purple' : 'blue'"
+                          variant="flat"
+                        >
+                          {{ entity.source === 'user_defined' ? '用户角色书' : '模型角色' }}
+                        </v-chip>
+                      </div>
                     </div>
 
                     <div v-if="entity.source === 'model_character'">
+                      <div v-if="!entity.canonical_tag" class="text-caption text-error mb-1">
+                        未能自动识别该角色 Tag，请在此输入后保存：
+                      </div>
                       <div class="d-flex gap-1 align-center mb-1">
                         <v-text-field
                           v-model="entity.canonical_tag"
@@ -221,6 +238,7 @@
                           variant="text"
                           color="primary"
                           title="保存映射至缓存"
+                          :disabled="!entity.canonical_tag"
                           @click="studioStore.saveEntityTrigger(entity)"
                         />
                       </div>
@@ -669,7 +687,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useStudioStore } from '../stores/studio'
 import { usePresetStore } from '../stores/presets'
 import { useSettingsStore } from '../stores/settings'
-import { useCharacterStore } from '../stores/character'
 import { useArtistStore } from '../stores/artist'
 import { useLoraStore } from '../stores/lora'
 import { useRuleStore } from '../stores/rules'
@@ -678,7 +695,6 @@ import type { Artist } from '../types'
 const studioStore = useStudioStore()
 const presetStore = usePresetStore()
 const settingsStore = useSettingsStore()
-const characterStore = useCharacterStore()
 const artistStore = useArtistStore()
 const loraStore = useLoraStore()
 const ruleStore = useRuleStore()
@@ -735,7 +751,6 @@ onMounted(async () => {
   await Promise.all([
     presetStore.fetchPresets(),
     settingsStore.fetchSettings(),
-    characterStore.fetchCharacters(),
     artistStore.fetchArtists(),
     loraStore.fetchLoras(),
     ruleStore.fetchRules()
@@ -801,6 +816,7 @@ function toggleRule(ruleId: number) {
   } else {
     studioStore.selectedRuleIds.push(ruleId)
   }
+  studioStore.isSemanticDirty = true
 }
 
 function isArtistSelected(art: Artist): boolean {

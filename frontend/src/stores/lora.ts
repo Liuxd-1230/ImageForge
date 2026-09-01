@@ -6,8 +6,6 @@ export const useLoraStore = defineStore('lora', {
   state: () => ({
     loras: [] as Lora[],
     isLoading: false,
-    searchQuery: '',
-    selectedCategory: '全部',
   }),
 
   actions: {

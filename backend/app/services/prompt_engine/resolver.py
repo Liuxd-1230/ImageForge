@@ -1,5 +1,4 @@
 import json
-import re
 import logging
 from typing import List, Optional, Tuple, Dict
 from sqlmodel import Session, select
@@ -55,6 +54,58 @@ class CharacterResolver:
             distinct = f" with {char.hair_style} hair"
         return f"the {age}{gender_base}{distinct}".strip()
 
+    def _resolve_single_entity_local(self, entity: Entity, statements: List[Statement]) -> Tuple[Entity, bool]:
+        """
+        Unified local resolution: Explicit/Generic -> Character Book -> Trigger Cache.
+        Returns (entity, is_resolved).
+        """
+        # 1. If entity already has a canonical tag assigned, preserve it
+        if entity.canonical_tag:
+            return entity, True
+
+        # 2. Generic / Anonymous characters (e.g. 1girl, girl1, boy)
+        generic_clean = entity.name.strip().lower()
+        if generic_clean in ["girl", "girl1", "girl2", "1girl", "2girls", "boy", "boy1", "boy2", "1boy", "2boys", "woman", "man", "person", "character"]:
+            entity.source = "model_character"
+            entity.canonical_tag = generic_clean if generic_clean in ["1girl", "2girls", "1boy", "2boys"] else ("1girl" if "girl" in generic_clean or "woman" in generic_clean else ("1boy" if "boy" in generic_clean or "man" in generic_clean else "1girl"))
+            entity.caption_name = "the girl" if "girl" in generic_clean or "woman" in generic_clean else ("the boy" if "boy" in generic_clean or "man" in generic_clean else "the character")
+            entity.custom_description = None
+            return entity, True
+
+        # 3. Check Character Book
+        char = self._find_in_character_book(entity.name)
+        if char:
+            entity.source = "user_defined"
+            entity.canonical_tag = None
+            entity.caption_name = self._build_caption_name(char)
+
+            replaced_facets = set()
+            for s in statements:
+                if s.subject == entity.id:
+                    if s.effect and s.effect.lower() == "replace":
+                        if s.facet:
+                            replaced_facets.add(s.facet.lower())
+                        if any(w in s.text.lower() for w in ["wearing", "swimsuit", "uniform", "raincoat"]):
+                            replaced_facets.add("outfit")
+                        if any(w in s.text.lower() for w in ["hair", "ponytail", "twintails"]):
+                            replaced_facets.add("hairstyle")
+
+            entity.custom_description = self._build_character_description(char, replaced_facets)
+            return entity, True
+        else:
+            # 4. Model Character - check trigger cache
+            entity.source = "model_character"
+            entity.custom_description = None
+            cache_tag, cache_caption = self._lookup_trigger_cache(entity.name)
+            if cache_tag and cache_caption:
+                entity.canonical_tag = cache_tag
+                entity.caption_name = cache_caption
+                return entity, True
+            else:
+                entity.canonical_tag = None
+                entity.caption_name = None
+                return entity, False
+
     async def resolve_entities_async(
         self,
         entities: List[Entity],
@@ -62,47 +113,16 @@ class CharacterResolver:
         model: Optional[str] = None,
         reasoning_effort: Optional[str] = "instruct"
     ) -> List[Entity]:
-        """Resolves entities: Character Book lookup -> Cache lookup -> Batch LLM Trigger resolution."""
+        """Resolves entities asynchronously with batch LLM Trigger fallback."""
         resolved: List[Entity] = []
         unresolved_model_chars: List[Entity] = []
 
         for entity in entities:
-            # 1. Check Character Book
-            char = self._find_in_character_book(entity.name)
-            if char:
-                entity.source = "user_defined"
-                entity.canonical_tag = None
-                entity.caption_name = self._build_caption_name(char)
+            ent, is_res = self._resolve_single_entity_local(entity, statements)
+            resolved.append(ent)
+            if not is_res:
+                unresolved_model_chars.append(ent)
 
-                replaced_facets = set()
-                for s in statements:
-                    if s.subject == entity.id:
-                        # ONLY suppress default attribute if effect is explicitly 'replace'
-                        if s.effect and s.effect.lower() == "replace":
-                            if s.facet:
-                                replaced_facets.add(s.facet.lower())
-                            if any(w in s.text.lower() for w in ["wearing", "swimsuit", "uniform", "raincoat"]):
-                                replaced_facets.add("outfit")
-                            if any(w in s.text.lower() for w in ["hair", "ponytail", "twintails"]):
-                                replaced_facets.add("hairstyle")
-
-                entity.custom_description = self._build_character_description(char, replaced_facets)
-                resolved.append(entity)
-            else:
-                # 2. Model Character - check trigger cache first
-                entity.source = "model_character"
-                cache_tag, cache_caption = self._lookup_trigger_cache(entity.name)
-                if cache_tag and cache_caption:
-                    entity.canonical_tag = cache_tag
-                    entity.caption_name = cache_caption
-                    entity.custom_description = None
-                    resolved.append(entity)
-                else:
-                    entity.custom_description = None
-                    unresolved_model_chars.append(entity)
-                    resolved.append(entity)
-
-        # 3. Batch resolve any unknown model characters via LLM
         if unresolved_model_chars and self.llm_provider:
             names_to_resolve = [e.name for e in unresolved_model_chars]
             try:
@@ -113,16 +133,7 @@ class CharacterResolver:
                         e.canonical_tag = tag
                         e.caption_name = caption
             except Exception as ex:
-                logger.error(f"Batch LLM trigger resolution failed: {ex}")
-                raise RuntimeError(f"未能解析角色 Trigger: {ex}")
-
-            # Check if any model character remains unresolved
-            missing_chars = [e.name for e in unresolved_model_chars if not e.canonical_tag]
-            if missing_chars:
-                raise RuntimeError(
-                    f"未能解析角色【{', '.join(missing_chars)}】的 Danbooru/Gelbooru Trigger 标签。"
-                    f"请在创作台的识别人物卡片中手动填写 Canonical Tag 与 Caption Name，或检查 LLM 模型连接。"
-                )
+                logger.error(f"Batch LLM trigger resolution error: {ex}")
 
         return resolved
 
@@ -130,33 +141,8 @@ class CharacterResolver:
         """Synchronous version for build phase (relies on Character Book and Cache)."""
         resolved: List[Entity] = []
         for entity in entities:
-            char = self._find_in_character_book(entity.name)
-            if char:
-                entity.source = "user_defined"
-                entity.canonical_tag = None
-                entity.caption_name = self._build_caption_name(char)
-
-                replaced_facets = set()
-                for s in statements:
-                    if s.subject == entity.id:
-                        if s.effect and s.effect.lower() == "replace":
-                            if s.facet:
-                                replaced_facets.add(s.facet.lower())
-                            if any(w in s.text.lower() for w in ["wearing", "swimsuit", "uniform", "raincoat"]):
-                                replaced_facets.add("outfit")
-                            if any(w in s.text.lower() for w in ["hair", "ponytail", "twintails"]):
-                                replaced_facets.add("hairstyle")
-
-                entity.custom_description = self._build_character_description(char, replaced_facets)
-            else:
-                entity.source = "model_character"
-                cache_tag, cache_caption = self._lookup_trigger_cache(entity.name)
-                if cache_tag and cache_caption:
-                    entity.canonical_tag = cache_tag
-                    entity.caption_name = cache_caption
-                entity.custom_description = None
-
-            resolved.append(entity)
+            ent, _ = self._resolve_single_entity_local(entity, statements)
+            resolved.append(ent)
         return resolved
 
     def _find_in_character_book(self, name: str) -> Optional[Character]:
@@ -208,7 +194,6 @@ class CharacterResolver:
         if char.accessories and "accessories" not in replaced_facets:
             parts.append(char.accessories)
 
-        # De-duplicate
         seen = set()
         clean_parts = []
         for p in parts:
@@ -250,7 +235,6 @@ class CharacterResolver:
             if name and tag:
                 result[name] = (tag, caption or name)
 
-                # Persist to trigger cache
                 cache_stmt = select(CharacterTriggerCache).where(CharacterTriggerCache.name == name)
                 existing = self.session.exec(cache_stmt).first()
                 if not existing:

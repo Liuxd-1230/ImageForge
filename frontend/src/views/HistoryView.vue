@@ -67,7 +67,7 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHistoryStore } from '../stores/history'
 import { useStudioStore } from '../stores/studio'
-import type { GenerationHistory, SafetyLevel } from '../types'
+import type { GenerationHistory } from '../types'
 
 const historyStore = useHistoryStore()
 const studioStore = useStudioStore()
@@ -109,62 +109,7 @@ function getLorasCount(item: GenerationHistory): number {
 }
 
 function restoreToStudio(item: GenerationHistory) {
-  studioStore.rawInput = item.raw_input
-  studioStore.positivePrompt = item.prompt
-  studioStore.negativePrompt = item.negative_prompt
-  studioStore.safety = item.safety as SafetyLevel
-
-  try {
-    if (item.parsed_facts_json) {
-      studioStore.facts = JSON.parse(item.parsed_facts_json)
-    }
-  } catch {}
-
-  try {
-    if (item.artists_json) {
-      studioStore.selectedArtists = JSON.parse(item.artists_json)
-    }
-  } catch {}
-
-  try {
-    if (item.loras_json) {
-      studioStore.activeLoras = JSON.parse(item.loras_json)
-    }
-  } catch {}
-
-  try {
-    if (item.comfy_params_json) {
-      const params = JSON.parse(item.comfy_params_json)
-      if (params.unet_name) studioStore.unetName = params.unet_name
-      if (params.clip_name) studioStore.clipName = params.clip_name
-      if (params.vae_name) studioStore.vaeName = params.vae_name
-      if (params.width) studioStore.width = params.width
-      if (params.height) studioStore.height = params.height
-      if (params.steps) studioStore.steps = params.steps
-      if (params.cfg) studioStore.cfg = params.cfg
-      if (params.sampler_name) studioStore.samplerName = params.sampler_name
-      if (params.scheduler) studioStore.scheduler = params.scheduler
-      if (params.seed !== undefined) studioStore.seed = params.seed
-
-      if (params.studio) {
-        if (params.studio.selectedPresetId !== undefined) studioStore.selectedPresetId = params.studio.selectedPresetId
-        if (params.studio.extraNegative !== undefined) studioStore.extraNegative = params.studio.extraNegative
-        if (params.studio.provider) studioStore.provider = params.studio.provider
-        if (params.studio.model) studioStore.model = params.studio.model
-        if (params.studio.reasoningEffort) studioStore.reasoningEffort = params.studio.reasoningEffort
-        if (params.studio.selectedRuleIds) studioStore.selectedRuleIds = params.studio.selectedRuleIds
-        if (params.studio.workflowMode) studioStore.workflowMode = params.studio.workflowMode
-        if (params.studio.customWorkflowName !== undefined) studioStore.customWorkflowName = params.studio.customWorkflowName
-        if (params.studio.customWorkflowTemplate !== undefined) studioStore.customWorkflowTemplate = params.studio.customWorkflowTemplate
-        if (params.studio.overrideWorkflowModels !== undefined) studioStore.overrideWorkflowModels = params.studio.overrideWorkflowModels
-      }
-    }
-  } catch {}
-
-  if (item.image_path) {
-    studioStore.generatedImageUrl = item.image_path
-  }
-
+  studioStore.restoreSession(item)
   router.push('/')
 }
 </script>

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import type { SemanticFacts, Entity, Statement, SafetyLevel, Artist, Lora, ReasoningEffort, AppSettings } from '../types'
+import type { SemanticFacts, Entity, Statement, SafetyLevel, Artist, Lora, ReasoningEffort, AppSettings, GenerationHistory } from '../types'
 
 export interface ActiveLoraItem {
   lora: Lora;
@@ -12,6 +12,8 @@ export const useStudioStore = defineStore('studio', {
   state: () => ({
     isInitialized: false,
     rawInput: '',
+    lastParsedInput: '',
+    isSemanticDirty: false,
     safety: 'Safe' as SafetyLevel,
     selectedPresetId: null as number | null,
     extraNegative: '',
@@ -39,7 +41,6 @@ export const useStudioStore = defineStore('studio', {
     reasoningEffort: 'instruct' as ReasoningEffort,
     
     // ComfyUI Parameters & State (Anima-2.9B tuned defaults)
-    comfyStatus: 'disconnected' as 'connected' | 'disconnected' | 'generating' | 'error',
     workflowMode: 'builtin' as 'builtin' | 'custom',
     customWorkflowName: '',
     customWorkflowTemplate: null as Record<string, any> | null,
@@ -77,6 +78,69 @@ export const useStudioStore = defineStore('studio', {
         this.model = this.provider === 'lm_studio' ? (settings.LM_STUDIO_MODEL || '') : (settings.CLOUD_MODEL || '')
         this.isInitialized = true
       }
+    },
+
+    restoreSession(item: GenerationHistory) {
+      this.rawInput = item.raw_input || ''
+      this.lastParsedInput = item.raw_input || ''
+      this.isSemanticDirty = false
+      this.positivePrompt = item.prompt || ''
+      this.negativePrompt = item.negative_prompt || ''
+      this.safety = (item.safety as SafetyLevel) || 'Safe'
+      this.isPositivePromptDirty = false
+      this.isNegativePromptDirty = false
+
+      try {
+        if (item.parsed_facts_json) {
+          this.facts = JSON.parse(item.parsed_facts_json)
+        }
+      } catch {}
+
+      try {
+        if (item.artists_json) {
+          this.selectedArtists = JSON.parse(item.artists_json)
+        }
+      } catch {}
+
+      try {
+        if (item.loras_json) {
+          this.activeLoras = JSON.parse(item.loras_json)
+        }
+      } catch {}
+
+      try {
+        if (item.comfy_params_json) {
+          const params = JSON.parse(item.comfy_params_json)
+          if (params.unet_name) this.unetName = params.unet_name
+          if (params.clip_name) this.clipName = params.clip_name
+          if (params.vae_name) this.vaeName = params.vae_name
+          if (params.width) this.width = params.width
+          if (params.height) this.height = params.height
+          if (params.steps) this.steps = params.steps
+          if (params.cfg) this.cfg = params.cfg
+          if (params.sampler_name) this.samplerName = params.sampler_name
+          if (params.scheduler) this.scheduler = params.scheduler
+          if (params.seed !== undefined) this.seed = params.seed
+
+          if (params.studio) {
+            if (params.studio.selectedPresetId !== undefined) this.selectedPresetId = params.studio.selectedPresetId
+            if (params.studio.extraNegative !== undefined) this.extraNegative = params.studio.extraNegative
+            if (params.studio.provider) this.provider = params.studio.provider
+            if (params.studio.model) this.model = params.studio.model
+            if (params.studio.reasoningEffort) this.reasoningEffort = params.studio.reasoningEffort
+            if (params.studio.selectedRuleIds) this.selectedRuleIds = params.studio.selectedRuleIds
+            if (params.studio.workflowMode) this.workflowMode = params.studio.workflowMode
+            if (params.studio.customWorkflowName !== undefined) this.customWorkflowName = params.studio.customWorkflowName
+            if (params.studio.customWorkflowTemplate !== undefined) this.customWorkflowTemplate = params.studio.customWorkflowTemplate
+            if (params.studio.overrideWorkflowModels !== undefined) this.overrideWorkflowModels = params.studio.overrideWorkflowModels
+          }
+        }
+      } catch {}
+
+      if (item.image_path) {
+        this.generatedImageUrl = item.image_path
+      }
+      this.isInitialized = true
     },
 
     setWorkflowTemplate(filename: string, templateJson: Record<string, any>) {
@@ -172,6 +236,8 @@ export const useStudioStore = defineStore('studio', {
           reasoning_effort: this.reasoningEffort
         })
         this.facts = resp.data
+        this.lastParsedInput = this.rawInput
+        this.isSemanticDirty = false
         await this.buildPrompt(true)
       } catch (err: any) {
         console.error('Prompt parsing failed:', err)
@@ -210,8 +276,10 @@ export const useStudioStore = defineStore('studio', {
           this.isNegativePromptDirty = false
         }
         this.facts = resp.data.facts
-      } catch (err) {
+      } catch (err: any) {
         console.error('Prompt compilation failed:', err)
+        const msg = err.response?.data?.detail || err.message || 'Prompt 构建未成功'
+        this.generationMessage = `编译提示词异常: ${msg}`
       } finally {
         this.isBuilding = false
       }
@@ -224,9 +292,21 @@ export const useStudioStore = defineStore('studio', {
         return
       }
 
-      if (!this.positivePrompt) {
-        await this.buildPrompt(true)
+      if (this.isSemanticDirty && !this.isPositivePromptDirty) {
+        this.generationProgress = 0
+        this.generationMessage = '画面要求已修改，请重新点击“解析提示词”。'
+        return
       }
+
+      if (!this.positivePrompt.trim()) {
+        await this.buildPrompt(true)
+        if (!this.positivePrompt.trim()) {
+          this.generationProgress = 0
+          this.generationMessage = '生图失败：Prompt 构建未成功，请检查人物 Trigger 或输入要求。'
+          return
+        }
+      }
+
       this.isGenerating = true
       this.generationProgress = 10
       this.generationMessage = '正在组装工作流并提交 ComfyUI...'

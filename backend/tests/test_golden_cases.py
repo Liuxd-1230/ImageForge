@@ -618,10 +618,12 @@ def test_case_24_custom_api_workflow_injection():
     assert injected_wf_lora["8"]["inputs"]["model"] == [lora_nid, 0]
 
 def test_case_25_unresolved_trigger_raises_error(session: Session):
-    """Case 25: 未在角色书中的未知角色若 LLM 未返回 trigger，必须明确报错，禁止假成功"""
+    """Case 25: 未知角色在 parse 时返回未解析卡片以便人工填入，但在 build 时严格拒绝编译"""
     import json
     import pytest
+    import asyncio
     from app.services.prompt_engine.resolver import CharacterResolver
+    from app.services.prompt_engine.pipeline import PromptPipeline
 
     class MockFailingLLM:
         async def chat(self, *args, **kwargs):
@@ -630,8 +632,15 @@ def test_case_25_unresolved_trigger_raises_error(session: Session):
     resolver = CharacterResolver(session=session, llm_provider=MockFailingLLM())
     facts_entities = [Entity(id="c1", name="完全未知的超稀有角色")]
     
-    with pytest.raises(RuntimeError) as exc_info:
-        import asyncio
-        asyncio.run(resolver.resolve_entities_async(facts_entities, []))
+    # 1. Async resolver returns entity with canonical_tag=None so UI can show editable cards
+    resolved = asyncio.run(resolver.resolve_entities_async(facts_entities, []))
+    assert len(resolved) == 1
+    assert resolved[0].canonical_tag is None
+
+    # 2. Build prompt strictly rejects compilation until trigger is filled
+    pipeline = PromptPipeline(session=session)
+    unresolved_facts = SemanticFacts(entities=resolved, statements=[])
+    with pytest.raises(ValueError) as exc_info:
+        pipeline.build_prompt(PromptBuildRequest(facts=unresolved_facts, safety="Safe"))
     
-    assert "未能解析角色【完全未知的超稀有角色】" in str(exc_info.value)
+    assert "未能解析 Trigger 标签" in str(exc_info.value) or "未解析 Trigger 标签" in str(exc_info.value)

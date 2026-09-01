@@ -1,23 +1,71 @@
 import random
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from app.models.prompt_engine import LoraBuildItem
+
+# Single Source of Truth for Anima-2.9B Default ComfyUI Parameters
+DEFAULT_UNET_NAME = "anima29B_v10.safetensors"
+DEFAULT_CLIP_NAME = "qwen_3_06b_base.safetensors"
+DEFAULT_VAE_NAME = "qwen_image_vae.safetensors"
+DEFAULT_WIDTH = 1024
+DEFAULT_HEIGHT = 1536
+DEFAULT_STEPS = 28
+DEFAULT_CFG = 4.5
+DEFAULT_SAMPLER = "euler"
+DEFAULT_SCHEDULER = "sgm_uniform"
+
+def _attach_lora_chain(
+    prompt_nodes: Dict[str, Any],
+    initial_model: List[Any],
+    initial_clip: Optional[List[Any]],
+    loras: Optional[List[LoraBuildItem]],
+    start_node_id: int = 100
+) -> Tuple[List[Any], Optional[List[Any]]]:
+    """
+    Unified LoRA chain builder.
+    Attaches chained LoraLoader nodes between model/clip loaders and conditioning/samplers.
+    """
+    current_model = initial_model
+    current_clip = initial_clip
+    node_id_counter = start_node_id
+
+    for lora in (loras or []):
+        if lora.is_enabled:
+            node_id = str(node_id_counter)
+            inputs: Dict[str, Any] = {
+                "lora_name": lora.filename,
+                "strength_model": lora.strength,
+                "strength_clip": lora.strength,
+                "model": current_model
+            }
+            if current_clip is not None:
+                inputs["clip"] = current_clip
+            prompt_nodes[node_id] = {
+                "class_type": "LoraLoader",
+                "inputs": inputs
+            }
+            current_model = [node_id, 0]
+            if current_clip is not None:
+                current_clip = [node_id, 1]
+            node_id_counter += 1
+
+    return current_model, current_clip
 
 def build_anima_29b_workflow(
     positive_prompt: str,
     negative_prompt: str,
-    unet_name: str = "anima29B_v10.safetensors",
-    clip_name: str = "qwen_3_06b_base.safetensors",
-    vae_name: str = "qwen_image_vae.safetensors",
+    unet_name: str = DEFAULT_UNET_NAME,
+    clip_name: str = DEFAULT_CLIP_NAME,
+    vae_name: str = DEFAULT_VAE_NAME,
     clip_type: str = "stable_diffusion",
     loras: Optional[List[LoraBuildItem]] = None,
-    width: int = 1024,
-    height: int = 1536,
+    width: int = DEFAULT_WIDTH,
+    height: int = DEFAULT_HEIGHT,
     batch_size: int = 1,
-    steps: int = 28,
-    cfg: float = 4.5,
-    sampler_name: str = "euler",
-    scheduler: str = "sgm_uniform",
+    steps: int = DEFAULT_STEPS,
+    cfg: float = DEFAULT_CFG,
+    sampler_name: str = DEFAULT_SAMPLER,
+    scheduler: str = DEFAULT_SCHEDULER,
     seed: Optional[int] = None,
     custom_template: Optional[Dict[str, Any]] = None,
     override_models: bool = False
@@ -32,16 +80,24 @@ def build_anima_29b_workflow(
 
     if custom_template:
         wf = json.loads(json.dumps(custom_template))
+        
+        # Guard: explicitly check for single primary KSampler workflow
+        ksampler_nodes = [nid for nid, n in wf.items() if n.get("class_type") in ["KSampler", "KSamplerAdvanced", "KSamplerProgress"]]
+        if len(ksampler_nodes) > 1:
+            raise ValueError(f"当前自动注入仅支持单主 KSampler API Workflow，检测到 {len(ksampler_nodes)} 个 KSampler 节点。复杂多采样工作流请拆分或使用单采样主链。")
+        if len(ksampler_nodes) == 0:
+            raise ValueError("导入的 ComfyUI API 工作流中未找到 KSampler 节点。")
+
         positive_injected = False
         negative_injected = False
-
-        # 1. Trace KSampler positive and negative input links
         pos_node_ids = set()
         neg_node_ids = set()
+        ksampler_nid = ksampler_nodes[0]
+
         for nid, node in wf.items():
             class_type = node.get("class_type", "")
             inputs = node.get("inputs", {})
-            if class_type in ["KSampler", "KSamplerAdvanced", "KSamplerProgress"]:
+            if nid == ksampler_nid:
                 pos_link = inputs.get("positive")
                 if isinstance(pos_link, list) and len(pos_link) > 0:
                     pos_node_ids.add(str(pos_link[0]))
@@ -49,7 +105,6 @@ def build_anima_29b_workflow(
                 if isinstance(neg_link, list) and len(neg_link) > 0:
                     neg_node_ids.add(str(neg_link[0]))
 
-                # Inject sampling params into KSampler
                 if "seed" in inputs: inputs["seed"] = seed
                 if "steps" in inputs: inputs["steps"] = steps
                 if "cfg" in inputs: inputs["cfg"] = cfg
@@ -69,7 +124,7 @@ def build_anima_29b_workflow(
                 elif class_type == "VAELoader" and vae_name:
                     inputs["vae_name"] = vae_name
 
-        # 2. Inject prompts into traced CLIPTextEncode conditioning nodes
+        # Inject prompts into traced CLIPTextEncode conditioning nodes
         for pos_nid in pos_node_ids:
             if pos_nid in wf and wf[pos_nid].get("class_type") in ["CLIPTextEncode", "CLIPTextEncodeFlux", "CLIPTextEncodeSDXL"]:
                 wf[pos_nid]["inputs"]["text"] = positive_prompt
@@ -80,7 +135,7 @@ def build_anima_29b_workflow(
                 wf[neg_nid]["inputs"]["text"] = negative_prompt
                 negative_injected = True
 
-        # 3. Fallback: Search for {{positive}} and {{negative}} placeholders
+        # Fallback: Search for {{positive}} and {{negative}} placeholders
         if not positive_injected or not negative_injected:
             for _, node in wf.items():
                 inputs = node.get("inputs", {})
@@ -94,57 +149,35 @@ def build_anima_29b_workflow(
                         inputs["text"] = negative_prompt
                         negative_injected = True
 
-        # 4. Chain LoRAs if enabled
+        # Attach LoRA chain if enabled
         enabled_loras = [l for l in (loras or []) if l.is_enabled]
-        if enabled_loras:
-            ksampler_nid = None
-            for nid, node in wf.items():
-                if node.get("class_type") in ["KSampler", "KSamplerAdvanced", "KSamplerProgress"]:
-                    ksampler_nid = nid
-                    break
-
+        if enabled_loras and "model" in wf[ksampler_nid].get("inputs", {}):
+            initial_model = wf[ksampler_nid]["inputs"]["model"]
             clip_link = None
             for pos_nid in pos_node_ids:
                 if pos_nid in wf and "clip" in wf[pos_nid].get("inputs", {}):
                     clip_link = wf[pos_nid]["inputs"]["clip"]
                     break
 
-            if ksampler_nid and "model" in wf[ksampler_nid].get("inputs", {}):
-                current_model = wf[ksampler_nid]["inputs"]["model"]
-                current_clip = clip_link
+            digit_ids = [int(k) for k in wf.keys() if k.isdigit()]
+            start_id = (max(digit_ids) if digit_ids else 100) + 1
 
-                digit_ids = [int(k) for k in wf.keys() if k.isdigit()]
-                next_node_id = (max(digit_ids) if digit_ids else 100) + 1
+            new_model, new_clip = _attach_lora_chain(
+                prompt_nodes=wf,
+                initial_model=initial_model,
+                initial_clip=clip_link,
+                loras=enabled_loras,
+                start_node_id=start_id
+            )
 
-                for lora in enabled_loras:
-                    node_id = str(next_node_id)
-                    lora_inputs: Dict[str, Any] = {
-                        "lora_name": lora.filename,
-                        "strength_model": lora.strength,
-                        "strength_clip": lora.strength,
-                        "model": current_model
-                    }
-                    if current_clip:
-                        lora_inputs["clip"] = current_clip
-
-                    wf[node_id] = {
-                        "class_type": "LoraLoader",
-                        "inputs": lora_inputs
-                    }
-                    current_model = [node_id, 0]
-                    if current_clip:
-                        current_clip = [node_id, 1]
-                    next_node_id += 1
-
-                wf[ksampler_nid]["inputs"]["model"] = current_model
-
-                if current_clip:
-                    for pos_nid in pos_node_ids:
-                        if pos_nid in wf and "clip" in wf[pos_nid].get("inputs", {}):
-                            wf[pos_nid]["inputs"]["clip"] = current_clip
-                    for neg_nid in neg_node_ids:
-                        if neg_nid in wf and "clip" in wf[neg_nid].get("inputs", {}):
-                            wf[neg_nid]["inputs"]["clip"] = current_clip
+            wf[ksampler_nid]["inputs"]["model"] = new_model
+            if new_clip:
+                for pos_nid in pos_node_ids:
+                    if pos_nid in wf and "clip" in wf[pos_nid].get("inputs", {}):
+                        wf[pos_nid]["inputs"]["clip"] = new_clip
+                for neg_nid in neg_node_ids:
+                    if neg_nid in wf and "clip" in wf[neg_nid].get("inputs", {}):
+                        wf[neg_nid]["inputs"]["clip"] = new_clip
 
         if not positive_injected:
             raise ValueError("导入的 ComfyUI API 工作流中未找到连接至 KSampler 的 Positive 提示词节点 (CLIPTextEncode)")
@@ -182,28 +215,14 @@ def build_anima_29b_workflow(
         }
     }
 
-    current_model = ["1", 0]
-    current_clip = ["2", 0]
-    node_id_counter = 100  # Start dynamic LoRA node IDs from 100 to avoid conflicts
-
     # Dynamic LoRA Loader chain
-    if loras:
-        for lora in loras:
-            if lora.is_enabled:
-                node_id = str(node_id_counter)
-                prompt_nodes[node_id] = {
-                    "class_type": "LoraLoader",
-                    "inputs": {
-                        "lora_name": lora.filename,
-                        "strength_model": lora.strength,
-                        "strength_clip": lora.strength,
-                        "model": current_model,
-                        "clip": current_clip
-                    }
-                }
-                current_model = [node_id, 0]
-                current_clip = [node_id, 1]
-                node_id_counter += 1
+    current_model, current_clip = _attach_lora_chain(
+        prompt_nodes=prompt_nodes,
+        initial_model=["1", 0],
+        initial_clip=["2", 0],
+        loras=loras,
+        start_node_id=100
+    )
 
     # Node 6: CLIPTextEncode (Positive Prompt)
     prompt_nodes["6"] = {

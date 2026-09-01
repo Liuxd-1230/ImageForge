@@ -14,7 +14,7 @@
     <v-row class="mb-2">
       <v-col cols="12" md="4">
         <v-text-field
-          v-model="artistStore.searchQuery"
+          v-model="searchQuery"
           label="搜索画师名称或 Tag"
           prepend-inner-icon="mdi-magnify"
           density="compact"
@@ -184,6 +184,7 @@ const isEdit = ref(false)
 const snackbar = ref(false)
 const snackbarText = ref('')
 const selectedCategory = ref('')
+const searchQuery = ref('')
 const onlyFavorites = ref(false)
 
 const form = ref({
@@ -209,8 +210,8 @@ const filteredArtists = computed(() => {
   return artistStore.artists.filter((a: Artist) => {
     if (onlyFavorites.value && !a.is_favorite) return false
     if (selectedCategory.value && a.category !== selectedCategory.value) return false
-    if (artistStore.searchQuery) {
-      const q = artistStore.searchQuery.toLowerCase()
+    if (searchQuery.value) {
+      const q = searchQuery.value.toLowerCase()
       return a.name.toLowerCase().includes(q) || a.tags.toLowerCase().includes(q) || (a.description || '').toLowerCase().includes(q)
     }
     return true

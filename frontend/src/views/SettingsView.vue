@@ -250,14 +250,11 @@ const form = ref<AppSettings>({
   LM_STUDIO_MODEL: '',
   LM_STUDIO_AUTO_LOAD: true,
   LM_STUDIO_AUTO_UNLOAD: false,
-  LM_STUDIO_ENABLE_THINKING: false,
-  LM_STUDIO_REASONING_EFFORT: 'instruct',
 
   CLOUD_API_NAME: '自定义云端 API',
   CLOUD_API_BASE_URL: 'https://api.openai.com/v1',
   CLOUD_API_KEY: '',
   CLOUD_MODEL: '',
-  CLOUD_REASONING_EFFORT: 'instruct',
 
   COMFYUI_BASE_URL: 'http://127.0.0.1:8188',
   DEFAULT_SAFETY: 'Safe'

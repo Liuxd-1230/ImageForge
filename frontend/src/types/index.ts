@@ -30,7 +30,6 @@ export interface Preset {
   name: string;
   positive_prefix: string;
   default_negative: string;
-  default_safety: SafetyLevel;
   is_default: boolean;
   created_at?: string;
   updated_at?: string;
@@ -118,14 +117,11 @@ export interface AppSettings {
   LM_STUDIO_MODEL: string;
   LM_STUDIO_AUTO_LOAD: boolean;
   LM_STUDIO_AUTO_UNLOAD: boolean;
-  LM_STUDIO_ENABLE_THINKING: boolean;
-  LM_STUDIO_REASONING_EFFORT: ReasoningEffort;
 
   CLOUD_API_NAME: string;
   CLOUD_API_BASE_URL: string;
   CLOUD_API_KEY: string;
   CLOUD_MODEL: string;
-  CLOUD_REASONING_EFFORT: ReasoningEffort;
 
   COMFYUI_BASE_URL: string;
   DEFAULT_SAFETY: SafetyLevel;
