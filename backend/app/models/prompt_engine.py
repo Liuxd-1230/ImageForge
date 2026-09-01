@@ -36,11 +36,10 @@ class SemanticFacts(BaseModel):
 
 class ParsePromptRequest(BaseModel):
     text: str
-    preset_id: Optional[int] = None
     rule_ids: Optional[List[int]] = None
     provider: Optional[str] = "lm_studio"
     model: Optional[str] = None
-    reasoning_effort: Optional[str] = "instruct"  # instruct, low, medium, high, xhigh, max
+    reasoning_effort: Optional[str] = "instruct"
 
 class ResolveTriggerRequest(BaseModel):
     name: str

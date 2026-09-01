@@ -81,7 +81,6 @@ export interface Lora {
   filename: string;
   trigger_words: string;
   default_strength: number;
-  is_enabled: boolean;
   is_favorite: boolean;
   category: string;
   is_valid_file: boolean;

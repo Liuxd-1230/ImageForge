@@ -11,7 +11,6 @@ router = APIRouter(prefix="/loras", tags=["loras"])
 def list_loras(
     category: Optional[str] = None,
     is_favorite: Optional[bool] = None,
-    is_enabled: Optional[bool] = None,
     session: Session = Depends(get_session)
 ):
     stmt = select(Lora)
@@ -19,8 +18,6 @@ def list_loras(
         stmt = stmt.where(Lora.category == category)
     if is_favorite is not None:
         stmt = stmt.where(Lora.is_favorite == is_favorite)
-    if is_enabled is not None:
-        stmt = stmt.where(Lora.is_enabled == is_enabled)
     return session.exec(stmt).all()
 
 @router.post("", response_model=LoraRead)
@@ -59,35 +56,35 @@ def delete_lora(lora_id: int, session: Session = Depends(get_session)):
 
 @router.post("/sync-comfyui")
 async def sync_comfyui_loras(session: Session = Depends(get_session)):
-    """Scans LoRAs from ComfyUI and synchronizes with local DB."""
     client = ComfyUIClient()
     comfy_loras = await client.get_loras()
     
-    existing_loras = {l.filename: l for l in session.exec(select(Lora)).all()}
-    added = 0
+    existing = {l.filename: l for l in session.exec(select(Lora)).all()}
     
-    for filename in comfy_loras:
-        if filename not in existing_loras:
-            name = filename.rsplit(".", 1)[0]
+    for lora_file in comfy_loras:
+        if lora_file not in existing:
+            # Add new discovered LoRA
+            name_guess = lora_file.replace(".safetensors", "").replace("_", " ").title()
             new_lora = Lora(
-                name=name,
-                filename=filename,
+                name=name_guess,
+                filename=lora_file,
                 trigger_words="",
                 default_strength=0.8,
-                is_enabled=False,
+                category="通用",
                 is_valid_file=True
             )
             session.add(new_lora)
-            added += 1
         else:
-            existing_loras[filename].is_valid_file = True
-            session.add(existing_loras[filename])
+            # Existing LoRA: update file validity without overwriting user customizations
+            existing_lora = existing[lora_file]
+            if not existing_lora.is_valid_file:
+                existing_lora.is_valid_file = True
+                session.add(existing_lora)
 
-    # Mark missing loras
-    for filename, lora in existing_loras.items():
-        if filename not in comfy_loras:
-            lora.is_valid_file = False
-            session.add(lora)
-
+    for fn, lora_obj in existing.items():
+        if fn not in comfy_loras:
+            lora_obj.is_valid_file = False
+            session.add(lora_obj)
+            
     session.commit()
-    return {"status": "ok", "added": added, "total_in_comfyui": len(comfy_loras)}
+    return {"status": "ok", "total_scanned": len(comfy_loras)}

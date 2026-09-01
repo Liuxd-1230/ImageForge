@@ -212,13 +212,13 @@
                     </div>
 
                     <div v-if="entity.source === 'model_character'">
-                      <div v-if="!entity.canonical_tag" class="text-caption text-error mb-1">
-                        未能自动识别该角色 Tag，请在此输入后保存：
+                      <div v-if="!entity.canonical_tag || !entity.caption_name" class="text-caption text-error mb-1">
+                        未能自动识别该角色 Tag，Canonical Tag 与 Caption Name 均需填写后保存：
                       </div>
                       <div class="d-flex gap-1 align-center mb-1">
                         <v-text-field
                           v-model="entity.canonical_tag"
-                          label="Canonical Tag"
+                          label="Canonical Tag (如: suisui)"
                           density="compact"
                           variant="outlined"
                           hide-details
@@ -226,7 +226,7 @@
                         />
                         <v-text-field
                           v-model="entity.caption_name"
-                          label="Caption Name"
+                          label="Caption Name (如: Suisui)"
                           density="compact"
                           variant="outlined"
                           hide-details
@@ -238,8 +238,8 @@
                           variant="text"
                           color="primary"
                           title="保存映射至缓存"
-                          :disabled="!entity.canonical_tag"
-                          @click="studioStore.saveEntityTrigger(entity)"
+                          :disabled="!entity.canonical_tag || !entity.caption_name"
+                          @click="saveEntityTrigger(entity)"
                         />
                       </div>
                     </div>
@@ -871,6 +871,12 @@ function copyToClipboard(text: string) {
   if (!text) return
   navigator.clipboard.writeText(text)
   snackbarText.value = '已复制到剪贴板'
+  snackbar.value = true
+}
+
+async function saveEntityTrigger(entity: any) {
+  await studioStore.saveEntityTrigger(entity)
+  snackbarText.value = `已保存角色【${entity.name}】的 Trigger 映射`
   snackbar.value = true
 }
 </script>

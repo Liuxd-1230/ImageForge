@@ -27,25 +27,26 @@ def get_all_settings(session: Session = Depends(get_session)) -> Dict[str, Any]:
         "DEFAULT_SAFETY": settings.DEFAULT_SAFETY,
     }
     for s in db_settings:
-        val = s.value
-        if val.lower() in ["true", "false"]:
-            res[s.key] = val.lower() == "true"
-        else:
-            res[s.key] = val
+        if s.key in res:
+            val = s.value
+            if val.lower() in ["true", "false"]:
+                res[s.key] = val.lower() == "true"
+            else:
+                res[s.key] = val
     return res
 
 @router.post("")
 def update_settings(payload: Dict[str, Any], session: Session = Depends(get_session)):
     for k, v in payload.items():
-        val_str = str(v)
-        setting = session.exec(select(AppSetting).where(AppSetting.key == k)).first()
-        if not setting:
-            setting = AppSetting(key=k, value=val_str)
-            session.add(setting)
-        else:
-            setting.value = val_str
-            session.add(setting)
         if hasattr(settings, k):
+            val_str = str(v)
+            setting = session.exec(select(AppSetting).where(AppSetting.key == k)).first()
+            if not setting:
+                setting = AppSetting(key=k, value=val_str)
+                session.add(setting)
+            else:
+                setting.value = val_str
+                session.add(setting)
             if isinstance(getattr(settings, k), bool):
                 setattr(settings, k, v in [True, "True", "true", 1, "1"])
             else:

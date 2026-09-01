@@ -21,41 +21,43 @@ class TestProviderRequest(BaseModel):
 
 @router.post("/lm-studio/test")
 async def lm_studio_test(req: TestProviderRequest):
-    """Safe POST endpoint for testing unsaved connection and fetching models without leaking keys in URL query."""
+    """Safe POST endpoint for testing connection and fetching models in a single network request."""
     target_base = req.base_url or settings.LM_STUDIO_BASE_URL
     target_key = req.api_key if req.api_key is not None else settings.LM_STUDIO_API_KEY
     provider = LMStudioProvider(base_url=target_base, api_key=target_key)
-    health = await provider.check_health()
-    models: List[Any] = []
-    if health.get("status") == "connected":
-        try:
-            models = await provider.list_models()
-        except Exception:
-            pass
-    return {
-        "status": health.get("status", "disconnected"),
-        "models": models,
-        "error": health.get("error")
-    }
+    try:
+        models = await provider.list_models()
+        return {
+            "status": "connected",
+            "models": models,
+            "error": None
+        }
+    except Exception as e:
+        return {
+            "status": "disconnected",
+            "models": [],
+            "error": str(e)
+        }
 
 @router.post("/cloud/test")
 async def cloud_test(req: TestProviderRequest):
-    """Safe POST endpoint for testing unsaved connection and fetching models without leaking keys in URL query."""
+    """Safe POST endpoint for testing connection and fetching models in a single network request."""
     target_base = req.base_url or settings.CLOUD_API_BASE_URL
     target_key = req.api_key if req.api_key is not None else settings.CLOUD_API_KEY
     provider = OpenAICompatibleProvider(base_url=target_base, api_key=target_key)
-    health = await provider.check_health()
-    models: List[Any] = []
-    if health.get("status") == "connected":
-        try:
-            models = await provider.list_models()
-        except Exception:
-            pass
-    return {
-        "status": health.get("status", "disconnected"),
-        "models": models,
-        "error": health.get("error")
-    }
+    try:
+        models = await provider.list_models()
+        return {
+            "status": "connected",
+            "models": models,
+            "error": None
+        }
+    except Exception as e:
+        return {
+            "status": "disconnected",
+            "models": [],
+            "error": str(e)
+        }
 
 @router.get("/lm-studio/health")
 async def lm_studio_health():

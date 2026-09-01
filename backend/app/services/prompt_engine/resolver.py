@@ -63,12 +63,24 @@ class CharacterResolver:
         if entity.canonical_tag:
             return entity, True
 
-        # 2. Generic / Anonymous characters (e.g. 1girl, girl1, boy)
+        # 2. Generic / Anonymous characters
         generic_clean = entity.name.strip().lower()
-        if generic_clean in ["girl", "girl1", "girl2", "1girl", "2girls", "boy", "boy1", "boy2", "1boy", "2boys", "woman", "man", "person", "character"]:
+        if generic_clean in ["girl", "girl1", "girl2", "1girl", "2girls", "woman"]:
             entity.source = "model_character"
-            entity.canonical_tag = generic_clean if generic_clean in ["1girl", "2girls", "1boy", "2boys"] else ("1girl" if "girl" in generic_clean or "woman" in generic_clean else ("1boy" if "boy" in generic_clean or "man" in generic_clean else "1girl"))
-            entity.caption_name = "the girl" if "girl" in generic_clean or "woman" in generic_clean else ("the boy" if "boy" in generic_clean or "man" in generic_clean else "the character")
+            entity.canonical_tag = generic_clean if generic_clean in ["1girl", "2girls"] else "1girl"
+            entity.caption_name = "the girl" if "girl" in generic_clean else "the woman"
+            entity.custom_description = None
+            return entity, True
+        elif generic_clean in ["boy", "boy1", "boy2", "1boy", "2boys", "man"]:
+            entity.source = "model_character"
+            entity.canonical_tag = generic_clean if generic_clean in ["1boy", "2boys"] else "1boy"
+            entity.caption_name = "the boy" if "boy" in generic_clean else "the man"
+            entity.custom_description = None
+            return entity, True
+        elif generic_clean in ["person", "character", "someone", "people", "人物", "人", "某人"]:
+            entity.source = "model_character"
+            entity.canonical_tag = None
+            entity.caption_name = "the person" if "person" in generic_clean or generic_clean in ["人", "某人"] else "the character"
             entity.custom_description = None
             return entity, True
 

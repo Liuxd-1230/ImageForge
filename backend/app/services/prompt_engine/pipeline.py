@@ -61,9 +61,11 @@ class PromptPipeline:
     def build_prompt(self, request: PromptBuildRequest) -> PromptBuildResponse:
         resolved_entities = self.resolver.resolve_entities_sync(request.facts.entities, request.facts.statements)
 
-        # Validate that all model characters have a canonical trigger tag
+        # Validate that specific named model characters have a canonical trigger tag
         for e in resolved_entities:
             if e.source == "model_character" and not e.canonical_tag:
+                if e.name.strip().lower() in ["person", "character", "someone", "people", "人物", "人", "某人"]:
+                    continue
                 raise ValueError(
                     f"角色【{e.name}】未解析 Trigger 标签。"
                     f"请在上方“识别人物与 Trigger 映射”卡片中手动填写 Canonical Tag 与 Caption Name 并点击保存。"

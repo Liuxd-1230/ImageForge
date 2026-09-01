@@ -81,12 +81,12 @@ def build_anima_29b_workflow(
     if custom_template:
         wf = json.loads(json.dumps(custom_template))
         
-        # Guard: explicitly check for single primary KSampler workflow
-        ksampler_nodes = [nid for nid, n in wf.items() if n.get("class_type") in ["KSampler", "KSamplerAdvanced", "KSamplerProgress"]]
+        # Guard: explicitly check for single primary standard KSampler workflow
+        ksampler_nodes = [nid for nid, n in wf.items() if n.get("class_type") == "KSampler"]
         if len(ksampler_nodes) > 1:
-            raise ValueError(f"当前自动注入仅支持单主 KSampler API Workflow，检测到 {len(ksampler_nodes)} 个 KSampler 节点。复杂多采样工作流请拆分或使用单采样主链。")
+            raise ValueError(f"当前自动注入仅支持单主标准 KSampler API Workflow，检测到 {len(ksampler_nodes)} 个 KSampler 节点。复杂多采样工作流请拆分或使用单采样主链。")
         if len(ksampler_nodes) == 0:
-            raise ValueError("导入的 ComfyUI API 工作流中未找到 KSampler 节点。")
+            raise ValueError("导入的 ComfyUI API 工作流中未找到标准 KSampler 节点。")
 
         positive_injected = False
         negative_injected = False

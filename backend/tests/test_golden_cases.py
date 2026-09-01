@@ -644,3 +644,19 @@ def test_case_25_unresolved_trigger_raises_error(session: Session):
         pipeline.build_prompt(PromptBuildRequest(facts=unresolved_facts, safety="Safe"))
     
     assert "未能解析 Trigger 标签" in str(exc_info.value) or "未解析 Trigger 标签" in str(exc_info.value)
+
+def test_case_26_generic_person_does_not_invent_girl_tag(session: Session):
+    """Case 26: 匿名通用人物 (person / character) 不得脑补 1girl，保留中性自然语言表达"""
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[Entity(id="c1", name="person")],
+        statements=[
+            Statement(kind="attribute", subject="c1", text="running"),
+            Statement(kind="scene", text="in the rain")
+        ]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    # Must NOT invent 1girl or 1boy
+    assert "1girl" not in res.prompt
+    assert "1boy" not in res.prompt
+    assert "the person is running in the rain" in res.prompt or "the person is running" in res.prompt
