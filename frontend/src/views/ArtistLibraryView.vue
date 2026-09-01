@@ -3,7 +3,7 @@
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
         <h1 class="text-h5 font-weight-bold">画师风格库</h1>
-        <div class="text-caption text-grey">精选 Anima-2.9B 适配画师（推荐使用 @artist 格式），支持风格分类筛选与一键置入创作台。</div>
+        <div class="text-caption text-grey">精选 Anima-2.9B 适配画师（推荐使用 @artist 格式），支持画风预览、风格分类与创作台实时同步。</div>
       </div>
       <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
         添加画师
@@ -64,53 +64,82 @@
         md="4"
         lg="3"
       >
-        <v-card variant="outlined" class="h-100 d-flex flex-column pa-4 rounded-lg bg-surface">
-          <div class="d-flex justify-space-between align-center mb-1">
-            <span class="text-subtitle-1 font-weight-bold">{{ art.name }}</span>
-            <v-btn
-              :icon="art.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
-              :color="art.is_favorite ? 'amber' : 'grey'"
-              size="small"
-              variant="text"
-              @click="artistStore.toggleFavorite(art)"
-            />
-          </div>
-
-          <div class="text-caption font-mono text-primary mb-2">
-            <code>{{ art.tags }}</code>
-          </div>
-
-          <div class="text-caption text-grey flex-grow-1 mb-3">
-            {{ art.description || art.category }}
-          </div>
-
-          <div class="d-flex justify-space-between align-center mt-auto pt-2 border-t">
-            <v-btn
-              size="small"
-              :variant="isArtistSelectedInStudio(art) ? 'flat' : 'tonal'"
-              :color="isArtistSelectedInStudio(art) ? 'success' : 'primary'"
-              :prepend-icon="isArtistSelectedInStudio(art) ? 'mdi-check' : 'mdi-plus'"
-              @click="toggleStudioArtist(art)"
+        <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden">
+          <!-- Preview Image Container -->
+          <div class="artist-preview-container bg-grey-lighten-4 d-flex align-center justify-center border-b">
+            <v-img
+              v-if="art.preview_url"
+              :src="art.preview_url"
+              height="160"
+              cover
+              class="w-100"
             >
-              {{ isArtistSelectedInStudio(art) ? '已加入创作台' : '加入创作台' }}
-            </v-btn>
-            <div class="d-flex gap-1">
+              <template #placeholder>
+                <div class="d-flex align-center justify-center fill-height bg-surface">
+                  <v-icon size="36" color="grey-lighten-1">mdi-palette</v-icon>
+                </div>
+              </template>
+              <template #error>
+                <div class="d-flex flex-column align-center justify-center fill-height bg-surface text-grey text-caption">
+                  <v-icon size="32" color="grey">mdi-image-broken</v-icon>
+                  <div>预览图加载失败</div>
+                </div>
+              </template>
+            </v-img>
+            <div v-else class="d-flex flex-column align-center justify-center fill-height py-8 text-grey text-caption">
+              <v-icon size="36" color="grey-lighten-1" class="mb-1">mdi-palette-outline</v-icon>
+              <div>未设置画风预览图</div>
+            </div>
+          </div>
+
+          <div class="pa-4 d-flex flex-column flex-grow-1">
+            <div class="d-flex justify-space-between align-center mb-1">
+              <span class="text-subtitle-1 font-weight-bold text-truncate">{{ art.name }}</span>
               <v-btn
-                icon="mdi-pencil"
+                :icon="art.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
+                :color="art.is_favorite ? 'amber' : 'grey'"
                 size="small"
                 variant="text"
-                color="primary"
-                title="编辑画师"
-                @click="openEditDialog(art)"
+                @click="artistStore.toggleFavorite(art)"
               />
+            </div>
+
+            <div class="text-caption font-mono text-primary mb-2">
+              <code>{{ art.tags }}</code>
+            </div>
+
+            <div class="text-caption text-grey flex-grow-1 mb-3">
+              {{ art.description || art.category }}
+            </div>
+
+            <div class="d-flex justify-space-between align-center mt-auto pt-2 border-t">
               <v-btn
-                icon="mdi-delete"
                 size="small"
-                variant="text"
-                color="error"
-                title="删除画师"
-                @click="deleteArt(art.id)"
-              />
+                :variant="isArtistSelectedInStudio(art) ? 'flat' : 'tonal'"
+                :color="isArtistSelectedInStudio(art) ? 'success' : 'primary'"
+                :prepend-icon="isArtistSelectedInStudio(art) ? 'mdi-check' : 'mdi-plus'"
+                @click="toggleStudioArtist(art)"
+              >
+                {{ isArtistSelectedInStudio(art) ? '已加入创作台' : '加入创作台' }}
+              </v-btn>
+              <div class="d-flex gap-1">
+                <v-btn
+                  icon="mdi-pencil"
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  title="编辑画师"
+                  @click="openEditDialog(art)"
+                />
+                <v-btn
+                  icon="mdi-delete"
+                  size="small"
+                  variant="text"
+                  color="error"
+                  title="删除画师"
+                  @click="deleteArt(art.id)"
+                />
+              </div>
             </div>
           </div>
         </v-card>
@@ -234,6 +263,8 @@ function openEditDialog(art: Artist) {
 
 async function saveArtist() {
   await artistStore.saveArtist(form.value)
+  // Synchronize with Studio selected artists and re-build prompt immediately
+  studioStore.syncArtistsFromLibrary(artistStore.artists)
   snackbarText.value = isEdit.value ? '画师信息已更新' : '画师已创建'
   dialog.value = false
   snackbar.value = true
@@ -242,6 +273,7 @@ async function saveArtist() {
 async function deleteArt(id: number) {
   if (confirm('确定删除该画师记录吗？')) {
     await artistStore.deleteArtist(id)
+    studioStore.syncArtistsFromLibrary(artistStore.artists)
     snackbarText.value = '画师已删除'
     snackbar.value = true
   }
@@ -251,6 +283,10 @@ async function deleteArt(id: number) {
 <style scoped>
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
+.artist-preview-container {
+  height: 160px;
+  width: 100%;
+}
 .overflow-x-auto {
   overflow-x: auto;
   white-space: nowrap;

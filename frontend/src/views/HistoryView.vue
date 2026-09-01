@@ -3,7 +3,7 @@
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
         <h1 class="text-h5 font-weight-bold">生图历史</h1>
-        <div class="text-caption text-grey">查看历史提示词与生图记录，支持一键将全部参数与实体状态完整恢复到创作台 (Re-prompt)。</div>
+        <div class="text-caption text-grey">查看历史提示词与生图记录，支持一键将全部参数（含实际 Seed、模型与工作台配置）完整恢复到创作台 (Re-prompt)。</div>
       </div>
     </div>
 
@@ -36,8 +36,11 @@
             输入: {{ item.raw_input }}
           </div>
 
-          <div class="d-flex gap-1 mb-2">
+          <div class="d-flex flex-wrap gap-1 mb-2">
             <v-chip size="x-small" color="primary" variant="outlined">{{ item.safety }}</v-chip>
+            <v-chip v-if="getSeed(item) !== undefined" size="x-small" color="teal" variant="outlined">
+              Seed: {{ getSeed(item) }}
+            </v-chip>
             <v-chip v-if="getArtistsCount(item) > 0" size="x-small" color="secondary" variant="outlined">
               画师 x{{ getArtistsCount(item) }}
             </v-chip>
@@ -77,6 +80,16 @@ onMounted(() => {
 function formatDate(d: string) {
   if (!d) return ''
   return new Date(d).toLocaleString('zh-CN')
+}
+
+function getSeed(item: GenerationHistory): number | undefined {
+  try {
+    if (item.comfy_params_json) {
+      const p = JSON.parse(item.comfy_params_json)
+      return p.seed
+    }
+  } catch {}
+  return undefined
 }
 
 function getArtistsCount(item: GenerationHistory): number {
@@ -132,6 +145,15 @@ function restoreToStudio(item: GenerationHistory) {
       if (params.sampler_name) studioStore.samplerName = params.sampler_name
       if (params.scheduler) studioStore.scheduler = params.scheduler
       if (params.seed !== undefined) studioStore.seed = params.seed
+
+      if (params.studio) {
+        if (params.studio.selectedPresetId !== undefined) studioStore.selectedPresetId = params.studio.selectedPresetId
+        if (params.studio.extraNegative !== undefined) studioStore.extraNegative = params.studio.extraNegative
+        if (params.studio.provider) studioStore.provider = params.studio.provider
+        if (params.studio.model) studioStore.model = params.studio.model
+        if (params.studio.reasoningEffort) studioStore.reasoningEffort = params.studio.reasoningEffort
+        if (params.studio.selectedRuleIds) studioStore.selectedRuleIds = params.studio.selectedRuleIds
+      }
     }
   } catch {}
 

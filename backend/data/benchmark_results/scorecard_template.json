@@ -1,0 +1,31 @@
+{
+  "case_01": {
+    "title": "单人物 + 基础服装",
+    "input": "穗穗穿着白色泳装站在沙滩上。",
+    "scores": {
+      "seed_42": {
+        "tag_only": {
+          "faithfulness": null,
+          "binding": null,
+          "interaction": null,
+          "quality": null,
+          "image_file": "case_01_tag_only_seed42.png"
+        },
+        "imageforge_mixed": {
+          "faithfulness": null,
+          "binding": null,
+          "interaction": null,
+          "quality": null,
+          "image_file": "case_01_imageforge_mixed_seed42.png"
+        },
+        "nl_heavy": {
+          "faithfulness": null,
+          "binding": null,
+          "interaction": null,
+          "quality": null,
+          "image_file": "case_01_nl_heavy_seed42.png"
+        }
+      }
+    }
+  }
+}

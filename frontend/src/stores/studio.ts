@@ -70,6 +70,15 @@ export const useStudioStore = defineStore('studio', {
       })
     },
 
+    syncArtistsFromLibrary(allArtists: Artist[]) {
+      const libraryMap = new Map(allArtists.map(a => [a.id, a]))
+      // Keep only artists that still exist in library, and update to latest object
+      this.selectedArtists = this.selectedArtists
+        .filter(a => libraryMap.has(a.id))
+        .map(a => libraryMap.get(a.id)!)
+      this.buildPrompt()
+    },
+
     toggleArtist(artist: Artist) {
       const idx = this.selectedArtists.findIndex(a => a.id === artist.id)
       if (idx !== -1) {
@@ -173,6 +182,9 @@ export const useStudioStore = defineStore('studio', {
       this.isGenerating = true
       this.generationProgress = 10
       this.generationMessage = '正在组装 Anima-2.9B 工作流并提交 ComfyUI...'
+      
+      const actualSeed = this.seed === -1 ? Math.floor(Math.random() * 1000000000) : this.seed
+      
       try {
         const loraItems = this.activeLoras
           .filter(item => item.isEnabled)
@@ -196,7 +208,7 @@ export const useStudioStore = defineStore('studio', {
           cfg: this.cfg,
           sampler_name: this.samplerName,
           scheduler: this.scheduler,
-          seed: this.seed === -1 ? Math.floor(Math.random() * 1000000000) : this.seed
+          seed: actualSeed
         })
 
         const promptId = resp.data.prompt_id
@@ -239,9 +251,18 @@ export const useStudioStore = defineStore('studio', {
                       steps: this.steps,
                       cfg: this.cfg,
                       sampler_name: this.samplerName,
-                      scheduler: this.scheduler
+                      scheduler: this.scheduler,
+                      seed: actualSeed,
+                      studio: {
+                        selectedPresetId: this.selectedPresetId,
+                        extraNegative: this.extraNegative,
+                        provider: this.provider,
+                        model: this.model,
+                        reasoningEffort: this.reasoningEffort,
+                        selectedRuleIds: this.selectedRuleIds
+                      }
                     }),
-                    image_url: this.generatedImageUrl
+                    image_path: this.generatedImageUrl
                   })
                   break
                 }
