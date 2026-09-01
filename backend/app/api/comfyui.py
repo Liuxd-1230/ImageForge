@@ -12,7 +12,9 @@ router = APIRouter(prefix="/comfyui", tags=["comfyui"])
 class GenerateRequest(BaseModel):
     positive_prompt: str
     negative_prompt: str
-    checkpoint: str = "anima-preview.safetensors"
+    unet_name: str = "anima29B_v10.safetensors"
+    clip_name: str = "qwen_3_06b_base.safetensors"
+    vae_name: str = "qwen_image_vae.safetensors"
     loras: List[LoraBuildItem] = []
     width: int = 1024
     height: int = 1536
@@ -48,7 +50,9 @@ async def comfyui_generate(req: GenerateRequest):
     workflow = build_anima_29b_workflow(
         positive_prompt=req.positive_prompt,
         negative_prompt=req.negative_prompt,
-        checkpoint=req.checkpoint,
+        unet_name=req.unet_name,
+        clip_name=req.clip_name,
+        vae_name=req.vae_name,
         loras=req.loras,
         width=req.width,
         height=req.height,
@@ -64,7 +68,7 @@ async def comfyui_generate(req: GenerateRequest):
         res = await client.queue_prompt(workflow, req.client_id)
         return res
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to submit workflow to ComfyUI: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"ComfyUI 生图任务提交失败: {str(e)}")
 
 @router.get("/history/{prompt_id}")
 async def comfyui_history(prompt_id: str):
@@ -72,7 +76,7 @@ async def comfyui_history(prompt_id: str):
     try:
         return await client.get_history(prompt_id)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to get ComfyUI history: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"获取 ComfyUI 历史失败: {str(e)}")
 
 @router.get("/view")
 async def comfyui_view_image(
@@ -91,4 +95,4 @@ async def comfyui_view_image(
                 media_type=resp.headers.get("content-type", "image/png")
             )
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to proxy image from ComfyUI: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"获取 ComfyUI 图像失败: {str(e)}")

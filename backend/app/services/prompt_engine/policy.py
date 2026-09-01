@@ -32,19 +32,45 @@ class PromptPolicy:
         return t
 
     def determine_character_count_tag(self, facts: SemanticFacts) -> Optional[str]:
-        """Calculates count tags like 1girl, 2girls, 1boy, 1boy, 1girl."""
+        """
+        Calculates count tags only when gender is explicitly known or verifiable.
+        Avoids assuming all characters are female.
+        """
         count = len(facts.entities)
         if count == 0:
             return None
-        elif count == 1:
-            name = facts.entities[0].name.lower()
-            if "boy" in name or "男" in name or "小明" in name:
-                return "1boy"
-            return "1girl"
-        elif count == 2:
-            return "2girls"
-        else:
-            return f"{count}girls"
+
+        # Check if we have gender indicators in statements or custom descriptions
+        girls = 0
+        boys = 0
+
+        for e in facts.entities:
+            desc = (e.custom_description or "").lower()
+            name = e.name.lower()
+            caption = (e.caption_name or "").lower()
+            
+            if "woman" in desc or "girl" in desc or "girl" in name or "woman" in name or "girl" in caption or "woman" in caption:
+                girls += 1
+            elif "man" in desc or "boy" in desc or "boy" in name or "man" in name or "boy" in caption or "man" in caption:
+                boys += 1
+            elif name in ["穗穗", "秧秧", "小夏", "爱丽丝", "明日香", "绫波丽", "初音未来", "芙莉莲", "费伦", "希露菲"]:
+                girls += 1
+            elif name in ["小明", "桐人", "鲁迪乌斯", "碳治郎", "鸣人", "路飞"]:
+                boys += 1
+
+        if girls > 0 and boys == 0 and girls == count:
+            return "1girl" if count == 1 else f"{count}girls"
+        elif boys > 0 and girls == 0 and boys == count:
+            return "1boy" if count == 1 else f"{count}boys"
+        elif girls > 0 and boys > 0 and (girls + boys) == count:
+            parts = []
+            if boys > 0:
+                parts.append("1boy" if boys == 1 else f"{boys}boys")
+            if girls > 0:
+                parts.append("1girl" if girls == 1 else f"{girls}girls")
+            return ", ".join(parts)
+
+        return None
 
     def compile_positive_prompt(
         self,
@@ -56,7 +82,7 @@ class PromptPolicy:
     ) -> str:
         sections: List[str] = []
 
-        # 1. Preset Positive Prefix (if provided by user preset)
+        # 1. Preset Positive Prefix (if provided)
         if positive_prefix and positive_prefix.strip():
             sections.append(positive_prefix.strip().rstrip(","))
 
@@ -64,7 +90,7 @@ class PromptPolicy:
         safety_tag = SAFETY_TAG_MAP.get(safety, "safe")
         sections.append(safety_tag)
 
-        # 3. Character Count Tag
+        # 3. Character Count Tag (only if verified)
         count_tag = self.determine_character_count_tag(facts)
         if count_tag:
             sections.append(count_tag)
@@ -102,7 +128,6 @@ class PromptPolicy:
             if lora_triggers:
                 sections.append(", ".join(lora_triggers))
 
-        # Clean and join sections
         cleaned_sections = [sec.strip() for sec in sections if sec.strip()]
         final_prompt = ", ".join(cleaned_sections)
         final_prompt = re.sub(r",\s*,", ",", final_prompt)

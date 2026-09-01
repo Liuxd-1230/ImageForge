@@ -17,8 +17,9 @@ from app.services.llm.base import BaseLLMProvider
 class PromptPipeline:
     def __init__(self, session: Session, llm_provider: Optional[BaseLLMProvider] = None):
         self.session = session
+        self.llm_provider = llm_provider
         self.extractor = FactExtractor(llm_provider=llm_provider)
-        self.resolver = CharacterResolver(session=session)
+        self.resolver = CharacterResolver(session=session, llm_provider=llm_provider)
         self.validator = SemanticValidator()
         self.policy = PromptPolicy()
 
@@ -40,6 +41,7 @@ class PromptPipeline:
             if rules:
                 rule_context = "\n\n".join([f"[{r.name}]:\n{r.content}" for r in rules])
 
+        # 1. Fact Extraction
         raw_facts = await self.extractor.extract(
             user_input=raw_text,
             rules_context=rule_context,
@@ -47,12 +49,20 @@ class PromptPipeline:
             reasoning_effort=reasoning_effort
         )
 
-        resolved_entities = self.resolver.resolve_entities(raw_facts.entities, raw_facts.statements)
+        # 2. Batch Character Resolution (Character Book -> Cache -> LLM)
+        resolved_entities = await self.resolver.resolve_entities_async(
+            entities=raw_facts.entities,
+            statements=raw_facts.statements,
+            model=model,
+            reasoning_effort=reasoning_effort
+        )
         facts = SemanticFacts(entities=resolved_entities, statements=raw_facts.statements)
+
+        # 3. Structural Validation
         return self.validator.validate_and_sanitize(facts)
 
     def build_prompt(self, request: PromptBuildRequest) -> PromptBuildResponse:
-        resolved_entities = self.resolver.resolve_entities(request.facts.entities, request.facts.statements)
+        resolved_entities = self.resolver.resolve_entities_sync(request.facts.entities, request.facts.statements)
         validated_facts = self.validator.validate_and_sanitize(
             SemanticFacts(entities=resolved_entities, statements=request.facts.statements)
         )

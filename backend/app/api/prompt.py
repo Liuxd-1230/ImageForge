@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from datetime import datetime
+import logging
 from app.database import get_session
 from app.config import settings
 from app.models.prompt_engine import (
@@ -17,6 +18,7 @@ from app.services.llm.openai_compat import OpenAICompatibleProvider
 from app.services.prompt_engine.pipeline import PromptPipeline
 from app.services.prompt_engine.resolver import CharacterResolver
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 
 def get_llm_provider(provider_type: str = "lm_studio"):
@@ -35,28 +37,32 @@ async def parse_prompt(
     llm = get_llm_provider(provider_type)
     pipeline = PromptPipeline(session=session, llm_provider=llm)
     
-    # Check auto-load for LM Studio if configured
-    if provider_type == "lm_studio" and settings.LM_STUDIO_AUTO_LOAD and req.model:
+    instance_id = None
+    target_model = req.model or (settings.LM_STUDIO_MODEL if provider_type == "lm_studio" else settings.CLOUD_MODEL)
+
+    # 1. Auto load if enabled
+    if provider_type == "lm_studio" and settings.LM_STUDIO_AUTO_LOAD and target_model:
         try:
-            await llm.load_model(req.model)
-        except Exception:
-            pass
+            load_res = await llm.load_model(target_model)
+            instance_id = load_res.get("instance_id")
+        except Exception as e:
+            logger.warning(f"LM Studio auto-load warning: {e}")
 
-    facts = await pipeline.parse_and_extract(
-        raw_text=req.text,
-        rule_ids=req.rule_ids,
-        model=req.model or (settings.LM_STUDIO_MODEL if provider_type == "lm_studio" else settings.CLOUD_MODEL),
-        reasoning_effort=req.reasoning_effort or (settings.LM_STUDIO_REASONING_EFFORT if provider_type == "lm_studio" else settings.CLOUD_REASONING_EFFORT)
-    )
-
-    # Check auto-unload for LM Studio if configured
-    if provider_type == "lm_studio" and settings.LM_STUDIO_AUTO_UNLOAD and req.model:
-        try:
-            await llm.unload_model(req.model)
-        except Exception:
-            pass
-
-    return facts
+    try:
+        facts = await pipeline.parse_and_extract(
+            raw_text=req.text,
+            rule_ids=req.rule_ids,
+            model=target_model,
+            reasoning_effort=req.reasoning_effort or (settings.LM_STUDIO_REASONING_EFFORT if provider_type == "lm_studio" else settings.CLOUD_REASONING_EFFORT)
+        )
+        return facts
+    finally:
+        # 2. Auto unload if enabled
+        if provider_type == "lm_studio" and settings.LM_STUDIO_AUTO_UNLOAD and instance_id:
+            try:
+                await llm.unload_model(instance_id)
+            except Exception as e:
+                logger.warning(f"LM Studio auto-unload failed: {e}")
 
 @router.post("/resolve-trigger", response_model=ResolveTriggerResponse)
 def resolve_trigger(
@@ -67,7 +73,6 @@ def resolve_trigger(
     name_clean = req.name.strip()
     
     if req.save_to_cache and req.canonical_tag and req.caption_name:
-        # User manually edited and wants to save mapping
         stmt = select(CharacterTriggerCache).where(CharacterTriggerCache.name == name_clean)
         existing = session.exec(stmt).first()
         if existing:
@@ -91,12 +96,12 @@ def resolve_trigger(
         )
 
     resolver = CharacterResolver(session=session)
-    tag, caption = resolver._resolve_model_trigger(name_clean)
+    tag, caption = resolver._lookup_trigger_cache(name_clean)
     return ResolveTriggerResponse(
         name=name_clean,
-        canonical_tag=tag,
-        caption_name=caption,
-        from_cache=True
+        canonical_tag=tag or "",
+        caption_name=caption or name_clean,
+        from_cache=tag is not None
     )
 
 @router.post("/build", response_model=PromptBuildResponse)

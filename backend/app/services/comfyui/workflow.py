@@ -6,7 +6,10 @@ from app.models.prompt_engine import LoraBuildItem
 def build_anima_29b_workflow(
     positive_prompt: str,
     negative_prompt: str,
-    checkpoint: str = "anima-preview.safetensors",
+    unet_name: str = "anima29B_v10.safetensors",
+    clip_name: str = "qwen_3_06b_base.safetensors",
+    vae_name: str = "qwen_image_vae.safetensors",
+    clip_type: str = "qwen_image",
     loras: Optional[List[LoraBuildItem]] = None,
     width: int = 1024,
     height: int = 1536,
@@ -19,14 +22,13 @@ def build_anima_29b_workflow(
     custom_template: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Constructs an authentic Anima-2.9B ComfyUI workflow.
-    If custom_template is provided, replaces prompt/negative/seed/steps/cfg nodes dynamically.
+    Constructs an authentic Anima-2.9B ComfyUI workflow based on official blueprint:
+    UNETLoader + CLIPLoader (qwen_3_06b_base) + VAELoader (qwen_image_vae) + KSampler + VAEDecode.
     """
     if seed is None or seed == -1:
         seed = random.randint(1, 1125899906842624)
 
     if custom_template:
-        # Clone custom workflow and substitute key parameters
         wf = json.loads(json.dumps(custom_template))
         for _, node in wf.items():
             inputs = node.get("inputs", {})
@@ -53,24 +55,48 @@ def build_anima_29b_workflow(
                     inputs["width"] = width
                 if "height" in inputs:
                     inputs["height"] = height
-            elif class_type in ["CheckpointLoaderSimple"]:
-                if checkpoint:
-                    inputs["ckpt_name"] = checkpoint
+            elif class_type in ["UNETLoader"]:
+                if unet_name:
+                    inputs["unet_name"] = unet_name
+            elif class_type in ["CLIPLoader"]:
+                if clip_name:
+                    inputs["clip_name"] = clip_name
+            elif class_type in ["VAELoader"]:
+                if vae_name:
+                    inputs["vae_name"] = vae_name
         return wf
 
-    # Standard Anima-2.9B txt2img workflow
+    # Official Anima-2.9B ComfyUI Blueprint Architecture
     prompt_nodes: Dict[str, Any] = {}
 
-    # Node 4: Checkpoint Loader
-    prompt_nodes["4"] = {
-        "class_type": "CheckpointLoaderSimple",
+    # Node 1: UNETLoader (Diffusion Model)
+    prompt_nodes["1"] = {
+        "class_type": "UNETLoader",
         "inputs": {
-            "ckpt_name": checkpoint
+            "unet_name": unet_name,
+            "weight_dtype": "default"
         }
     }
 
-    current_model = ["4", 0]
-    current_clip = ["4", 1]
+    # Node 2: CLIPLoader (Qwen3 0.6B Base Text Encoder)
+    prompt_nodes["2"] = {
+        "class_type": "CLIPLoader",
+        "inputs": {
+            "clip_name": clip_name,
+            "type": clip_type
+        }
+    }
+
+    # Node 3: VAELoader (Qwen Image VAE)
+    prompt_nodes["3"] = {
+        "class_type": "VAELoader",
+        "inputs": {
+            "vae_name": vae_name
+        }
+    }
+
+    current_model = ["1", 0]
+    current_clip = ["2", 0]
     node_id_counter = 10
 
     # Chain LoRA loaders
@@ -110,7 +136,7 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 5: Empty Latent Image (Default Anima 1024x1536)
+    # Node 5: Empty Latent Image (1024x1536)
     prompt_nodes["5"] = {
         "class_type": "EmptyLatentImage",
         "inputs": {
@@ -120,8 +146,8 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 3: KSampler (Anima 2.9B settings: euler + sgm_uniform / beta, cfg 4.5)
-    prompt_nodes["3"] = {
+    # Node 8: KSampler (Anima 2.9B: Euler + sgm_uniform / beta, cfg 4.5)
+    prompt_nodes["8"] = {
         "class_type": "KSampler",
         "inputs": {
             "model": current_model,
@@ -137,21 +163,21 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 8: VAE Decode
-    prompt_nodes["8"] = {
+    # Node 9: VAE Decode
+    prompt_nodes["9"] = {
         "class_type": "VAEDecode",
         "inputs": {
-            "samples": ["3", 0],
-            "vae": ["4", 2]
+            "samples": ["8", 0],
+            "vae": ["3", 0]
         }
     }
 
-    # Node 9: Save Image
-    prompt_nodes["9"] = {
+    # Node 10: Save Image
+    prompt_nodes["10"] = {
         "class_type": "SaveImage",
         "inputs": {
             "filename_prefix": "Anima29B_ImageForge",
-            "images": ["8", 0]
+            "images": ["9", 0]
         }
     }
 

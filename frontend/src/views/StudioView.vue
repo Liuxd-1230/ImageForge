@@ -39,11 +39,11 @@
           />
         </v-col>
 
-        <!-- Thinking Strength Slider/Select -->
+        <!-- Thinking Strength: LM Studio supports off/low/medium/high/on -->
         <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
           <v-select
             v-model="studioStore.reasoningEffort"
-            :items="thinkingOptions"
+            :items="activeThinkingOptions"
             item-title="title"
             item-value="value"
             label="思考强度"
@@ -447,7 +447,7 @@
             </v-btn>
           </div>
 
-          <!-- Generation Parameters (Anima-2.9B standards) -->
+          <!-- Generation Parameters (Anima-2.9B Blueprint standards) -->
           <v-row dense class="mb-3">
             <v-col cols="6" sm="3">
               <v-select
@@ -604,7 +604,15 @@ const artistSearchQuery = ref('')
 const snackbar = ref(false)
 const snackbarText = ref('')
 
-const thinkingOptions = [
+const lmStudioThinkingOptions = [
+  { title: 'Instruct (关闭思考 / off)', value: 'instruct' },
+  { title: 'Low (轻度思考)', value: 'low' },
+  { title: 'Medium (标准思考)', value: 'medium' },
+  { title: 'High (深度思考)', value: 'high' },
+  { title: 'On (开启思考)', value: 'on' },
+]
+
+const cloudThinkingOptions = [
   { title: 'Instruct (关闭思考)', value: 'instruct' },
   { title: 'Low (轻度思考)', value: 'low' },
   { title: 'Medium (标准思考)', value: 'medium' },
@@ -612,6 +620,10 @@ const thinkingOptions = [
   { title: 'Xhigh (极高思考)', value: 'xhigh' },
   { title: 'Max (最大思考)', value: 'max' },
 ]
+
+const activeThinkingOptions = computed(() => {
+  return studioStore.provider === 'lm_studio' ? lmStudioThinkingOptions : cloudThinkingOptions
+})
 
 const currentModelList = computed(() => {
   return studioStore.provider === 'lm_studio' ? settingsStore.lmStudioModels : settingsStore.cloudModels
@@ -640,17 +652,14 @@ onMounted(async () => {
     ruleStore.fetchRules()
   ])
 
-  // Sync LoRAs into studio state
   studioStore.syncLorasFromLibrary(loraStore.loras)
 
-  // Default preset
   if (!studioStore.selectedPresetId && presetStore.presets.length > 0) {
     const def = presetStore.presets.find(p => p.is_default) || presetStore.presets[0]
     studioStore.selectedPresetId = def.id
     studioStore.safety = def.default_safety
   }
 
-  // Set default model
   if (!studioStore.model) {
     if (studioStore.provider === 'lm_studio' && settingsStore.lmStudioModels.length > 0) {
       studioStore.model = settingsStore.lmStudioModels[0].id
@@ -660,10 +669,16 @@ onMounted(async () => {
 
 function onProviderChange(p: string) {
   studioStore.provider = p as 'lm_studio' | 'cloud'
-  if (p === 'lm_studio' && settingsStore.lmStudioModels.length > 0) {
-    studioStore.model = settingsStore.lmStudioModels[0].id
-  } else if (p === 'cloud' && settingsStore.cloudModels.length > 0) {
-    studioStore.model = settingsStore.cloudModels[0].id
+  if (p === 'lm_studio') {
+    if (settingsStore.lmStudioModels.length > 0) {
+      studioStore.model = settingsStore.lmStudioModels[0].id
+    }
+    studioStore.reasoningEffort = 'instruct'
+  } else if (p === 'cloud') {
+    if (settingsStore.cloudModels.length > 0) {
+      studioStore.model = settingsStore.cloudModels[0].id
+    }
+    studioStore.reasoningEffort = 'instruct'
   }
 }
 
