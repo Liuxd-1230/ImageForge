@@ -26,10 +26,9 @@
 
 ## 🚀 快速启动
 
-### 方式一：一键启动（推荐）
+### 方式一：一键启动与停止（推荐）
 
-在项目根目录下直接运行一键启动脚本：
-
+**启动服务**：
 ```bash
 ./start.sh
 ```
@@ -37,6 +36,11 @@
 - **前端创作台**：[http://localhost:5173](http://localhost:5173)
 - **后端 API 服务**：[http://localhost:8000](http://localhost:8000)
 - **Swagger API 文档**：[http://localhost:8000/docs](http://localhost:8000/docs)
+
+**强制停止所有服务**（释放 8000 与 5173 端口）：
+```bash
+./stop.sh
+```
 
 ### 方式二：手动分步启动
 
