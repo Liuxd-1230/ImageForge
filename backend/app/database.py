@@ -17,8 +17,9 @@ def init_db():
     with Session(engine) as session:
         # 1. Synchronize SQLite AppSetting table into memory settings
         db_settings = session.exec(select(AppSetting)).all()
+        from app.config import EDITABLE_SETTING_KEYS
         for s in db_settings:
-            if hasattr(settings, s.key):
+            if s.key in EDITABLE_SETTING_KEYS and hasattr(settings, s.key):
                 val = s.value
                 field_type = type(getattr(settings, s.key))
                 if field_type == bool:

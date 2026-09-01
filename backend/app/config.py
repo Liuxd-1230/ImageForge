@@ -27,8 +27,19 @@ class Settings(BaseSettings):
     # Defaults
     DEFAULT_SAFETY: str = "Safe"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
-
 settings = Settings()
+
+EDITABLE_SETTING_KEYS = {
+    "ACTIVE_PROVIDER",
+    "LM_STUDIO_BASE_URL",
+    "LM_STUDIO_API_KEY",
+    "LM_STUDIO_MODEL",
+    "LM_STUDIO_AUTO_LOAD",
+    "LM_STUDIO_AUTO_UNLOAD",
+    "CLOUD_API_NAME",
+    "CLOUD_API_BASE_URL",
+    "CLOUD_API_KEY",
+    "CLOUD_MODEL",
+    "COMFYUI_BASE_URL",
+    "DEFAULT_SAFETY",
+}

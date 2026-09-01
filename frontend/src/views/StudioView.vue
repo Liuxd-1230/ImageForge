@@ -203,10 +203,10 @@
                         </v-chip>
                         <v-chip
                           size="x-small"
-                          :color="entity.source === 'user_defined' ? 'purple' : 'blue'"
+                          :color="entity.source === 'user_defined' ? 'purple' : (entity.source === 'model_character' ? 'blue' : 'teal')"
                           variant="flat"
                         >
-                          {{ entity.source === 'user_defined' ? '用户角色书' : '模型角色' }}
+                          {{ entity.source === 'user_defined' ? '用户角色书' : (entity.source === 'model_character' ? '模型角色' : '通用人物') }}
                         </v-chip>
                       </div>
                     </div>
@@ -243,8 +243,11 @@
                         />
                       </div>
                     </div>
-                    <div v-else class="text-caption text-grey">
+                    <div v-else-if="entity.source === 'user_defined'" class="text-caption text-grey">
                       展开设定: {{ entity.custom_description || '无额外属性' }}
+                    </div>
+                    <div v-else class="text-caption text-grey font-mono">
+                      自然语言称谓: {{ entity.caption_name || 'the character' }}
                     </div>
                   </v-card>
                 </v-col>
@@ -676,7 +679,7 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar v-model="snackbar" :timeout="2000" color="primary">
+    <v-snackbar v-model="snackbar" :timeout="2500" :color="snackbarColor">
       {{ snackbarText }}
     </v-snackbar>
   </v-container>
@@ -703,6 +706,7 @@ const artistExplorerDialog = ref(false)
 const artistSearchQuery = ref('')
 const snackbar = ref(false)
 const snackbarText = ref('')
+const snackbarColor = ref('primary')
 const workflowFileInput = ref<HTMLInputElement | null>(null)
 
 const lmStudioThinkingOptions = [
@@ -875,9 +879,16 @@ function copyToClipboard(text: string) {
 }
 
 async function saveEntityTrigger(entity: any) {
-  await studioStore.saveEntityTrigger(entity)
-  snackbarText.value = `已保存角色【${entity.name}】的 Trigger 映射`
-  snackbar.value = true
+  try {
+    await studioStore.saveEntityTrigger(entity)
+    snackbarText.value = `已保存角色【${entity.name}】的 Trigger 映射`
+    snackbarColor.value = 'success'
+    snackbar.value = true
+  } catch (err: any) {
+    snackbarText.value = `保存 Trigger 失败: ${err.response?.data?.detail || err.message || '网络请求异常'}`
+    snackbarColor.value = 'error'
+    snackbar.value = true
+  }
 }
 </script>
 

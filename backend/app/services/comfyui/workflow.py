@@ -81,7 +81,19 @@ def build_anima_29b_workflow(
     if custom_template:
         wf = json.loads(json.dumps(custom_template))
         
-        # Guard: explicitly check for single primary standard KSampler workflow
+        # Guard 1: reject any unsupported advanced/custom sampler nodes
+        unsupported_samplers = [
+            (nid, n.get("class_type")) 
+            for nid, n in wf.items() 
+            if n.get("class_type") in ["KSamplerAdvanced", "KSamplerProgress", "KSamplerCustom", "SamplerCustom"]
+        ]
+        if unsupported_samplers:
+            unsupported_types = ", ".join(sorted(set(st for _, st in unsupported_samplers if st)))
+            raise ValueError(
+                f"当前自动注入仅支持标准 KSampler，检测到不支持的高级采样节点: [{unsupported_types}]。复杂多采样工作流请拆分或使用单采样主链。"
+            )
+
+        # Guard 2: explicitly check for single primary standard KSampler workflow
         ksampler_nodes = [nid for nid, n in wf.items() if n.get("class_type") == "KSampler"]
         if len(ksampler_nodes) > 1:
             raise ValueError(f"当前自动注入仅支持单主标准 KSampler API Workflow，检测到 {len(ksampler_nodes)} 个 KSampler 节点。复杂多采样工作流请拆分或使用单采样主链。")

@@ -219,7 +219,10 @@ export const useStudioStore = defineStore('studio', {
           await this.buildPrompt()
         } catch (err) {
           console.error('Failed to save trigger to cache:', err)
+          throw err
         }
+      } else {
+        throw new Error('Canonical Tag 与 Caption Name 均不能为空')
       }
     },
 

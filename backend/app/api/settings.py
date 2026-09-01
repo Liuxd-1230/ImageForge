@@ -3,31 +3,16 @@ from sqlmodel import Session, select
 from typing import Dict, Any
 from app.database import get_session
 from app.models.setting import AppSetting
-from app.config import settings
+from app.config import settings, EDITABLE_SETTING_KEYS
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 @router.get("")
 def get_all_settings(session: Session = Depends(get_session)) -> Dict[str, Any]:
     db_settings = session.exec(select(AppSetting)).all()
-    res = {
-        "ACTIVE_PROVIDER": settings.ACTIVE_PROVIDER,
-        "LM_STUDIO_BASE_URL": settings.LM_STUDIO_BASE_URL,
-        "LM_STUDIO_API_KEY": settings.LM_STUDIO_API_KEY,
-        "LM_STUDIO_MODEL": settings.LM_STUDIO_MODEL,
-        "LM_STUDIO_AUTO_LOAD": settings.LM_STUDIO_AUTO_LOAD,
-        "LM_STUDIO_AUTO_UNLOAD": settings.LM_STUDIO_AUTO_UNLOAD,
-        
-        "CLOUD_API_NAME": settings.CLOUD_API_NAME,
-        "CLOUD_API_BASE_URL": settings.CLOUD_API_BASE_URL,
-        "CLOUD_API_KEY": settings.CLOUD_API_KEY,
-        "CLOUD_MODEL": settings.CLOUD_MODEL,
-        
-        "COMFYUI_BASE_URL": settings.COMFYUI_BASE_URL,
-        "DEFAULT_SAFETY": settings.DEFAULT_SAFETY,
-    }
+    res = {k: getattr(settings, k) for k in EDITABLE_SETTING_KEYS if hasattr(settings, k)}
     for s in db_settings:
-        if s.key in res:
+        if s.key in EDITABLE_SETTING_KEYS:
             val = s.value
             if val.lower() in ["true", "false"]:
                 res[s.key] = val.lower() == "true"
@@ -38,7 +23,7 @@ def get_all_settings(session: Session = Depends(get_session)) -> Dict[str, Any]:
 @router.post("")
 def update_settings(payload: Dict[str, Any], session: Session = Depends(get_session)):
     for k, v in payload.items():
-        if hasattr(settings, k):
+        if k in EDITABLE_SETTING_KEYS and hasattr(settings, k):
             val_str = str(v)
             setting = session.exec(select(AppSetting).where(AppSetting.key == k)).first()
             if not setting:

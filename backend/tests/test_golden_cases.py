@@ -660,3 +660,67 @@ def test_case_26_generic_person_does_not_invent_girl_tag(session: Session):
     assert "1girl" not in res.prompt
     assert "1boy" not in res.prompt
     assert "the person is running in the rain" in res.prompt or "the person is running" in res.prompt
+
+def test_case_27_anonymous_multi_girls_distinction(session: Session):
+    """Case 27: 两个匿名女孩 + 独立服装 (girl1 穿红裙，girl2 穿蓝裙)"""
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[
+            Entity(id="c1", name="girl1"),
+            Entity(id="c2", name="girl2")
+        ],
+        statements=[
+            Statement(kind="attribute", subject="c1", text="wearing a red dress", facet="outfit", effect="replace"),
+            Statement(kind="attribute", subject="c2", text="wearing a blue dress", facet="outfit", effect="replace"),
+            Statement(kind="relation", subject="c1", target="c2", text="chasing")
+        ]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    # Must correctly compute 2girls tag
+    assert "2girls" in res.prompt
+    # Natural language must distinguish between the first girl and the second girl
+    assert "the first girl is wearing a red dress and chasing the second girl" in res.prompt
+    assert "the second girl is wearing a blue dress" in res.prompt
+    # Must not duplicate "the girl is chasing the girl"
+    assert "the girl is chasing the girl" not in res.prompt
+
+def test_case_28_anonymous_multi_person_neutral_actions(session: Session):
+    """Case 28: 两个匿名通用人物 + 动作 (person1 追着 person2 跑)"""
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[
+            Entity(id="c1", name="person1"),
+            Entity(id="c2", name="person2")
+        ],
+        statements=[
+            Statement(kind="attribute", subject="c1", text="running"),
+            Statement(kind="relation", subject="c1", target="c2", text="chasing")
+        ]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    # Must NOT invent gender tags
+    assert "1girl" not in res.prompt
+    assert "2girls" not in res.prompt
+    assert "1boy" not in res.prompt
+    assert "2boys" not in res.prompt
+    # Natural language must distinguish between the first person and the second person
+    assert "the first person is running and chasing the second person" in res.prompt
+
+def test_case_29_custom_workflow_rejects_advanced_sampler(session: Session):
+    """Case 29: 自定义 API Workflow 严格拒绝 KSamplerAdvanced / KSamplerProgress 等非标准节点"""
+    import pytest
+    from app.services.comfyui.workflow import build_anima_29b_workflow
+    
+    mixed_wf = {
+        "1": {"class_type": "KSampler", "inputs": {"model": ["2", 0], "positive": ["3", 0], "negative": ["4", 0]}},
+        "2": {"class_type": "KSamplerAdvanced", "inputs": {"model": ["1", 0]}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "hello"}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"text": "bad"}}
+    }
+    with pytest.raises(ValueError) as exc_info:
+        build_anima_29b_workflow(
+            positive_prompt="safe",
+            negative_prompt="lowres",
+            custom_template=mixed_wf
+        )
+    assert "当前自动注入仅支持标准 KSampler" in str(exc_info.value)

@@ -16,7 +16,8 @@ CRITICAL RULES:
 3. Translate descriptive actions, clothing, items, and attributes into accurate, concise English.
 4. If a statement modifies or replaces an attribute (like wearing a swimsuit, ponytailed hair), set optional "facet" (e.g. "outfit", "hairstyle", "expression", "accessory") and optional "effect" ("replace", "add", "modify").
 5. ACTIONS BELONG TO CHARACTERS: When a location or manner modifies an entity's action (e.g. "在沙滩上奔跑" -> "running on the beach", "坐在长椅上" -> "sitting on a bench"), assign it as an attribute/action of that character (subject="c1"), NOT as a global scene statement. Only pure background environment descriptions without character actions (e.g. "on a beach", "sunny day", "in a classroom") should have kind="scene".
-6. Output ONLY valid JSON matching this schema:
+6. ANONYMOUS/UNNAMED CHARACTERS: If the user mentions unnamed characters (e.g. "一个女孩", "另一个女孩", "一个男生", "一个人", "路人"), name them sequentially as "girl1", "girl2", "boy1", "boy2", "person1", "person2".
+7. Output ONLY valid JSON matching this schema:
 {
   "entities": [
     { "id": "c1", "name": "穗穗" },

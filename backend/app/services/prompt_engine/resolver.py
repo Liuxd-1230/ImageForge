@@ -32,6 +32,71 @@ If a character has a series tag (e.g. "asuka_langley_(evangelion)"), provide the
 Do NOT invent extra appearance tags or clothing. Return ONLY the character tag and caption name in JSON.
 """
 
+import re
+
+ORDINALS = {
+    1: "first",
+    2: "second",
+    3: "third",
+    4: "fourth",
+    5: "fifth",
+    6: "sixth",
+    7: "seventh",
+    8: "eighth"
+}
+
+def _parse_generic_entity(name: str) -> Optional[Tuple[Optional[str], str]]:
+    """
+    Parses generic anonymous characters (e.g. girl1, girl2, boy1, person1, 女孩, 两个女孩, etc.)
+    Returns (canonical_tag, caption_name) or None if not an anonymous generic pattern.
+    """
+    clean = name.strip().lower()
+    
+    # 1. Collective multi-character tags
+    if clean in ["2girls", "3girls", "4girls", "5girls", "6+girls"]:
+        return clean, "the girls"
+    if clean in ["2boys", "3boys", "4boys", "5boys", "6+boys"]:
+        return clean, "the boys"
+    if clean in ["multiple_girls", "multiple girls", "多个女孩", "一群女孩"]:
+        return "multiple_girls", "the girls"
+    if clean in ["multiple_boys", "multiple boys", "多个男孩", "一群男孩"]:
+        return "multiple_boys", "the boys"
+
+    # 2. Female anonymous patterns
+    m_girl = re.match(r"^(girl|woman|female|女孩|女生|女人|少女)(\d+)?$", clean)
+    if m_girl:
+        if m_girl.group(2):
+            num = int(m_girl.group(2))
+            ord_word = ORDINALS.get(num, f"{num}th")
+            caption = f"the {ord_word} girl"
+        else:
+            caption = "the girl" if "girl" in clean or clean in ["女孩", "女生", "少女"] else "the woman"
+        return "1girl", caption
+
+    # 3. Male anonymous patterns
+    m_boy = re.match(r"^(boy|man|male|男孩|男生|男人|少年)(\d+)?$", clean)
+    if m_boy:
+        if m_boy.group(2):
+            num = int(m_boy.group(2))
+            ord_word = ORDINALS.get(num, f"{num}th")
+            caption = f"the {ord_word} boy"
+        else:
+            caption = "the boy" if "boy" in clean or clean in ["男孩", "男生", "少年"] else "the man"
+        return "1boy", caption
+
+    # 4. Gender-neutral anonymous patterns
+    m_person = re.match(r"^(person|character|someone|people|human|人|某人|人物|路人)(\d+)?$", clean)
+    if m_person:
+        if m_person.group(2):
+            num = int(m_person.group(2))
+            ord_word = ORDINALS.get(num, f"{num}th")
+            caption = f"the {ord_word} person"
+        else:
+            caption = "the person" if "person" in clean or clean in ["人", "某人", "路人"] else "the character"
+        return None, caption
+
+    return None
+
 class CharacterResolver:
     def __init__(self, session: Session, llm_provider: Optional[BaseLLMProvider] = None):
         self.session = session
@@ -64,23 +129,12 @@ class CharacterResolver:
             return entity, True
 
         # 2. Generic / Anonymous characters
-        generic_clean = entity.name.strip().lower()
-        if generic_clean in ["girl", "girl1", "girl2", "1girl", "2girls", "woman"]:
-            entity.source = "model_character"
-            entity.canonical_tag = generic_clean if generic_clean in ["1girl", "2girls"] else "1girl"
-            entity.caption_name = "the girl" if "girl" in generic_clean else "the woman"
-            entity.custom_description = None
-            return entity, True
-        elif generic_clean in ["boy", "boy1", "boy2", "1boy", "2boys", "man"]:
-            entity.source = "model_character"
-            entity.canonical_tag = generic_clean if generic_clean in ["1boy", "2boys"] else "1boy"
-            entity.caption_name = "the boy" if "boy" in generic_clean else "the man"
-            entity.custom_description = None
-            return entity, True
-        elif generic_clean in ["person", "character", "someone", "people", "人物", "人", "某人"]:
-            entity.source = "model_character"
-            entity.canonical_tag = None
-            entity.caption_name = "the person" if "person" in generic_clean or generic_clean in ["人", "某人"] else "the character"
+        generic_res = _parse_generic_entity(entity.name)
+        if generic_res is not None:
+            tag, caption = generic_res
+            entity.source = None  # Generic entity (not model_character, not user_defined)
+            entity.canonical_tag = tag
+            entity.caption_name = caption
             entity.custom_description = None
             return entity, True
 
