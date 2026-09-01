@@ -91,22 +91,19 @@ class PromptPolicy:
         artist_tags: List[str] = None,
         lora_items: List[LoraBuildItem] = None
     ) -> str:
-        sections: List[str] = []
+        # 1. Structured Tag Area (Prefix, Safety, Count, Canonical Characters, Artists, LoRA triggers)
+        tag_parts: List[str] = []
 
-        # 1. Preset Positive Prefix (if provided)
         if positive_prefix and positive_prefix.strip():
-            sections.append(positive_prefix.strip().rstrip(","))
+            tag_parts.append(positive_prefix.strip().rstrip(","))
 
-        # 2. Safety Tag (deterministic 1-to-1 mapping)
         safety_tag = SAFETY_TAG_MAP.get(safety, "safe")
-        sections.append(safety_tag)
+        tag_parts.append(safety_tag)
 
-        # 3. Character Count Tag (only if verified from data/input)
         count_tag = self.determine_character_count_tag(facts)
         if count_tag:
-            sections.append(count_tag)
+            tag_parts.append(count_tag)
 
-        # 4. Canonical Character Triggers (with underscores to spaces) / Custom Character Descriptions
         char_tags: List[str] = []
         for entity in facts.entities:
             if entity.source == "user_defined":
@@ -117,31 +114,43 @@ class PromptPolicy:
                     char_tags.append(self.format_character_tag(entity.canonical_tag))
 
         if char_tags:
-            sections.append(", ".join(char_tags))
+            tag_parts.append(", ".join(char_tags))
 
-        # 5. Natural Language Scene & Actions
-        natural_language_scene = self.writer.write_natural_language_scene(facts)
-        if natural_language_scene:
-            sections.append(natural_language_scene)
-
-        # 6. Artist Tags (@artist with underscores to spaces)
         if artist_tags:
             formatted_artists = [self.format_artist_tag(a) for a in artist_tags if a.strip()]
             if formatted_artists:
-                sections.append(", ".join(formatted_artists))
+                tag_parts.append(", ".join(formatted_artists))
 
-        # 7. LoRA Trigger Words (preserve original triggers as trained)
         if lora_items:
             lora_triggers = []
             for item in lora_items:
                 if item.is_enabled and item.trigger_words.strip():
                     lora_triggers.append(item.trigger_words.strip().rstrip(","))
             if lora_triggers:
-                sections.append(", ".join(lora_triggers))
+                tag_parts.append(", ".join(lora_triggers))
 
-        cleaned_sections = [sec.strip() for sec in sections if sec.strip()]
-        final_prompt = ", ".join(cleaned_sections)
-        final_prompt = re.sub(r",\s*,", ",", final_prompt)
+        tags_str = ", ".join([t.strip().rstrip(" ,.") for t in tag_parts if t and t.strip()])
+
+        # 2. Natural Language Sentence Area (Scene, Actions, Relations)
+        natural_language_scene = self.writer.write_natural_language_scene(facts)
+        nl_str = ""
+        if natural_language_scene and natural_language_scene.strip():
+            nl_str = natural_language_scene.strip()
+            if not nl_str.endswith("."):
+                nl_str += "."
+
+        # Combine Tag Section and Natural Language Section cleanly
+        if tags_str and nl_str:
+            final_prompt = f"{tags_str}. {nl_str}"
+        elif tags_str:
+            final_prompt = tags_str
+        else:
+            final_prompt = nl_str
+
+        # Clean redundant spaces and punctuation
+        final_prompt = re.sub(r",\s*,", ", ", final_prompt)
+        final_prompt = re.sub(r"\.\s*,", ". ", final_prompt)
+        final_prompt = re.sub(r",\s*\.", ". ", final_prompt)
         final_prompt = re.sub(r"\s+", " ", final_prompt).strip(" ,")
         return final_prompt
 

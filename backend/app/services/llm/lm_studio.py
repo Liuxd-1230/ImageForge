@@ -27,6 +27,7 @@ class LMStudioProvider(BaseLLMProvider):
                     loaded = []
                     llm_models = []
                     for m in models_raw:
+                        # Filter out embedding models
                         if m.get("type") == "embedding":
                             continue
                         key = m.get("key", m.get("id"))
@@ -174,7 +175,9 @@ class LMStudioProvider(BaseLLMProvider):
         native_payload: Dict[str, Any] = {
             "input": user_text,
             "temperature": temperature,
-            "reasoning": reasoning_val
+            "reasoning": reasoning_val,
+            "store": False,
+            "max_output_tokens": 2048
         }
         if system_prompt:
             native_payload["system_prompt"] = system_prompt
@@ -196,10 +199,20 @@ class LMStudioProvider(BaseLLMProvider):
                             return out.get("content", "").strip()
                     if outputs and "content" in outputs[0]:
                         return outputs[0].get("content", "").strip()
-            except Exception as e:
-                logger.warning(f"LM Studio /api/v1/chat request warning ({e}), falling back to /v1/chat/completions")
+                elif resp.status_code not in [404, 405]:
+                    # Real error from LM Studio (e.g. invalid reasoning level, unsupported option, 400/422/500)
+                    error_detail = resp.text
+                    try:
+                        error_detail = resp.json().get("error", {}).get("message", resp.text)
+                    except Exception:
+                        pass
+                    raise RuntimeError(f"LM Studio 原生接口调用失败 (HTTP {resp.status_code}): {error_detail}")
+            except httpx.ConnectError:
+                logger.warning("LM Studio /api/v1/chat connection error, falling back to /v1/chat/completions")
+            except RuntimeError:
+                raise
 
-            # Fallback to /v1/chat/completions if /api/v1/chat fails
+            # Fallback to /v1/chat/completions only if endpoint 404/405
             v1_payload: Dict[str, Any] = {
                 "messages": messages,
                 "temperature": temperature,
