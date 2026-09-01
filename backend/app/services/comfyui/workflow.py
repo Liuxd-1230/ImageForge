@@ -19,51 +19,84 @@ def build_anima_29b_workflow(
     sampler_name: str = "euler",
     scheduler: str = "sgm_uniform",
     seed: Optional[int] = None,
-    custom_template: Optional[Dict[str, Any]] = None
+    custom_template: Optional[Dict[str, Any]] = None,
+    override_models: bool = False
 ) -> Dict[str, Any]:
     """
     Constructs an authentic Anima-2.9B ComfyUI workflow based on official blueprint:
     UNETLoader + CLIPLoader (qwen_3_06b_base) + VAELoader (qwen_image_vae) + KSampler + VAEDecode.
+    If custom_template is provided, automatically injects positive/negative prompts, sampling params and dimensions.
     """
     if seed is None or seed == -1:
         seed = random.randint(1, 1125899906842624)
 
     if custom_template:
         wf = json.loads(json.dumps(custom_template))
-        for _, node in wf.items():
-            inputs = node.get("inputs", {})
+        positive_injected = False
+        negative_injected = False
+
+        # 1. Trace KSampler positive and negative input links
+        pos_node_ids = set()
+        neg_node_ids = set()
+        for nid, node in wf.items():
             class_type = node.get("class_type", "")
-            if class_type in ["CLIPTextEncode", "CLIPTextEncodeFlux"]:
-                if "text" in inputs:
-                    if "{{positive}}" in inputs["text"] or inputs.get("is_positive"):
-                        inputs["text"] = positive_prompt
-                    elif "{{negative}}" in inputs["text"] or inputs.get("is_negative"):
-                        inputs["text"] = negative_prompt
-            elif class_type in ["KSampler", "KSamplerAdvanced"]:
-                if "seed" in inputs:
-                    inputs["seed"] = seed
-                if "steps" in inputs:
-                    inputs["steps"] = steps
-                if "cfg" in inputs:
-                    inputs["cfg"] = cfg
-                if "sampler_name" in inputs:
-                    inputs["sampler_name"] = sampler_name
-                if "scheduler" in inputs:
-                    inputs["scheduler"] = scheduler
+            inputs = node.get("inputs", {})
+            if class_type in ["KSampler", "KSamplerAdvanced", "KSamplerProgress"]:
+                pos_link = inputs.get("positive")
+                if isinstance(pos_link, list) and len(pos_link) > 0:
+                    pos_node_ids.add(str(pos_link[0]))
+                neg_link = inputs.get("negative")
+                if isinstance(neg_link, list) and len(neg_link) > 0:
+                    neg_node_ids.add(str(neg_link[0]))
+
+                # Inject sampling params into KSampler
+                if "seed" in inputs: inputs["seed"] = seed
+                if "steps" in inputs: inputs["steps"] = steps
+                if "cfg" in inputs: inputs["cfg"] = cfg
+                if "sampler_name" in inputs: inputs["sampler_name"] = sampler_name
+                if "scheduler" in inputs: inputs["scheduler"] = scheduler
+
             elif class_type in ["EmptyLatentImage", "EmptySD3LatentImage"]:
-                if "width" in inputs:
-                    inputs["width"] = width
-                if "height" in inputs:
-                    inputs["height"] = height
-            elif class_type in ["UNETLoader"]:
-                if unet_name:
+                if "width" in inputs: inputs["width"] = width
+                if "height" in inputs: inputs["height"] = height
+                if "batch_size" in inputs: inputs["batch_size"] = batch_size
+
+            elif override_models:
+                if class_type == "UNETLoader" and unet_name:
                     inputs["unet_name"] = unet_name
-            elif class_type in ["CLIPLoader"]:
-                if clip_name:
+                elif class_type == "CLIPLoader" and clip_name:
                     inputs["clip_name"] = clip_name
-            elif class_type in ["VAELoader"]:
-                if vae_name:
+                elif class_type == "VAELoader" and vae_name:
                     inputs["vae_name"] = vae_name
+
+        # 2. Inject prompts into traced CLIPTextEncode conditioning nodes
+        for pos_nid in pos_node_ids:
+            if pos_nid in wf and wf[pos_nid].get("class_type") in ["CLIPTextEncode", "CLIPTextEncodeFlux", "CLIPTextEncodeSDXL"]:
+                wf[pos_nid]["inputs"]["text"] = positive_prompt
+                positive_injected = True
+
+        for neg_nid in neg_node_ids:
+            if neg_nid in wf and wf[neg_nid].get("class_type") in ["CLIPTextEncode", "CLIPTextEncodeFlux", "CLIPTextEncodeSDXL"]:
+                wf[neg_nid]["inputs"]["text"] = negative_prompt
+                negative_injected = True
+
+        # 3. Fallback: Search for {{positive}} and {{negative}} placeholders
+        if not positive_injected or not negative_injected:
+            for _, node in wf.items():
+                inputs = node.get("inputs", {})
+                class_type = node.get("class_type", "")
+                if class_type in ["CLIPTextEncode", "CLIPTextEncodeFlux", "CLIPTextEncodeSDXL"]:
+                    text_val = str(inputs.get("text", ""))
+                    if ("{{positive}}" in text_val or inputs.get("is_positive")) and not positive_injected:
+                        inputs["text"] = positive_prompt
+                        positive_injected = True
+                    elif ("{{negative}}" in text_val or inputs.get("is_negative")) and not negative_injected:
+                        inputs["text"] = negative_prompt
+                        negative_injected = True
+
+        if not positive_injected:
+            raise ValueError("导入的 ComfyUI API 工作流中未找到连接至 KSampler 的 Positive 提示词节点 (CLIPTextEncode)")
+
         return wf
 
     # Official Anima-2.9B ComfyUI Blueprint Architecture
@@ -99,26 +132,26 @@ def build_anima_29b_workflow(
     current_clip = ["2", 0]
     node_id_counter = 100  # Start dynamic LoRA node IDs from 100 to avoid conflicts
 
-    # Chain LoRA loaders
+    # Dynamic LoRA Loader chain
     if loras:
         for lora in loras:
-            if lora.is_enabled and lora.filename:
-                lora_node_id = str(node_id_counter)
-                node_id_counter += 1
-                prompt_nodes[lora_node_id] = {
+            if lora.is_enabled:
+                node_id = str(node_id_counter)
+                prompt_nodes[node_id] = {
                     "class_type": "LoraLoader",
                     "inputs": {
-                        "model": current_model,
-                        "clip": current_clip,
                         "lora_name": lora.filename,
                         "strength_model": lora.strength,
-                        "strength_clip": lora.strength
+                        "strength_clip": lora.strength,
+                        "model": current_model,
+                        "clip": current_clip
                     }
                 }
-                current_model = [lora_node_id, 0]
-                current_clip = [lora_node_id, 1]
+                current_model = [node_id, 0]
+                current_clip = [node_id, 1]
+                node_id_counter += 1
 
-    # Node 6: Positive Prompt CLIPTextEncode
+    # Node 6: CLIPTextEncode (Positive Prompt)
     prompt_nodes["6"] = {
         "class_type": "CLIPTextEncode",
         "inputs": {
@@ -127,7 +160,7 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 7: Negative Prompt CLIPTextEncode
+    # Node 7: CLIPTextEncode (Negative Prompt)
     prompt_nodes["7"] = {
         "class_type": "CLIPTextEncode",
         "inputs": {
@@ -136,7 +169,7 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 5: Empty Latent Image (1024x1536)
+    # Node 5: EmptyLatentImage (Resolution & Latent Canvas)
     prompt_nodes["5"] = {
         "class_type": "EmptyLatentImage",
         "inputs": {
@@ -146,24 +179,24 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 8: KSampler (Anima 2.9B: Euler + sgm_uniform / beta, cfg 4.5)
+    # Node 8: KSampler (Sampling engine)
     prompt_nodes["8"] = {
         "class_type": "KSampler",
         "inputs": {
-            "model": current_model,
-            "positive": ["6", 0],
-            "negative": ["7", 0],
-            "latent_image": ["5", 0],
             "seed": seed,
             "steps": steps,
             "cfg": cfg,
             "sampler_name": sampler_name,
             "scheduler": scheduler,
-            "denoise": 1.0
+            "denoise": 1.0,
+            "model": current_model,
+            "positive": ["6", 0],
+            "negative": ["7", 0],
+            "latent_image": ["5", 0]
         }
     }
 
-    # Node 9: VAE Decode
+    # Node 9: VAEDecode (Decode Latent to RGB Image)
     prompt_nodes["9"] = {
         "class_type": "VAEDecode",
         "inputs": {
@@ -172,7 +205,7 @@ def build_anima_29b_workflow(
         }
     }
 
-    # Node 99: Save Image
+    # Node 99: SaveImage (Save Generated PNG Image)
     prompt_nodes["99"] = {
         "class_type": "SaveImage",
         "inputs": {

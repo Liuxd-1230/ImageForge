@@ -42,12 +42,12 @@
             </div>
             <div class="d-flex align-center">
               <v-switch
-                v-model="rule.is_enabled"
+                :model-value="rule.is_enabled"
                 color="primary"
                 density="compact"
                 hide-details
                 class="mr-2"
-                @update:model-value="ruleStore.toggleEnable(rule)"
+                @update:model-value="val => ruleStore.setEnabled(rule, !!val)"
               />
               <v-btn icon="mdi-pencil" size="small" variant="text" color="primary" @click="openEditDialog(rule)" />
               <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="deleteRule(rule.id)" />

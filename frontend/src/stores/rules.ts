@@ -37,10 +37,12 @@ export const useRuleStore = defineStore('rules', {
       this.rules = this.rules.filter(r => r.id !== id)
     },
 
-    async toggleEnable(rule: RuleFile) {
-      const updated = !rule.is_enabled
-      rule.is_enabled = updated
-      await axios.put(`/api/rules/${rule.id}`, { is_enabled: updated })
+    async setEnabled(rule: RuleFile, enabled: boolean) {
+      const resp = await axios.put(`/api/rules/${rule.id}`, { is_enabled: enabled })
+      const idx = this.rules.findIndex(r => r.id === rule.id)
+      if (idx !== -1) {
+        this.rules[idx] = resp.data
+      }
     }
   }
 })

@@ -1,6 +1,6 @@
 export type SafetyLevel = 'Safe' | 'Sensitive' | 'NSFW' | 'Explicit';
 
-export type ReasoningEffort = 'instruct' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export type ReasoningEffort = 'instruct' | 'off' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'on';
 
 export interface Entity {
   id: string;

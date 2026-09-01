@@ -471,3 +471,127 @@ async def test_case_21_lora_scan_edit_preservation(session: Session, monkeypatch
     assert re_synced.name == "Water Dress Effect"
     assert re_synced.default_strength == 1.25
     assert re_synced.is_valid_file is True
+
+def test_case_22_empty_gender_neutrality(session: Session):
+    """Case 22: 自定义角色 gender 为空时不强制推断为 woman，使用中性称谓且不生成性别人数 tag"""
+    char = Character(
+        name="神秘人",
+        age_group="young adult",
+        gender="",  # Explicitly empty gender
+        hair_color="silver",
+        hair_style="straight",
+        hair_length="short",
+        top="cloak"
+    )
+    session.add(char)
+    session.commit()
+
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[Entity(id="c1", name="神秘人")],
+        statements=[Statement(kind="attribute", subject="c1", text="walking in the dark")]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    assert "神秘人" not in res.prompt
+    assert "1girl" not in res.prompt
+    assert "woman" not in res.prompt
+    assert "the young character with silver hair" in res.prompt
+
+def test_case_23_effect_add_preserves_default_outfit(session: Session):
+    """Case 23: statement effect='add' 时保留角色书默认服装，不作 replace 抑制"""
+    char = Character(
+        name="小夏",
+        gender="woman",
+        hair_color="black",
+        top="white blouse",
+        bottom="black pleated skirt"
+    )
+    session.add(char)
+    session.commit()
+
+    pipeline = PromptPipeline(session=session)
+    facts = SemanticFacts(
+        entities=[Entity(id="c1", name="小夏")],
+        statements=[
+            Statement(kind="attribute", subject="c1", text="wearing a red ribbon", facet="accessories", effect="add")
+        ]
+    )
+    res = pipeline.build_prompt(PromptBuildRequest(facts=facts, safety="Safe"))
+    # Default blouse and skirt must be preserved because effect is 'add'
+    assert "white blouse" in res.prompt
+    assert "black pleated skirt" in res.prompt
+    assert "wearing a red ribbon" in res.prompt
+
+def test_case_24_custom_api_workflow_injection():
+    """Case 24: 自定义 ComfyUI API Workflow 智能插槽与模型保留测试"""
+    from app.services.comfyui.workflow import build_anima_29b_workflow
+
+    raw_api_workflow = {
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "custom_unet_turbo.safetensors"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "custom_clip.safetensors", "type": "stable_diffusion"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": "custom_vae.safetensors"}},
+        "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "dummy positive", "clip": ["2", 0]}},
+        "7": {"class_type": "CLIPTextEncode", "inputs": {"text": "dummy negative", "clip": ["2", 0]}},
+        "5": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512, "batch_size": 1}},
+        "8": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["6", 0],
+                "negative": ["7", 0],
+                "latent_image": ["5", 0],
+                "seed": 100,
+                "steps": 20,
+                "cfg": 7.0,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "karras"
+            }
+        },
+        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
+        "99": {"class_type": "SaveImage", "inputs": {"images": ["9", 0]}}
+    }
+
+    # 1. Test injection with override_models=False (Preserves original workflow models)
+    injected_wf = build_anima_29b_workflow(
+        positive_prompt="safe, suisui. Suisui is smiling.",
+        negative_prompt="lowres, bad quality",
+        unet_name="anima29B_v10.safetensors",
+        clip_name="qwen_3_06b_base.safetensors",
+        vae_name="qwen_image_vae.safetensors",
+        width=1024,
+        height=1536,
+        steps=28,
+        cfg=4.5,
+        sampler_name="euler",
+        scheduler="sgm_uniform",
+        seed=42,
+        custom_template=raw_api_workflow,
+        override_models=False
+    )
+
+    assert injected_wf["6"]["inputs"]["text"] == "safe, suisui. Suisui is smiling."
+    assert injected_wf["7"]["inputs"]["text"] == "lowres, bad quality"
+    assert injected_wf["8"]["inputs"]["seed"] == 42
+    assert injected_wf["8"]["inputs"]["steps"] == 28
+    assert injected_wf["8"]["inputs"]["cfg"] == 4.5
+    assert injected_wf["8"]["inputs"]["sampler_name"] == "euler"
+    assert injected_wf["8"]["inputs"]["scheduler"] == "sgm_uniform"
+    assert injected_wf["5"]["inputs"]["width"] == 1024
+    assert injected_wf["5"]["inputs"]["height"] == 1536
+    # Original model loaders must be kept untouched
+    assert injected_wf["1"]["inputs"]["unet_name"] == "custom_unet_turbo.safetensors"
+    assert injected_wf["2"]["inputs"]["clip_name"] == "custom_clip.safetensors"
+
+    # 2. Test injection with override_models=True (Overwrites models)
+    injected_wf_override = build_anima_29b_workflow(
+        positive_prompt="safe, suisui.",
+        negative_prompt="lowres",
+        unet_name="anima29B_v10.safetensors",
+        clip_name="qwen_3_06b_base.safetensors",
+        vae_name="qwen_image_vae.safetensors",
+        seed=42,
+        custom_template=raw_api_workflow,
+        override_models=True
+    )
+    assert injected_wf_override["1"]["inputs"]["unet_name"] == "anima29B_v10.safetensors"
+    assert injected_wf_override["2"]["inputs"]["clip_name"] == "qwen_3_06b_base.safetensors"

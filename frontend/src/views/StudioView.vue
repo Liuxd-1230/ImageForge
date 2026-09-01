@@ -120,11 +120,11 @@
             class="mb-3"
           />
 
-          <!-- Rule Files Selection Chips -->
-          <div v-if="ruleStore.rules.length > 0" class="d-flex align-center gap-2 mb-3 flex-wrap">
+          <!-- Rule Files Selection Chips (Only show enabled rules) -->
+          <div v-if="activeRules.length > 0" class="d-flex align-center gap-2 mb-3 flex-wrap">
             <span class="text-caption text-grey">参考规则:</span>
             <v-chip
-              v-for="rule in ruleStore.rules"
+              v-for="rule in activeRules"
               :key="rule.id"
               size="small"
               :variant="studioStore.selectedRuleIds.includes(rule.id) ? 'flat' : 'outlined'"
@@ -163,7 +163,7 @@
               color="primary"
               prepend-icon="mdi-refresh"
               :loading="studioStore.isBuilding"
-              @click="studioStore.buildPrompt()"
+              @click="studioStore.buildPrompt(true)"
             >
               重新编译 Prompt
             </v-btn>
@@ -373,7 +373,12 @@
         <!-- Prompt Preview Card -->
         <v-card variant="outlined" class="mb-4 pa-4 rounded-lg bg-surface">
           <div class="d-flex justify-space-between align-center mb-2">
-            <span class="text-subtitle-1 font-weight-bold">最终 Anima Prompt (英文)</span>
+            <div class="d-flex align-center">
+              <span class="text-subtitle-1 font-weight-bold mr-2">最终 Anima Prompt (英文)</span>
+              <v-chip v-if="studioStore.isPositivePromptDirty" size="x-small" color="warning" variant="flat">
+                已手动编辑
+              </v-chip>
+            </div>
             <v-btn
               size="small"
               variant="tonal"
@@ -392,11 +397,17 @@
             auto-grow
             class="font-mono text-body-2 mb-3"
             hide-details
+            @input="studioStore.isPositivePromptDirty = true"
           />
 
           <!-- Negative Prompt Section -->
           <div class="d-flex justify-space-between align-center mb-2">
-            <span class="text-subtitle-2 font-weight-bold text-grey">Negative Prompt</span>
+            <div class="d-flex align-center">
+              <span class="text-subtitle-2 font-weight-bold text-grey mr-2">Negative Prompt</span>
+              <v-chip v-if="studioStore.isNegativePromptDirty" size="x-small" color="warning" variant="flat">
+                已手动编辑
+              </v-chip>
+            </div>
             <v-btn
               size="small"
               variant="text"
@@ -416,6 +427,7 @@
             auto-grow
             class="font-mono text-caption mb-3"
             hide-details
+            @input="studioStore.isNegativePromptDirty = true"
           />
 
           <v-text-field
@@ -433,7 +445,7 @@
           <div class="d-flex justify-space-between align-center mb-3">
             <div class="d-flex align-center">
               <v-icon color="success" class="mr-2">mdi-image-multiple</v-icon>
-              <span class="text-subtitle-1 font-weight-bold">ComfyUI 生图控制 (Anima 2.9B)</span>
+              <span class="text-subtitle-1 font-weight-bold">ComfyUI 生图控制</span>
             </div>
             <v-btn
               color="success"
@@ -445,6 +457,72 @@
             >
               开始生图
             </v-btn>
+          </div>
+
+          <!-- Workflow Mode Selection & Custom Workflow JSON Uploader -->
+          <div class="mb-3 border rounded pa-2 bg-surface">
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-1">
+              <div class="d-flex align-center">
+                <span class="text-caption font-weight-bold mr-2">工作流:</span>
+                <v-btn-toggle
+                  v-model="studioStore.workflowMode"
+                  mandatory
+                  density="compact"
+                  color="primary"
+                  variant="outlined"
+                >
+                  <v-btn value="builtin" size="small">内置 Anima 2.9B</v-btn>
+                  <v-btn value="custom" size="small">自定义 API Workflow</v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <div v-if="studioStore.workflowMode === 'custom'" class="d-flex align-center gap-2">
+                <input
+                  ref="workflowFileInput"
+                  type="file"
+                  accept=".json"
+                  style="display: none"
+                  @change="handleWorkflowUpload"
+                />
+                <v-btn
+                  size="small"
+                  color="primary"
+                  variant="tonal"
+                  prepend-icon="mdi-upload"
+                  @click="triggerWorkflowUpload"
+                >
+                  {{ studioStore.customWorkflowName ? '重选 JSON' : '导入 API Workflow JSON' }}
+                </v-btn>
+                <v-btn
+                  v-if="studioStore.customWorkflowTemplate"
+                  size="small"
+                  variant="text"
+                  color="error"
+                  @click="studioStore.resetToBuiltinWorkflow()"
+                >
+                  恢复内置
+                </v-btn>
+              </div>
+            </div>
+
+            <div v-if="studioStore.workflowMode === 'custom'" class="mt-2">
+              <div v-if="studioStore.customWorkflowName" class="d-flex justify-space-between align-center text-caption font-mono border rounded pa-2 bg-surface">
+                <div class="d-flex align-center text-truncate mr-2">
+                  <v-icon size="16" color="success" class="mr-1">mdi-file-check</v-icon>
+                  <span>当前文件: {{ studioStore.customWorkflowName }}</span>
+                </div>
+                <v-switch
+                  v-model="studioStore.overrideWorkflowModels"
+                  label="覆盖工作流中的模型"
+                  density="compact"
+                  color="primary"
+                  hide-details
+                />
+              </div>
+              <div v-else class="text-caption text-grey border border-dashed rounded pa-2 text-center">
+                请点击上方按钮导入从 ComfyUI [Save (API Format)] 导出的 JSON 文件。
+              </div>
+            </div>
           </div>
 
           <!-- Generation Parameters (Anima-2.9B Blueprint standards) -->
@@ -506,6 +584,12 @@
             />
           </div>
 
+          <!-- Generation Error or Timeout Message -->
+          <div v-if="!studioStore.isGenerating && studioStore.generationMessage && studioStore.generationMessage.includes('失败')" class="mb-3 text-caption text-error bg-red-lighten-5 pa-2 rounded border">
+            <v-icon size="16" color="error" class="mr-1">mdi-alert-circle</v-icon>
+            {{ studioStore.generationMessage }}
+          </div>
+
           <!-- Rendered Image Result -->
           <div v-if="studioStore.generatedImageUrl" class="text-center mt-3">
             <v-img
@@ -515,7 +599,7 @@
               class="rounded-lg border bg-black cursor-pointer"
             />
           </div>
-          <div v-else class="text-center py-8 text-grey border rounded-lg">
+          <div v-else-if="!studioStore.isGenerating" class="text-center py-8 text-grey border rounded-lg">
             <v-icon size="48" class="mb-2">mdi-image-outline</v-icon>
             <div>准备就绪，点击“开始生图”由 ComfyUI 渲染。</div>
           </div>
@@ -603,6 +687,7 @@ const artistExplorerDialog = ref(false)
 const artistSearchQuery = ref('')
 const snackbar = ref(false)
 const snackbarText = ref('')
+const workflowFileInput = ref<HTMLInputElement | null>(null)
 
 const lmStudioThinkingOptions = [
   { title: 'Instruct (关闭思考 / off)', value: 'instruct' },
@@ -633,6 +718,10 @@ const currentProviderStatus = computed(() => {
   return studioStore.provider === 'lm_studio' ? settingsStore.lmStudioStatus : settingsStore.cloudStatus
 })
 
+const activeRules = computed(() => {
+  return ruleStore.rules.filter(r => r.is_enabled)
+})
+
 const filteredArtists = computed(() => {
   let list = artistStore.artists
   if (artistSearchQuery.value) {
@@ -652,17 +741,21 @@ onMounted(async () => {
     ruleStore.fetchRules()
   ])
 
+  studioStore.initStudioSettings(settingsStore.settings)
   studioStore.syncLorasFromLibrary(loraStore.loras)
 
   if (!studioStore.selectedPresetId && presetStore.presets.length > 0) {
     const def = presetStore.presets.find(p => p.is_default) || presetStore.presets[0]
     studioStore.selectedPresetId = def.id
-    studioStore.safety = def.default_safety
   }
 
   if (!studioStore.model) {
     if (studioStore.provider === 'lm_studio' && settingsStore.lmStudioModels.length > 0) {
-      studioStore.model = settingsStore.lmStudioModels[0].id
+      const defModel = settingsStore.settings.LM_STUDIO_MODEL
+      studioStore.model = (defModel && settingsStore.lmStudioModels.some(m => m.id === defModel)) ? defModel : settingsStore.lmStudioModels[0].id
+    } else if (studioStore.provider === 'cloud' && settingsStore.cloudModels.length > 0) {
+      const defCloud = settingsStore.settings.CLOUD_MODEL
+      studioStore.model = (defCloud && settingsStore.cloudModels.some(m => m.id === defCloud)) ? defCloud : settingsStore.cloudModels[0].id
     }
   }
 })
@@ -670,12 +763,18 @@ onMounted(async () => {
 function onProviderChange(p: string) {
   studioStore.provider = p as 'lm_studio' | 'cloud'
   if (p === 'lm_studio') {
-    if (settingsStore.lmStudioModels.length > 0) {
+    const defModel = settingsStore.settings.LM_STUDIO_MODEL
+    if (defModel && settingsStore.lmStudioModels.some(m => m.id === defModel)) {
+      studioStore.model = defModel
+    } else if (settingsStore.lmStudioModels.length > 0) {
       studioStore.model = settingsStore.lmStudioModels[0].id
     }
     studioStore.reasoningEffort = 'instruct'
   } else if (p === 'cloud') {
-    if (settingsStore.cloudModels.length > 0) {
+    const defCloud = settingsStore.settings.CLOUD_MODEL
+    if (defCloud && settingsStore.cloudModels.some(m => m.id === defCloud)) {
+      studioStore.model = defCloud
+    } else if (settingsStore.cloudModels.length > 0) {
       studioStore.model = settingsStore.cloudModels[0].id
     }
     studioStore.reasoningEffort = 'instruct'
@@ -691,11 +790,8 @@ async function refreshModels() {
 }
 
 function onPresetChange(presetId: number) {
-  const p = presetStore.presets.find(item => item.id === presetId)
-  if (p) {
-    studioStore.safety = p.default_safety
-    studioStore.buildPrompt()
-  }
+  studioStore.selectedPresetId = presetId
+  studioStore.buildPrompt()
 }
 
 function toggleRule(ruleId: number) {
@@ -714,6 +810,45 @@ function isArtistSelected(art: Artist): boolean {
 function getEntityName(entityId: string): string {
   const e = studioStore.facts.entities.find(item => item.id === entityId)
   return e ? e.name : entityId
+}
+
+function triggerWorkflowUpload() {
+  workflowFileInput.value?.click()
+}
+
+function handleWorkflowUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const content = e.target?.result as string
+      const json = JSON.parse(content)
+      if (typeof json !== 'object' || json === null) {
+        throw new Error('JSON 根节点必须是一个对象')
+      }
+      
+      // Basic check: must contain node dictionaries
+      const keys = Object.keys(json)
+      if (keys.length === 0) {
+        throw new Error('工作流 JSON 为空')
+      }
+      const firstNode = json[keys[0]]
+      if (!firstNode || typeof firstNode !== 'object' || !firstNode.class_type) {
+        throw new Error('未检测到有效的 ComfyUI API Format 节点结构 (class_type 缺失)')
+      }
+
+      studioStore.setWorkflowTemplate(file.name, json)
+      snackbarText.value = `已导入工作流: ${file.name}`
+      snackbar.value = true
+    } catch (err: any) {
+      alert(`导入工作流失败: ${err.message || err}`)
+    }
+  }
+  reader.readAsText(file)
+  target.value = ''
 }
 
 function copyToClipboard(text: string) {

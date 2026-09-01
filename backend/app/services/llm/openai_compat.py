@@ -1,6 +1,9 @@
 import httpx
+import logging
 from typing import List, Dict, Any, Optional
 from app.services.llm.base import BaseLLMProvider
+
+logger = logging.getLogger(__name__)
 
 class OpenAICompatibleProvider(BaseLLMProvider):
     def __init__(self, base_url: str = "https://api.openai.com/v1", api_key: str = ""):
@@ -18,11 +21,15 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 resp = await client.get(f"{self.base_url}/models", headers=self.headers)
                 if resp.status_code == 200:
                     data = resp.json()
-                    models = data.get("data", [])
+                    raw_models = data.get("data", [])
+                    models = [
+                        m.get("id") for m in raw_models
+                        if m.get("id") and not any(k in m.get("id").lower() for k in ["embed", "embedding", "rerank", "dall-e", "tts", "whisper", "moderation"])
+                    ]
                     return {
                         "status": "connected",
                         "model_count": len(models),
-                        "models": [m.get("id") for m in models if m.get("id")]
+                        "models": models
                     }
                 return {"status": "error", "error": f"HTTP {resp.status_code}"}
         except Exception as e:
@@ -33,7 +40,11 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             resp = await client.get(f"{self.base_url}/models", headers=self.headers)
             resp.raise_for_status()
             data = resp.json()
-            return data.get("data", [])
+            raw_models = data.get("data", [])
+            return [
+                m for m in raw_models
+                if m.get("id") and not any(k in m.get("id").lower() for k in ["embed", "embedding", "rerank", "dall-e", "tts", "whisper", "moderation"])
+            ]
 
     async def chat(
         self,
@@ -51,7 +62,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             payload["model"] = model
         if response_format:
             payload["response_format"] = response_format
-        if reasoning_effort and reasoning_effort != "instruct":
+        if reasoning_effort and reasoning_effort not in ["instruct", "off"]:
             payload["reasoning_effort"] = reasoning_effort
 
         async with httpx.AsyncClient(timeout=120.0) as client:
@@ -60,9 +71,25 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 json=payload,
                 headers=self.headers
             )
-            resp.raise_for_status()
+            # If rejected because reasoning_effort is unsupported by third-party provider, retry once cleanly without it
+            if resp.status_code == 400 and "reasoning_effort" in resp.text and "reasoning_effort" in payload:
+                del payload["reasoning_effort"]
+                resp = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=self.headers
+                )
+
+            if resp.status_code != 200:
+                err_detail = resp.text
+                try:
+                    err_detail = resp.json().get("error", {}).get("message", resp.text)
+                except Exception:
+                    pass
+                raise RuntimeError(f"云端 LLM 推理失败 (HTTP {resp.status_code}): {err_detail}")
+
             data = resp.json()
             choices = data.get("choices", [])
             if not choices:
-                raise ValueError("No choices returned from LLM provider")
+                raise ValueError("云端 LLM 未返回任何输出")
             return choices[0].get("message", {}).get("content", "").strip()

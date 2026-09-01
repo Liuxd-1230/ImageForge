@@ -2,10 +2,48 @@
   <v-container fluid class="pa-4">
     <div class="mb-4">
       <h1 class="text-h5 font-weight-bold">系统与服务设置</h1>
-      <div class="text-caption text-grey">配置本地 LM Studio 服务、云端 API 与 ComfyUI 生图服务。</div>
+      <div class="text-caption text-grey">配置全局默认设置、本地 LM Studio、云端 API 与 ComfyUI 生图服务。</div>
     </div>
 
     <v-row>
+      <!-- Global Preferences -->
+      <v-col cols="12">
+        <v-card variant="outlined" class="pa-4 rounded-lg mb-4 bg-surface">
+          <div class="d-flex align-center mb-3">
+            <v-icon color="primary" class="mr-2">mdi-tune</v-icon>
+            <span class="text-subtitle-1 font-weight-bold">全局创作偏好</span>
+          </div>
+
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="form.ACTIVE_PROVIDER"
+                :items="[
+                  { title: '本地 LM Studio', value: 'lm_studio' },
+                  { title: '云端 API (OpenAI 兼容)', value: 'cloud' }
+                ]"
+                item-title="title"
+                item-value="value"
+                label="默认 LLM 提供商"
+                density="compact"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="form.DEFAULT_SAFETY"
+                :items="['Safe', 'Sensitive', 'NSFW', 'Explicit']"
+                label="创作台启动默认 Safety 档位"
+                density="compact"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+          </v-row>
+        </v-card>
+      </v-col>
+
       <!-- LM Studio (Local LLM) -->
       <v-col cols="12" md="6">
         <v-card variant="outlined" class="pa-4 rounded-lg mb-4 bg-surface">
@@ -37,7 +75,7 @@
             class="mb-2"
           />
 
-          <div class="d-flex gap-2 mb-2">
+          <div class="d-flex gap-2 mb-3">
             <v-select
               v-model="form.LM_STUDIO_MODEL"
               :items="settingsStore.lmStudioModels"
@@ -59,7 +97,7 @@
             </v-btn>
           </div>
 
-          <div class="d-flex justify-space-between align-center mb-2">
+          <div class="d-flex justify-space-between align-center">
             <v-switch
               v-model="form.LM_STUDIO_AUTO_LOAD"
               label="自动加载模型"
@@ -75,16 +113,6 @@
               hide-details
             />
           </div>
-
-          <v-select
-            v-model="form.LM_STUDIO_REASONING_EFFORT"
-            :items="lmStudioThinkingOptions"
-            item-title="title"
-            item-value="value"
-            label="默认思考强度"
-            density="compact"
-            variant="outlined"
-          />
         </v-card>
       </v-col>
 
@@ -127,7 +155,7 @@
             class="mb-2"
           />
 
-          <div class="d-flex gap-2 mb-2">
+          <div class="d-flex gap-2">
             <v-select
               v-model="form.CLOUD_MODEL"
               :items="settingsStore.cloudModels"
@@ -148,16 +176,6 @@
               刷新模型
             </v-btn>
           </div>
-
-          <v-select
-            v-model="form.CLOUD_REASONING_EFFORT"
-            :items="cloudThinkingOptions"
-            item-title="title"
-            item-value="value"
-            label="默认思考强度"
-            density="compact"
-            variant="outlined"
-          />
         </v-card>
       </v-col>
 
@@ -198,13 +216,19 @@
     </v-row>
 
     <div class="d-flex justify-end mt-2">
-      <v-btn color="primary" variant="flat" size="large" :loading="settingsStore.isLoading" @click="save">
-        保存全部设置
+      <v-btn
+        color="primary"
+        size="large"
+        prepend-icon="mdi-content-save"
+        :loading="settingsStore.isLoading"
+        @click="saveAllSettings"
+      >
+        保存所有设置
       </v-btn>
     </div>
 
-    <v-snackbar v-model="snackbar" :timeout="2000" color="success">
-      设置已成功保存
+    <v-snackbar v-model="snackbar" color="success" :timeout="2000">
+      设置已成功保存！
     </v-snackbar>
   </v-container>
 </template>
@@ -212,40 +236,44 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '../stores/settings'
+import type { AppSettings } from '../types'
 
 const settingsStore = useSettingsStore()
 const snackbar = ref(false)
 
-const lmStudioThinkingOptions = [
-  { title: 'Instruct (关闭思考 / off)', value: 'instruct' },
-  { title: 'Low (轻度思考)', value: 'low' },
-  { title: 'Medium (标准思考)', value: 'medium' },
-  { title: 'High (深度思考)', value: 'high' },
-  { title: 'On (开启思考)', value: 'on' },
-]
+const form = ref<AppSettings>({
+  ACTIVE_PROVIDER: 'lm_studio',
+  LM_STUDIO_BASE_URL: 'http://localhost:1234',
+  LM_STUDIO_API_KEY: '',
+  LM_STUDIO_MODEL: '',
+  LM_STUDIO_AUTO_LOAD: true,
+  LM_STUDIO_AUTO_UNLOAD: false,
+  LM_STUDIO_ENABLE_THINKING: false,
+  LM_STUDIO_REASONING_EFFORT: 'instruct',
 
-const cloudThinkingOptions = [
-  { title: 'Instruct (关闭思考)', value: 'instruct' },
-  { title: 'Low (轻度思考)', value: 'low' },
-  { title: 'Medium (标准思考)', value: 'medium' },
-  { title: 'High (深度思考)', value: 'high' },
-  { title: 'Xhigh (极高思考)', value: 'xhigh' },
-  { title: 'Max (最大思考)', value: 'max' },
-]
+  CLOUD_API_NAME: '自定义云端 API',
+  CLOUD_API_BASE_URL: 'https://api.openai.com/v1',
+  CLOUD_API_KEY: '',
+  CLOUD_MODEL: '',
+  CLOUD_REASONING_EFFORT: 'instruct',
 
-const form = ref({ ...settingsStore.settings })
+  COMFYUI_BASE_URL: 'http://127.0.0.1:8188',
+  DEFAULT_SAFETY: 'Safe'
+})
 
 onMounted(async () => {
   await settingsStore.fetchSettings()
-  form.value = { ...settingsStore.settings }
+  Object.assign(form.value, settingsStore.settings)
 })
 
-async function save() {
+async function saveAllSettings() {
   await settingsStore.saveSettings(form.value)
   snackbar.value = true
 }
 </script>
 
 <style scoped>
-.gap-2 { gap: 8px; }
+.gap-2 {
+  gap: 8px;
+}
 </style>

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import type { SemanticFacts, Entity, Statement, SafetyLevel, Artist, Lora, ReasoningEffort } from '../types'
+import type { SemanticFacts, Entity, Statement, SafetyLevel, Artist, Lora, ReasoningEffort, AppSettings } from '../types'
 
 export interface ActiveLoraItem {
   lora: Lora;
@@ -26,9 +26,11 @@ export const useStudioStore = defineStore('studio', {
     activeLoras: [] as ActiveLoraItem[],
     selectedRuleIds: [] as number[],
     
-    // Generated Prompt Outputs
+    // Generated Prompt Outputs & Manual Edit Dirty Tracking
     positivePrompt: '',
     negativePrompt: '',
+    isPositivePromptDirty: false,
+    isNegativePromptDirty: false,
     
     // LLM Provider & Model Control in Workbench
     provider: 'lm_studio' as 'lm_studio' | 'cloud',
@@ -37,6 +39,11 @@ export const useStudioStore = defineStore('studio', {
     
     // ComfyUI Parameters & State (Anima-2.9B tuned defaults)
     comfyStatus: 'disconnected' as 'connected' | 'disconnected' | 'generating' | 'error',
+    workflowMode: 'builtin' as 'builtin' | 'custom',
+    customWorkflowName: '',
+    customWorkflowTemplate: null as Record<string, any> | null,
+    overrideWorkflowModels: false,
+    
     unetName: 'anima29B_v10.safetensors',
     clipName: 'qwen_3_06b_base.safetensors',
     vaeName: 'qwen_image_vae.safetensors',
@@ -58,6 +65,31 @@ export const useStudioStore = defineStore('studio', {
   }),
 
   actions: {
+    initStudioSettings(settings: AppSettings) {
+      if (settings.DEFAULT_SAFETY) {
+        this.safety = settings.DEFAULT_SAFETY
+      }
+      if (settings.ACTIVE_PROVIDER) {
+        this.provider = settings.ACTIVE_PROVIDER
+      }
+      if (!this.model) {
+        this.model = this.provider === 'lm_studio' ? (settings.LM_STUDIO_MODEL || '') : (settings.CLOUD_MODEL || '')
+      }
+    },
+
+    setWorkflowTemplate(filename: string, templateJson: Record<string, any>) {
+      this.workflowMode = 'custom'
+      this.customWorkflowName = filename
+      this.customWorkflowTemplate = templateJson
+    },
+
+    resetToBuiltinWorkflow() {
+      this.workflowMode = 'builtin'
+      this.customWorkflowName = ''
+      this.customWorkflowTemplate = null
+      this.overrideWorkflowModels = false
+    },
+
     syncLorasFromLibrary(allLoras: Lora[]) {
       const existingMap = new Map(this.activeLoras.map(item => [item.lora.id, item]))
       this.activeLoras = allLoras.map(lora => {
@@ -72,7 +104,6 @@ export const useStudioStore = defineStore('studio', {
 
     syncArtistsFromLibrary(allArtists: Artist[]) {
       const libraryMap = new Map(allArtists.map(a => [a.id, a]))
-      // Keep only artists that still exist in library, and update to latest object
       this.selectedArtists = this.selectedArtists
         .filter(a => libraryMap.has(a.id))
         .map(a => libraryMap.get(a.id)!)
@@ -138,7 +169,7 @@ export const useStudioStore = defineStore('studio', {
           reasoning_effort: this.reasoningEffort
         })
         this.facts = resp.data
-        await this.buildPrompt()
+        await this.buildPrompt(true)
       } catch (err) {
         console.error('Prompt parsing failed:', err)
       } finally {
@@ -146,7 +177,7 @@ export const useStudioStore = defineStore('studio', {
       }
     },
 
-    async buildPrompt() {
+    async buildPrompt(force: boolean = false) {
       this.isBuilding = true
       try {
         const loraBuildItems = this.activeLoras.map(item => ({
@@ -165,8 +196,15 @@ export const useStudioStore = defineStore('studio', {
           lora_items: loraBuildItems
         })
 
-        this.positivePrompt = resp.data.prompt
-        this.negativePrompt = resp.data.negative_prompt
+        // If not manually edited or explicitly forced, update textareas
+        if (!this.isPositivePromptDirty || force) {
+          this.positivePrompt = resp.data.prompt
+          this.isPositivePromptDirty = false
+        }
+        if (!this.isNegativePromptDirty || force) {
+          this.negativePrompt = resp.data.negative_prompt
+          this.isNegativePromptDirty = false
+        }
         this.facts = resp.data.facts
       } catch (err) {
         console.error('Prompt compilation failed:', err)
@@ -177,11 +215,11 @@ export const useStudioStore = defineStore('studio', {
 
     async generateImage() {
       if (!this.positivePrompt) {
-        await this.buildPrompt()
+        await this.buildPrompt(true)
       }
       this.isGenerating = true
       this.generationProgress = 10
-      this.generationMessage = '正在组装 Anima-2.9B 工作流并提交 ComfyUI...'
+      this.generationMessage = '正在组装工作流并提交 ComfyUI...'
       
       const actualSeed = this.seed === -1 ? Math.floor(Math.random() * 1000000000) : this.seed
       
@@ -195,7 +233,7 @@ export const useStudioStore = defineStore('studio', {
             is_enabled: true
           }))
 
-        const resp = await axios.post('/api/comfyui/generate', {
+        const reqPayload: Record<string, any> = {
           positive_prompt: this.positivePrompt,
           negative_prompt: this.negativePrompt,
           unet_name: this.unetName,
@@ -209,6 +247,15 @@ export const useStudioStore = defineStore('studio', {
           sampler_name: this.samplerName,
           scheduler: this.scheduler,
           seed: actualSeed
+        }
+
+        if (this.workflowMode === 'custom' && this.customWorkflowTemplate) {
+          reqPayload.custom_template = this.customWorkflowTemplate
+          reqPayload.override_models = this.overrideWorkflowModels
+        }
+
+        const resp = await axios.post('/api/comfyui/generate', {
+          ...reqPayload
         })
 
         const promptId = resp.data.prompt_id
@@ -272,9 +319,16 @@ export const useStudioStore = defineStore('studio', {
             console.warn('Waiting for ComfyUI task...', e)
           }
         }
-      } catch (err) {
+
+        if (!done) {
+          this.generationProgress = 0
+          this.generationMessage = '生图超时：ComfyUI 在 180 秒内未返回生成图像，请检查 ComfyUI 控制台状态并重试。'
+        }
+      } catch (err: any) {
         console.error('Image generation error:', err)
-        this.generationMessage = '生图失败，请检查 ComfyUI 连接与模型设置。'
+        const msg = err.response?.data?.detail || err.message || '生图失败，请检查 ComfyUI 连接与模型设置。'
+        this.generationProgress = 0
+        this.generationMessage = `生图失败: ${msg}`
       } finally {
         this.isGenerating = false
       }

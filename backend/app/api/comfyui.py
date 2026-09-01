@@ -26,6 +26,7 @@ class GenerateRequest(BaseModel):
     seed: Optional[int] = -1
     client_id: str = "imageforge_client"
     custom_template: Optional[Dict[str, Any]] = None
+    override_models: bool = False
 
 @router.get("/health")
 async def comfyui_health():
@@ -62,7 +63,8 @@ async def comfyui_generate(req: GenerateRequest):
         sampler_name=req.sampler_name,
         scheduler=req.scheduler,
         seed=req.seed,
-        custom_template=req.custom_template
+        custom_template=req.custom_template,
+        override_models=req.override_models
     )
     try:
         res = await client.queue_prompt(workflow, req.client_id)
