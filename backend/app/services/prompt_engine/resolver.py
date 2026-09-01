@@ -47,20 +47,10 @@ ORDINALS = {
 
 def _parse_generic_entity(name: str) -> Optional[Tuple[Optional[str], str]]:
     """
-    Parses generic anonymous characters (e.g. girl1, girl2, boy1, person1, 女孩, 两个女孩, etc.)
+    Parses discrete generic anonymous characters (e.g. girl1, girl2, boy1, person1, 女孩1, etc.)
     Returns (canonical_tag, caption_name) or None if not an anonymous generic pattern.
     """
     clean = name.strip().lower()
-    
-    # 1. Collective multi-character tags
-    if clean in ["2girls", "3girls", "4girls", "5girls", "6+girls"]:
-        return clean, "the girls"
-    if clean in ["2boys", "3boys", "4boys", "5boys", "6+boys"]:
-        return clean, "the boys"
-    if clean in ["multiple_girls", "multiple girls", "多个女孩", "一群女孩"]:
-        return "multiple_girls", "the girls"
-    if clean in ["multiple_boys", "multiple boys", "多个男孩", "一群男孩"]:
-        return "multiple_boys", "the boys"
 
     # 2. Female anonymous patterns
     m_girl = re.match(r"^(girl|woman|female|女孩|女生|女人|少女)(\d+)?$", clean)

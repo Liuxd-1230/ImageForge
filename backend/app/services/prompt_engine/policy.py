@@ -63,9 +63,9 @@ class PromptPolicy:
             desc_tokens = [t.strip() for t in desc.replace(",", " ").split() if t.strip()]
 
             # Check gender explicitly from character description or generic canonical tag
-            if e.canonical_tag in ["1girl", "2girls", "3girls"] or any(w in desc_tokens for w in ["woman", "girl", "female"]):
+            if e.canonical_tag == "1girl" or any(w in desc_tokens for w in ["woman", "girl", "female"]):
                 girls += 1
-            elif e.canonical_tag in ["1boy", "2boys", "3boys"] or any(w in desc_tokens for w in ["man", "boy", "male"]):
+            elif e.canonical_tag == "1boy" or any(w in desc_tokens for w in ["man", "boy", "male"]):
                 boys += 1
 
         if girls > 0 and boys == 0 and girls == count:
@@ -109,7 +109,7 @@ class PromptPolicy:
                 if entity.custom_description:
                     char_tags.append(entity.custom_description)
             elif entity.source == "model_character":
-                if entity.canonical_tag and entity.canonical_tag not in ["1girl", "2girls", "3girls", "1boy", "2boys", "3boys"]:
+                if entity.canonical_tag and entity.canonical_tag not in ["1girl", "1boy"]:
                     char_tags.append(self.format_character_tag(entity.canonical_tag))
 
         if char_tags:

@@ -209,17 +209,18 @@ export const useStudioStore = defineStore('studio', {
 
     async saveEntityTrigger(entity: Entity) {
       if (entity.source === 'model_character' && entity.canonical_tag && entity.caption_name) {
+        // 1. Save to cache
+        await axios.post('/api/prompt/resolve-trigger', {
+          name: entity.name,
+          canonical_tag: entity.canonical_tag,
+          caption_name: entity.caption_name,
+          save_to_cache: true
+        })
+        // 2. Try to build prompt (swallow compile error so save is not marked as failed)
         try {
-          await axios.post('/api/prompt/resolve-trigger', {
-            name: entity.name,
-            canonical_tag: entity.canonical_tag,
-            caption_name: entity.caption_name,
-            save_to_cache: true
-          })
           await this.buildPrompt()
-        } catch (err) {
-          console.error('Failed to save trigger to cache:', err)
-          throw err
+        } catch (compileErr) {
+          console.warn('Trigger saved, but some characters still unresolved:', compileErr)
         }
       } else {
         throw new Error('Canonical Tag 与 Caption Name 均不能为空')

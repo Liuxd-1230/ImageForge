@@ -48,6 +48,28 @@ async def main():
             print(f"      抽取实体: {[e.model_dump() for e in facts.entities]}")
             print(f"      抽取陈述: {[s.model_dump() for s in facts.statements]}")
 
+            # 3.1 Verify Real LLM Chinese Multi-Girl Extraction (两个女孩，一个穿红裙，一个穿蓝裙...)
+            multi_girl_input = "两个女孩，一个穿红裙，一个穿蓝裙，第一个女孩追第二个女孩。"
+            print(f"\n[3.1/7] 真实 LLM 测试 (双女孩): \"{multi_girl_input}\"")
+            facts_mg = await pipeline.parse_and_extract(raw_text=multi_girl_input, model=model_name, reasoning_effort="off")
+            print(f"        实体: {[e.model_dump() for e in facts_mg.entities]}")
+            print(f"        陈述: {[s.model_dump() for s in facts_mg.statements]}")
+            build_mg = pipeline.build_prompt(PromptBuildRequest(facts=facts_mg, safety="Safe"))
+            print(f"        编译 Prompt: >> {build_mg.prompt}")
+            assert "2girls" in build_mg.prompt, "双女孩应生成 2girls 计数 Tag"
+            assert "the girl is chasing the girl" not in build_mg.prompt, "禁止退化为 the girl is chasing the girl"
+
+            # 3.2 Verify Real LLM Chinese Multi-Person Neutral Extraction (一个人在跑，另一个人在后面追他。)
+            multi_person_input = "一个人在跑，另一个人在后面追他。"
+            print(f"\n[3.2/7] 真实 LLM 测试 (双中性人物): \"{multi_person_input}\"")
+            facts_mp = await pipeline.parse_and_extract(raw_text=multi_person_input, model=model_name, reasoning_effort="off")
+            print(f"        实体: {[e.model_dump() for e in facts_mp.entities]}")
+            print(f"        陈述: {[s.model_dump() for s in facts_mp.statements]}")
+            build_mp = pipeline.build_prompt(PromptBuildRequest(facts=facts_mp, safety="Safe"))
+            print(f"        编译 Prompt: >> {build_mp.prompt}")
+            assert "1girl" not in build_mp.prompt and "2girls" not in build_mp.prompt, "中性人物禁止脑补 1girl/2girls"
+            assert "1boy" not in build_mp.prompt and "2boys" not in build_mp.prompt, "中性人物禁止脑补 1boy/2boys"
+
             # 4. Build Final English Prompt (with LoRA and Artist)
             lora_item = LoraBuildItem(
                 filename="anima\\anima-highres-aesthetic-boost.safetensors",

@@ -881,8 +881,16 @@ function copyToClipboard(text: string) {
 async function saveEntityTrigger(entity: any) {
   try {
     await studioStore.saveEntityTrigger(entity)
-    snackbarText.value = `已保存角色【${entity.name}】的 Trigger 映射`
-    snackbarColor.value = 'success'
+    const remainingUnresolved = studioStore.facts.entities.filter(
+      e => e.source === 'model_character' && !e.canonical_tag
+    )
+    if (remainingUnresolved.length > 0) {
+      snackbarText.value = `已保存角色【${entity.name}】映射，仍有 ${remainingUnresolved.length} 个角色未补全`
+      snackbarColor.value = 'warning'
+    } else {
+      snackbarText.value = `已保存角色【${entity.name}】的 Trigger 映射`
+      snackbarColor.value = 'success'
+    }
     snackbar.value = true
   } catch (err: any) {
     snackbarText.value = `保存 Trigger 失败: ${err.response?.data?.detail || err.message || '网络请求异常'}`
