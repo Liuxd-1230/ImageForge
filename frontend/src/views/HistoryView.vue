@@ -1,0 +1,85 @@
+<template>
+  <v-container fluid class="pa-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+      <div>
+        <h1 class="text-h5 font-weight-bold">生图历史</h1>
+        <div class="text-caption text-grey">查看历史提示词与生图记录，支持一键恢复到创作台。</div>
+      </div>
+    </div>
+
+    <v-row v-if="historyStore.history.length === 0">
+      <v-col cols="12" class="text-center py-12 text-grey">
+        <v-icon size="48" class="mb-2">mdi-history</v-icon>
+        <div>暂无生图历史记录</div>
+      </v-col>
+    </v-row>
+
+    <v-row v-else>
+      <v-col
+        v-for="item in historyStore.history"
+        :key="item.id"
+        cols="12"
+        md="6"
+      >
+        <v-card variant="outlined" class="pa-4 rounded-lg">
+          <div class="d-flex justify-space-between align-center mb-2">
+            <span class="text-caption text-grey">{{ formatDate(item.created_at) }}</span>
+            <div>
+              <v-btn size="small" variant="tonal" color="primary" class="mr-2" @click="restoreToStudio(item)">
+                恢复到创作台
+              </v-btn>
+              <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="historyStore.deleteHistory(item.id)" />
+            </div>
+          </div>
+
+          <div class="text-body-2 font-weight-bold mb-2">
+            输入: {{ item.raw_input }}
+          </div>
+
+          <div class="text-caption font-mono border rounded pa-2 mb-2 bg-surface text-truncate">
+            Prompt: {{ item.prompt }}
+          </div>
+
+          <div v-if="item.image_path" class="text-center mt-2">
+            <v-img :src="item.image_path" max-height="200" contain class="rounded border" />
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useHistoryStore } from '../stores/history'
+import { useStudioStore } from '../stores/studio'
+import type { GenerationHistory, SafetyLevel } from '../types'
+
+const historyStore = useHistoryStore()
+const studioStore = useStudioStore()
+const router = useRouter()
+
+onMounted(() => {
+  historyStore.fetchHistory()
+})
+
+function formatDate(d: string) {
+  if (!d) return ''
+  return new Date(d).toLocaleString('zh-CN')
+}
+
+function restoreToStudio(item: GenerationHistory) {
+  studioStore.rawInput = item.raw_input
+  studioStore.positivePrompt = item.prompt
+  studioStore.negativePrompt = item.negative_prompt
+  studioStore.safety = item.safety as SafetyLevel
+  try {
+    studioStore.facts = JSON.parse(item.parsed_facts_json)
+  } catch {}
+  if (item.image_path) {
+    studioStore.generatedImageUrl = item.image_path
+  }
+  router.push('/')
+}
+</script>
