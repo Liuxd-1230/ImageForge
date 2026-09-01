@@ -18,6 +18,18 @@
       </div>
     </header>
 
+    <!-- 草稿恢复横幅 -->
+    <div v-if="studioStore.draftRestored" class="draft-banner">
+      <span class="mdi mdi-history" />
+      <span class="draft-banner-text">已恢复上次未完成的创作</span>
+      <button type="button" class="draft-clear" @click="clearDraftWorkbench">
+        <span class="mdi mdi-broom" />清空创作台
+      </button>
+      <button type="button" class="draft-dismiss" title="知道了" @click="studioStore.draftRestored = false">
+        <span class="mdi mdi-close" />
+      </button>
+    </div>
+
     <div class="studio-body">
       <!-- ═════════════════ LEFT: Composer / Inspector ═════════════════ -->
       <aside class="inspector">
@@ -30,7 +42,7 @@
                 v-model="studioStore.rawInput"
                 class="scene-input"
                 rows="4"
-                placeholder="例如：穗穗穿着泳装，秧秧穿着蓝色海军水手服，穗穗在沙滩上追秧秧。"
+                placeholder="描述你想生成的画面…"
                 @input="studioStore.isSemanticDirty = true"
               />
             </div>
@@ -57,6 +69,7 @@
               type="button"
               class="parse-btn"
               :class="{ 'is-busy': studioStore.isParsing }"
+              :disabled="!studioStore.rawInput.trim()"
               @click="studioStore.parsePrompt()"
             >
               <span class="mdi mdi-creation-outline" />
@@ -355,20 +368,59 @@
                 </div>
               </div>
 
-              <!-- 尺寸 / 步数 / CFG -->
+              <!-- 尺寸：自由输入 + 推荐快捷键（非白名单） -->
+              <div class="adv-field">
+                <div class="size-head">
+                  <span class="param-label">尺寸</span>
+                  <div class="size-presets">
+                    <button
+                      v-for="p in sizePresets"
+                      :key="p.label"
+                      type="button"
+                      class="size-chip"
+                      @click="applySizePreset(p)"
+                    >
+                      {{ p.label }}
+                    </button>
+                  </div>
+                </div>
+                <div class="size-row">
+                  <input
+                    v-model.number="widthInput"
+                    type="number"
+                    class="size-input"
+                    min="64"
+                    max="8192"
+                    placeholder="宽"
+                    @change="commitWidth"
+                  />
+                  <span class="size-x">×</span>
+                  <input
+                    v-model.number="heightInput"
+                    type="number"
+                    class="size-input"
+                    min="64"
+                    max="8192"
+                    placeholder="高"
+                    @change="commitHeight"
+                  />
+                  <button type="button" class="size-icon-btn" title="交换宽高" @click="swapSize">
+                    <span class="mdi mdi-swap-horizontal" />
+                  </button>
+                  <button
+                    type="button"
+                    :class="['size-icon-btn', { on: lockAspect }]"
+                    :title="lockAspect ? '解锁宽高比' : '锁定宽高比'"
+                    @click="toggleLockAspect"
+                  >
+                    <span class="mdi" :class="lockAspect ? 'mdi-link-variant' : 'mdi-link-variant-off'" />
+                  </button>
+                </div>
+                <p v-if="sizeWarning" class="size-warning">{{ sizeWarning }}</p>
+              </div>
+
+              <!-- 步数 / CFG -->
               <div class="param-grid">
-                <div class="param-field">
-                  <span class="param-label">宽 Width</span>
-                  <select v-model.number="studioStore.width" class="param-select">
-                    <option v-for="w in [812, 1024, 1152, 1280]" :key="w" :value="w">{{ w }}</option>
-                  </select>
-                </div>
-                <div class="param-field">
-                  <span class="param-label">高 Height</span>
-                  <select v-model.number="studioStore.height" class="param-select">
-                    <option v-for="h in [1216, 1536, 1792]" :key="h" :value="h">{{ h }}</option>
-                  </select>
-                </div>
                 <div class="param-field">
                   <span class="param-label">步数 Steps</span>
                   <input v-model.number="studioStore.steps" type="number" class="param-input" />
@@ -432,17 +484,14 @@
             :class="{ generating: studioStore.isGenerating }"
             @click="studioStore.generateImage()"
           >
-            <span
-              class="gen-fill"
-              :style="{ width: (studioStore.isGenerating ? studioStore.generationProgress : 0) + '%' }"
-            />
+            <span class="gen-fill" :class="{ indeterminate: studioStore.isGenerating }" />
             <span class="gen-content">
               <span v-if="!studioStore.isGenerating" class="mdi mdi-creation" />
               {{ studioStore.isGenerating ? '生成中…' : '生成图片' }}
             </span>
           </button>
           <div v-if="studioStore.isGenerating" class="gen-status">
-            {{ studioStore.generationMessage }} · {{ studioStore.generationProgress }}%
+            {{ stageLabel }}
           </div>
         </div>
       </aside>
@@ -480,11 +529,10 @@
           <div v-else-if="studioStore.isGenerating" class="canvas-empty">
             <div class="canvas-progress">
               <div class="canvas-progress-track">
-                <div class="canvas-progress-fill" :style="{ width: studioStore.generationProgress + '%' }" />
+                <div class="canvas-progress-fill indeterminate" />
               </div>
-              <span class="canvas-progress-text mono">{{ studioStore.generationProgress }}%</span>
             </div>
-            <p class="canvas-empty-caption">{{ studioStore.generationMessage }}</p>
+            <p class="canvas-empty-caption">{{ stageLabel }}</p>
           </div>
 
           <div v-else class="canvas-empty">
@@ -510,7 +558,7 @@
         <p class="rules-dialog-hint">规则将作为解析时的参考上下文。</p>
         <div class="rules-list">
           <button
-            v-for="r in ruleStore.rules"
+            v-for="r in enabledRules"
             :key="r.id"
             type="button"
             :class="['rule-opt', { on: studioStore.selectedRuleIds.includes(r.id) }]"
@@ -522,7 +570,7 @@
             <span class="rule-opt-name">{{ r.name }}</span>
             <span class="rule-opt-type mono">{{ r.file_type }}</span>
           </button>
-          <div v-if="ruleStore.rules.length === 0" class="rules-list-empty">暂无规则文件</div>
+          <div v-if="enabledRules.length === 0" class="rules-list-empty">暂无启用的规则文件</div>
         </div>
         <div class="dialog-foot">
           <button type="button" class="dialog-done" @click="rulesDialog = false">完成</button>
@@ -616,6 +664,17 @@ const previewImageUrl = ref('')
 const parseOpen = ref(false)
 const advOpen = ref(false)
 const negOpen = ref(false)
+
+/* ── 尺寸自由输入（推荐尺寸只是快捷键，非白名单） ── */
+const widthInput = ref<number>(studioStore.width)
+const heightInput = ref<number>(studioStore.height)
+const lockAspect = ref(false)
+let lockedRatio: number | null = null
+const sizePresets = [
+  { label: '812×1216', w: 812, h: 1216 },
+  { label: '1152×1536', w: 1152, h: 1536 },
+  { label: '1536×1536', w: 1536, h: 1536 },
+]
 
 const snackbar = ref(false)
 const snackbarText = ref('')
@@ -735,8 +794,9 @@ function toggleLoraItem(item: ActiveLoraItem) {
 }
 
 /* ── Rules ── */
+const enabledRules = computed(() => ruleStore.rules.filter(r => r.is_enabled))
 const selectedRules = computed(() =>
-  ruleStore.rules.filter(r => studioStore.selectedRuleIds.includes(r.id)),
+  enabledRules.value.filter(r => studioStore.selectedRuleIds.includes(r.id)),
 )
 const selectedRulesPreview = computed(() => selectedRules.value.slice(0, 2))
 function toggleRule(ruleId: number) {
@@ -767,24 +827,33 @@ const comfyStatusClass = computed(() => {
 })
 
 function onProviderChange(p: 'lm_studio' | 'cloud') {
-  studioStore.provider = p
-  if (p === 'lm_studio') {
-    const defModel = settingsStore.settings.LM_STUDIO_MODEL
-    if (defModel && settingsStore.lmStudioModels.some(m => m.id === defModel)) {
-      studioStore.model = defModel
-    } else if (settingsStore.lmStudioModels.length > 0) {
-      studioStore.model = settingsStore.lmStudioModels[0].id
+  const prev = studioStore.provider
+  if (prev !== p) {
+    // 记住旧 Provider 本次使用的 model + reasoning
+    studioStore.providerMemory[prev] = {
+      model: studioStore.model,
+      reasoning: studioStore.reasoningEffort === 'instruct' ? 'off' : studioStore.reasoningEffort,
     }
-    studioStore.reasoningEffort = 'off'
-  } else {
-    const defCloud = settingsStore.settings.CLOUD_MODEL
-    if (defCloud && settingsStore.cloudModels.some(m => m.id === defCloud)) {
-      studioStore.model = defCloud
-    } else if (settingsStore.cloudModels.length > 0) {
-      studioStore.model = settingsStore.cloudModels[0].id
-    }
-    studioStore.reasoningEffort = 'off'
   }
+  studioStore.provider = p
+
+  const mem = studioStore.providerMemory[p]
+  const models = p === 'lm_studio' ? settingsStore.lmStudioModels : settingsStore.cloudModels
+  const defModel = p === 'lm_studio'
+    ? settingsStore.settings.LM_STUDIO_MODEL
+    : settingsStore.settings.CLOUD_MODEL
+
+  if (mem.model && models.some(m => m.id === mem.model)) {
+    studioStore.model = mem.model
+  } else if (defModel && models.some(m => m.id === defModel)) {
+    studioStore.model = defModel
+  } else if (models.length > 0) {
+    studioStore.model = models[0].id
+  } else {
+    studioStore.model = ''
+  }
+  const r = mem.reasoning === 'instruct' ? 'off' : mem.reasoning
+  studioStore.reasoningEffort = (['off', 'on', 'low', 'medium', 'high', 'xhigh', 'max'].includes(r) ? r : 'off') as ReasoningEffort
 }
 
 async function refreshModels() {
@@ -830,12 +899,83 @@ function getEntityName(entityId: string | null | undefined): string {
 const displaySeed = computed(() =>
   studioStore.seed === -1 || !studioStore.seed ? '随机' : String(studioStore.seed),
 )
+const stageLabel = computed(() => {
+  const s = studioStore.generationStage
+  if (s === 'preparing') return '准备工作流…'
+  if (s === 'submitted') return '已提交 · ComfyUI 生成中…'
+  if (s === 'done') return '生成完成'
+  if (s === 'timeout') return '等待超时'
+  if (s === 'error') return '生成失败'
+  return studioStore.generationMessage || '生成中…'
+})
 const errorMessage = computed(() => {
   const m = studioStore.generationMessage
   if (!m || studioStore.isGenerating) return ''
   if (m.includes('失败') || m.includes('超时') || m.includes('错误')) return m
   return ''
 })
+
+/* ── 尺寸逻辑 ── */
+watch(() => studioStore.width, v => { if (widthInput.value !== v) widthInput.value = v })
+watch(() => studioStore.height, v => { if (heightInput.value !== v) heightInput.value = v })
+
+const sizeWarning = computed(() => {
+  const w = Number(widthInput.value)
+  const h = Number(heightInput.value)
+  if (!w || !h || w <= 0 || h <= 0) return ''
+  if (w < 64 || h < 64 || w > 8192 || h > 8192) return '尺寸超出常见范围（64–8192）'
+  const ratio = w / h
+  if (ratio < 0.4 || ratio > 2.5) return `尺寸异常：${w}×${h}（比例 ${ratio.toFixed(2)}:1），生成可能失败`
+  return ''
+})
+
+function commitWidth() {
+  const w = Math.round(Number(widthInput.value) || 0)
+  const clamped = Math.min(8192, Math.max(64, w))
+  studioStore.width = clamped
+  widthInput.value = clamped
+  if (lockAspect.value && lockedRatio && clamped > 0) {
+    const h = Math.round(clamped / lockedRatio)
+    const ch = Math.min(8192, Math.max(64, h))
+    studioStore.height = ch
+    heightInput.value = ch
+  }
+}
+function commitHeight() {
+  const h = Math.round(Number(heightInput.value) || 0)
+  const clamped = Math.min(8192, Math.max(64, h))
+  studioStore.height = clamped
+  heightInput.value = clamped
+  if (lockAspect.value && lockedRatio && clamped > 0) {
+    const w = Math.round(clamped * lockedRatio)
+    const cw = Math.min(8192, Math.max(64, w))
+    studioStore.width = cw
+    widthInput.value = cw
+  }
+}
+function swapSize() {
+  const w = studioStore.width
+  const h = studioStore.height
+  studioStore.width = h
+  studioStore.height = w
+  widthInput.value = h
+  heightInput.value = w
+}
+function toggleLockAspect() {
+  lockAspect.value = !lockAspect.value
+  lockedRatio = lockAspect.value ? (studioStore.width / studioStore.height || 1) : null
+}
+function applySizePreset(p: { w: number; h: number }) {
+  studioStore.width = p.w
+  studioStore.height = p.h
+  widthInput.value = p.w
+  heightInput.value = p.h
+  if (lockAspect.value) lockedRatio = p.w / p.h
+}
+function syncSizeFromStore() {
+  widthInput.value = studioStore.width
+  heightInput.value = studioStore.height
+}
 
 /* ── Artists ── */
 const filteredArtists = computed(() => {
@@ -959,7 +1099,16 @@ onMounted(async () => {
   ])
 
   studioStore.initStudioSettings(settingsStore.settings)
+
+  // 草稿恢复（安全容错；需要画师/LoRA 库数据就绪后再应用引用型字段）
+  const restored = studioStore.loadDraft()
   studioStore.syncLorasFromLibrary(loraStore.loras)
+  studioStore.applyDraftLoraStates()
+  studioStore.applyDraftArtistIds(artistStore.artists)
+
+  // 只保留已启用规则的选中项
+  const enabledRuleIds = ruleStore.rules.filter(r => r.is_enabled).map(r => r.id)
+  studioStore.selectedRuleIds = studioStore.selectedRuleIds.filter(id => enabledRuleIds.includes(id))
 
   if (!studioStore.selectedPresetId && presetStore.presets.length > 0) {
     const def = presetStore.presets.find(p => p.is_default) || presetStore.presets[0]
@@ -979,7 +1128,36 @@ onMounted(async () => {
         : settingsStore.cloudModels[0].id
     }
   }
+
+  syncSizeFromStore()
+
+  if (restored) {
+    snackbarText.value = '已恢复上次未完成的创作'
+    snackbarColor.value = 'primary'
+    snackbar.value = true
+  }
 })
+
+// 草稿 autosave：关键状态变化 debounce 500ms 写入 localStorage
+watch(
+  () => [
+    studioStore.rawInput, studioStore.safety, studioStore.selectedPresetId,
+    studioStore.selectedRuleIds, studioStore.selectedArtists, studioStore.activeLoras,
+    studioStore.positivePrompt, studioStore.negativePrompt, studioStore.extraNegative,
+    studioStore.width, studioStore.height, studioStore.steps, studioStore.cfg, studioStore.seed,
+    studioStore.provider, studioStore.model, studioStore.reasoningEffort, studioStore.providerMemory,
+  ],
+  () => studioStore.scheduleDraftSave(),
+  { deep: true },
+)
+
+function clearDraftWorkbench() {
+  studioStore.clearDraft()
+  syncSizeFromStore()
+  snackbarText.value = '创作台已清空'
+  snackbarColor.value = 'primary'
+  snackbar.value = true
+}
 </script>
 
 <style scoped>
@@ -1046,6 +1224,51 @@ onMounted(async () => {
   min-height: 0;
   display: flex;
 }
+
+/* ── 草稿恢复横幅 ── */
+.draft-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 28px 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgb(var(--v-theme-primary-container));
+  color: rgb(var(--v-theme-on-primary-container));
+  font-size: 13px;
+  font-weight: 600;
+}
+.draft-banner-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draft-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 13px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.draft-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.draft-dismiss:hover { background: rgba(0, 0, 0, 0.06); }
 
 /* ── 左栏 Inspector：420–460px 稳定宽度、独立滚动、禁止横向滚动 ── */
 .inspector {
@@ -1221,6 +1444,11 @@ onMounted(async () => {
 .parse-btn.is-busy {
   opacity: 0.7;
   pointer-events: none;
+}
+.parse-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
 }
 
 /* ── Safety segmented control ── */
@@ -2037,6 +2265,81 @@ onMounted(async () => {
   border-color: rgb(var(--v-theme-primary));
   box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.12);
 }
+
+/* ── 尺寸自由输入 ── */
+.size-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.size-head .param-label { margin-bottom: 0; }
+.size-presets { display: flex; gap: 6px; }
+.size-chip {
+  padding: 5px 10px;
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 999px;
+  background: rgb(var(--v-theme-surface-container));
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface-variant));
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-emphasized),
+    color var(--motion-fast) var(--motion-emphasized);
+}
+.size-chip:hover {
+  border-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary));
+}
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.size-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 10px;
+  background: rgb(var(--v-theme-surface-container));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: rgb(var(--v-theme-on-surface));
+}
+.size-input:focus {
+  outline: none;
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.12);
+}
+.size-x { color: rgb(var(--v-theme-on-surface-variant)); }
+.size-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 10px;
+  background: rgb(var(--v-theme-surface-container-low));
+  color: rgb(var(--v-theme-on-surface-variant));
+  cursor: pointer;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.size-icon-btn.on {
+  background: rgb(var(--v-theme-primary-container));
+  color: rgb(var(--v-theme-on-primary-container));
+  border-color: transparent;
+}
+.size-warning {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-warning));
+}
 .wf-import {
   margin-top: 10px;
   padding: 10px 12px;
@@ -2118,8 +2421,18 @@ onMounted(async () => {
   left: 0;
   top: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.18);
-  transition: width 500ms ease;
+  width: 0;
+}
+/* indeterminate：柔和的扫光，绝不展示假百分比 */
+.gen-fill.indeterminate {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.32) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: if-gen-sweep 1.4s linear infinite;
+}
+@keyframes if-gen-sweep {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 .gen-content {
   position: relative;
@@ -2205,6 +2518,16 @@ onMounted(async () => {
   border-radius: 999px;
   background: rgb(var(--v-theme-primary));
   transition: width 400ms ease;
+}
+.canvas-progress-fill.indeterminate {
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(var(--v-theme-primary)), transparent);
+  background-size: 200% 100%;
+  animation: if-progress-sweep 1.3s ease-in-out infinite;
+}
+@keyframes if-progress-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
 }
 .canvas-progress-text {
   font-size: 12.5px;

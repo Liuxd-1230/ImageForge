@@ -1,5 +1,9 @@
+import os
+import time
+import uuid
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.config import settings
@@ -107,3 +111,55 @@ async def comfyui_view_image(
             )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"获取 ComfyUI 图像失败: {str(e)}")
+
+
+class PersistImageRequest(BaseModel):
+    filename: str
+    subfolder: str = ""
+    type: str = "output"
+
+
+@router.post("/persist-image")
+async def persist_image(req: PersistImageRequest):
+    """Download a finished image from ComfyUI into ImageForge's own
+    data/generated directory so history survives ComfyUI output cleanup.
+    The original ComfyUI view URL is returned as metadata."""
+    base_url = settings.COMFYUI_BASE_URL.rstrip("/")
+    target_url = f"{base_url}/view?filename={req.filename}&subfolder={req.subfolder}&type={req.type}"
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.get(target_url)
+            resp.raise_for_status()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"从 ComfyUI 下载图像失败: {str(e)}")
+
+    os.makedirs(settings.GENERATED_DIR, exist_ok=True)
+    ext = os.path.splitext(req.filename)[1] or ".png"
+    if ext.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+        ext = ".png"
+    saved = f"anima_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}{ext}"
+    local_path = os.path.join(settings.GENERATED_DIR, saved)
+    try:
+        with open(local_path, "wb") as f:
+            f.write(resp.content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存图像失败: {str(e)}")
+
+    return {
+        "image_path": f"/api/comfyui/generated/{saved}",
+        "local_path": local_path,
+        "comfy_view_url": target_url,
+        "original_filename": req.filename,
+    }
+
+
+@router.get("/generated/{filename}")
+async def generated_image(filename: str):
+    """Serve ImageForge's own persisted generated image (safe filename check)."""
+    safe = os.path.basename(filename)
+    if safe != filename or not safe:
+        raise HTTPException(status_code=400, detail="非法文件名")
+    path = os.path.join(settings.GENERATED_DIR, safe)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="图像不存在")
+    return FileResponse(path)

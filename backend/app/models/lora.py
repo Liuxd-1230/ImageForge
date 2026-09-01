@@ -10,6 +10,7 @@ class LoraBase(SQLModel):
     is_favorite: bool = Field(default=False)
     category: Optional[str] = Field(default="通用")
     is_valid_file: bool = Field(default=True)
+    source_path: Optional[str] = Field(default=None)  # 实际来源文件路径（来自来源扫描导入）
 
 class Lora(LoraBase, table=True):
     __tablename__ = "loras"
@@ -29,6 +30,7 @@ class LoraUpdate(SQLModel):
     is_favorite: Optional[bool] = None
     category: Optional[str] = None
     is_valid_file: Optional[bool] = None
+    source_path: Optional[str] = None
 
 class LoraRead(LoraBase):
     id: int

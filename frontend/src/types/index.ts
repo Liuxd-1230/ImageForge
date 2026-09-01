@@ -84,6 +84,46 @@ export interface Lora {
   is_favorite: boolean;
   category: string;
   is_valid_file: boolean;
+  source_path?: string | null;
+}
+
+export interface LoraSource {
+  id: number;
+  display_path: string;
+  resolved_path: string;
+  enabled: boolean;
+  recursive: boolean;
+  created_at: string;
+  exists: boolean;
+  is_dir: boolean;
+  readable: boolean;
+  error?: string | null;
+}
+
+export interface ScanCandidate {
+  relative_path: string;
+  basename: string;
+  full_path: string;
+  name_hint: string;
+  exists_in_db: boolean;
+  comfy_recognized: boolean;
+  comfy_name: string;
+  basename_conflict: boolean;
+}
+
+export interface ScanSummary {
+  total: number;
+  already_imported: number;
+  new: number;
+  comfy_unrecognized: number;
+  basename_conflicts: number;
+  comfy_available: boolean;
+}
+
+export interface ScanResult {
+  source: LoraSource;
+  candidates: ScanCandidate[];
+  summary: ScanSummary;
 }
 
 export interface RuleFile {
@@ -124,4 +164,5 @@ export interface AppSettings {
 
   COMFYUI_BASE_URL: string;
   DEFAULT_SAFETY: SafetyLevel;
+  GENERATE_TIMEOUT_SECONDS: number;
 }

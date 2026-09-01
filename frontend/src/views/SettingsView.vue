@@ -224,6 +224,21 @@
               测试连接
             </v-btn>
           </div>
+
+          <div class="d-flex align-center gap-2 mt-3">
+            <v-text-field
+              v-model.number="form.GENERATE_TIMEOUT_SECONDS"
+              label="生图等待超时（秒）"
+              type="number"
+              min="60"
+              max="3600"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="flex-grow-1 text-caption"
+            />
+            <span class="text-caption text-grey">超时只停止前端等待，不会取消 ComfyUI 任务</span>
+          </div>
         </v-card>
       </v-col>
     </v-row>
@@ -258,7 +273,8 @@ const form = ref<AppSettings>({
   CLOUD_MODEL: '',
 
   COMFYUI_BASE_URL: 'http://127.0.0.1:8188',
-  DEFAULT_SAFETY: 'Safe'
+  DEFAULT_SAFETY: 'Safe',
+  GENERATE_TIMEOUT_SECONDS: 300
 })
 
 onMounted(async () => {

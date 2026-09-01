@@ -18,7 +18,8 @@ export const useSettingsStore = defineStore('settings', {
       CLOUD_MODEL: '',
 
       COMFYUI_BASE_URL: 'http://127.0.0.1:8188',
-      DEFAULT_SAFETY: 'Safe'
+      DEFAULT_SAFETY: 'Safe',
+      GENERATE_TIMEOUT_SECONDS: 300
     } as AppSettings,
     lmStudioStatus: 'disconnected' as 'connected' | 'disconnected' | 'error',
     lmStudioModels: [] as any[],

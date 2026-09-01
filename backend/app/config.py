@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     
     # ComfyUI Settings
     COMFYUI_BASE_URL: str = "http://127.0.0.1:8188"
+
+    # Generation
+    GENERATE_TIMEOUT_SECONDS: int = 300  # 前端等待 ComfyUI 生成的最长秒数（慢 GPU/高分辨率可调）
+
+    # Local data (ImageForge-owned files)
+    DATA_DIR: str = "data"
+    GENERATED_DIR: str = "data/generated"
     
     # Defaults
     DEFAULT_SAFETY: str = "Safe"
@@ -44,4 +51,5 @@ EDITABLE_SETTING_KEYS = {
     "CLOUD_MODEL",
     "COMFYUI_BASE_URL",
     "DEFAULT_SAFETY",
+    "GENERATE_TIMEOUT_SECONDS",
 }

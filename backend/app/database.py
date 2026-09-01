@@ -1,3 +1,7 @@
+import logging
+import os
+import sqlite3
+
 from sqlmodel import SQLModel, create_engine, Session, select
 from app.config import settings
 from app.models.preset import Preset
@@ -5,14 +9,85 @@ from app.models.character import Character
 from app.models.trigger_cache import CharacterTriggerCache
 from app.models.artist import Artist
 from app.models.lora import Lora
+from app.models.lora_source import LoraSource
 from app.models.rule import RuleFile
 from app.models.setting import AppSetting
 from app.models.history import GenerationHistory
 
+logger = logging.getLogger(__name__)
+
 connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
 engine = create_engine(settings.DATABASE_URL, echo=False, connect_args=connect_args)
 
+
+def ensure_data_dirs() -> None:
+    """Create ImageForge-owned data directories (generated images etc.)."""
+    for d in [settings.GENERATED_DIR]:
+        try:
+            os.makedirs(d, exist_ok=True)
+        except Exception as e:  # pragma: no cover
+            logger.warning(f"Failed to create data dir {d}: {e}")
+
+
+def _migrate_legacy_sqlite() -> None:
+    """Lightweight migrations for legacy SQLite schemas.
+
+    1. `loras.is_enabled` was NOT NULL in older databases while the ORM now
+       declares it Optional — INSERTs then fail with NOT NULL constraint
+       (POST /api/loras 500). Rebuild the table with a nullable column.
+    2. `loras.source_path` column added for source-scan imports.
+    """
+    if "sqlite" not in settings.DATABASE_URL:
+        return
+    conn = sqlite3.connect(settings.DATABASE_URL.replace("sqlite:///", ""))
+    try:
+        cur = conn.cursor()
+
+        # -- 1. loras.is_enabled NOT NULL -> nullable with default 0 ----------
+        cols = {r[1]: r for r in cur.execute("PRAGMA table_info(loras)").fetchall()}
+        if "is_enabled" in cols and cols["is_enabled"][3] == 1:  # notnull == 1
+            _rebuild_loras_table(cur)
+            conn.commit()
+            logger.info("Migrated loras.is_enabled to nullable (legacy NOT NULL dropped)")
+
+        # -- 2. loras.source_path column --------------------------------------
+        cols = {r[1]: r for r in cur.execute("PRAGMA table_info(loras)").fetchall()}
+        if "source_path" not in cols:
+            cur.execute("ALTER TABLE loras ADD COLUMN source_path TEXT")
+            conn.commit()
+            logger.info("Added loras.source_path column")
+    except Exception as e:  # pragma: no cover
+        logger.error(f"Schema migration failed: {e}")
+        raise
+    finally:
+        conn.close()
+
+
+def _rebuild_loras_table(cur: sqlite3.Cursor) -> None:
+    """SQLite table rebuild (12-step ALTER) to drop NOT NULL on is_enabled."""
+    cols = cur.execute("PRAGMA table_info(loras)").fetchall()  # (cid,name,type,notnull,dflt,pk)
+    defs = []
+    for cid, name, ctype, notnull, dflt, pk in cols:
+        if name == "is_enabled":
+            defs.append(f'"{name}" {ctype or "BOOLEAN"} DEFAULT 0')
+        else:
+            nn = " NOT NULL" if notnull else ""
+            df = f" DEFAULT {dflt}" if dflt is not None else ""
+            pk_part = " PRIMARY KEY" if pk else ""
+            defs.append(f'"{name}" {ctype or ""}{nn}{df}{pk_part}')
+    colnames = ", ".join(f'"{c[1]}"' for c in cols)
+    cur.execute("ALTER TABLE loras RENAME TO loras_legacy")
+    cur.execute(f"CREATE TABLE loras ({', '.join(defs)})")
+    cur.execute(f"INSERT INTO loras ({colnames}) SELECT {colnames} FROM loras_legacy")
+    cur.execute("DROP TABLE loras_legacy")
+    # recreate indexes that SQLModel declares on loras
+    cur.execute("CREATE INDEX IF NOT EXISTS ix_loras_name ON loras (name)")
+    cur.execute("CREATE INDEX IF NOT EXISTS ix_loras_filename ON loras (filename)")
+
+
 def init_db():
+    ensure_data_dirs()
+    _migrate_legacy_sqlite()
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         # 1. Synchronize SQLite AppSetting table into memory settings
@@ -24,6 +99,11 @@ def init_db():
                 field_type = type(getattr(settings, s.key))
                 if field_type == bool:
                     val = str(val).lower() in ("true", "1", "yes")
+                elif field_type == int:
+                    try:
+                        val = int(val)
+                    except ValueError:
+                        val = getattr(settings, s.key)
                 setattr(settings, s.key, val)
 
         # 2. Seed default preset
@@ -38,7 +118,7 @@ def init_db():
             )
             session.add(preset)
             session.commit()
-            
+
         # 3. Seed initial sample artists with @artist format
         stmt_art = select(Artist)
         first_art = session.exec(stmt_art).first()
@@ -72,6 +152,7 @@ def init_db():
             )
             session.add(rule)
             session.commit()
+
 
 def get_session():
     with Session(engine) as session:

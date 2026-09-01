@@ -70,3 +70,60 @@ http://127.0.0.1:5173/（Vite dev server，cwd=frontend），模拟点击 + 几�
   `Optional` 字段不匹配而 500（既有问题，非本轮改动）；为验证 Long-name overflow，
   通过 SQL 直插了一条 91 字符 LoRA 测试行（id=19）。
 - MAX 动画为 CSS animation，静态截图无法体现流动，需在浏览器中目视。
+
+---
+
+# 第二轮：真实用户工作流审计修复（ec8c927 之后）
+
+## 后端（24/24 自动化 API 测试通过，`.verify/backend_test.py`）
+
+- **旧 DB 迁移**：启动时自动把 `loras.is_enabled` 从 NOT NULL 重建为 nullable（12 步
+  SQLite 迁移）+ 新增 `loras.source_path` 列；`POST /api/loras` 在旧库不再 500。
+- **来源管理**：新增 `lora_sources` 表（display_path/resolved_path/enabled/recursive/created_at）；
+  `POST/GET/PUT/DELETE /api/loras/sources`；路径校验（存在/目录/可读/去重，409 重复）。
+- **WSL 路径转译**：`D:\...` / `D:/...` → `/mnt/d/...`（仅 WSL 环境），native 路径不变；
+  resolved 用 realpath/normpath 去重。
+- **两阶段扫描**：`POST /api/loras/sources/{id}/scan` 只返回候选预览（不改库）；
+  字段：relative_path/full_path/name_hint/exists_in_db/comfy_recognized/comfy_name/basename_conflict；
+  摘要含 发现/新增/已存在/ComfyUI未识别/重名/ComfyUI离线。
+  存在判定：精确文件标识 + 有 source_path 的记录按真实路径匹配；仅旧记录回退 basename
+  （修复「同名不同文件被误判已存在」）。
+- **选择导入**：`POST /api/loras/import` 幂等（重复导入跳过）；记录 `source_path`；
+  ComfyUI 未识别文件 is_valid_file=False（显示「文件存在 · ComfyUI 未识别」）。
+- **sync-comfyui 行为取消**：只更新既有记录 is_valid_file，不再自动导入全部。
+- **图片持久化**：`POST /api/comfyui/persist-image` 从 ComfyUI 下载到
+  `ImageForge/data/generated/anima_<ts>_<rand>.png`；`GET /api/comfyui/generated/{file}` 服务
+  （basename 白名单防穿越，实测 traversal→404）。history 记录改为引用本地文件，
+  ComfyUI 原始 URL 保留在 comfy_params_json.comfy_image_url。
+- **settings**：`GENERATE_TIMEOUT_SECONDS`（默认 300）进入可编辑配置，GET 正确返回 int。
+
+## 前端（Playwright 全流程验证 `.verify/r2/verify2.cjs`，全部 PASS）
+
+- **LoRA 库**：1280/1440/1920 页面与列表均无横向 overflow；长名/路径/触发词 ellipsis；
+  M3 tonal 搜索栏（外层 24 / 内嵌 16 / padding 8）；「仅看收藏」正常尺寸 tonal 按钮；
+  来源管理 Dialog（路径预览 / 启用 / 递归 / 删除不删库记录）+ 扫描预览 Dialog
+  （摘要计数 / 全选新增 / 单选 / ComfyUI 未识别与重名标记 / 导入所选）。
+- **Studio 尺寸**：自由数字输入（不再固定 select）；推荐 812×1216/1152×1536/1536×1536
+  仅快捷键；交换宽高；锁定比例（默认关，改宽自动算高）；100×9000 显示「尺寸异常」warning
+  不静默修正。
+- **Prompt**：占位符改为「描述你想生成的画面…」，默认空；空输入时「解析」disabled。
+- **角色书**：新建角色 gender/age_group/body 默认空字符串（不再预填 woman/young adult/petite）。
+- **Reasoning**：Store 默认 `off`，`instruct` 全部归一化为 `off`；Provider 切换记忆各自
+  model+reasoning（Cloud MAX → LM → 回 Cloud 恢复 MAX，实测通过）。
+- **Rules**：只显示 is_enabled=true 的规则（实测禁用规则不出现在 Dialog）。
+- **生成体验**：去掉假百分比（30+attempts*2 删除），改为阶段文案（准备工作流 →
+  已提交 · ComfyUI 生成中…）+ indeterminate 扫光进度；超时可配（Settings 字段）；
+  超时文案明确「前端停止等待≠任务已取消」。
+- **草稿恢复**：localStorage `imageforge_studio_draft_v1`（schema v1），关键状态
+  debounce 500ms 保存；刷新后横幅「已恢复上次未完成的创作」+ 清空创作台；
+  脏/旧草稿安全忽略（类型守卫 + try/catch）。
+
+## 截图（`.verify/r2/`，供人工视觉复核）
+`01_lora_library.png` `02_studio_advanced.png` `03_draft_restored.png`
+`04_character_new.png` `05_studio_1920.png` `06_source_dialog.png`
+`07_scan_preview.png` `08_scan_selected.png` `09_library_search.png`
+
+## 未做（用户明确不要求本轮扩复杂度）
+- 未接 ComfyUI 真实 queue/progress/cancel（按要求用阶段+indeterminate）。
+- 未重做 Prompt Engine；Settings/Character 页仍未换 M3 视觉（用户优先级未含）。
+

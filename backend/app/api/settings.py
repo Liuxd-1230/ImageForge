@@ -7,17 +7,22 @@ from app.config import settings, EDITABLE_SETTING_KEYS
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
+def _parse_value(val: str):
+    low = val.lower()
+    if low in ["true", "false"]:
+        return low == "true"
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return val
+
 @router.get("")
 def get_all_settings(session: Session = Depends(get_session)) -> Dict[str, Any]:
     db_settings = session.exec(select(AppSetting)).all()
     res = {k: getattr(settings, k) for k in EDITABLE_SETTING_KEYS if hasattr(settings, k)}
     for s in db_settings:
         if s.key in EDITABLE_SETTING_KEYS:
-            val = s.value
-            if val.lower() in ["true", "false"]:
-                res[s.key] = val.lower() == "true"
-            else:
-                res[s.key] = val
+            res[s.key] = _parse_value(s.value)
     return res
 
 @router.post("")
