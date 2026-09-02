@@ -16,8 +16,8 @@ from app.models.history import GenerationHistory
 
 logger = logging.getLogger(__name__)
 
-connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
-engine = create_engine(settings.DATABASE_URL, echo=False, connect_args=connect_args)
+connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL_ABS else {}
+engine = create_engine(settings.DATABASE_URL_ABS, echo=False, connect_args=connect_args)
 
 
 def ensure_data_dirs() -> None:
@@ -39,7 +39,7 @@ def _migrate_legacy_sqlite(database_url: str | None = None) -> None:
       (POST /api/loras 500). Rebuild the table with a nullable column.
     - `loras.source_path` column added for source-scan imports.
     """
-    url = database_url or settings.DATABASE_URL
+    url = database_url or settings.DATABASE_URL_ABS
     if "sqlite" not in url:
         return
     path = url.replace("sqlite:///", "").split("?")[0]

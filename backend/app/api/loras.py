@@ -76,28 +76,53 @@ def delete_lora(lora_id: int, session: Session = Depends(get_session)):
 
 
 # ────────────────── ComfyUI 同步：只校验，不再自动导入 ──────────────────
-# ComfyUI `/models/loras` / `object_info/LoraLoader` 是「是否被 ComfyUI 识别」的
-# 权威来源，但不再等于「ImageForge 要导入的全部 LoRA」。导入必须走来源扫描两阶段流程。
+# 复用 scan/import 的权威匹配逻辑（_fetch_comfy_loras + _match_comfy）：
+# - 显式 health check；ComfyUI 离线时绝不把整个库标成 invalid；
+# - exact / relative 匹配优先；basename fallback 仅当唯一且无同 basename 冲突；
+# - 两个同 basename 的 LoRA 不会同时 valid。
 
-@router.post("/sync-comfyui")
-async def sync_comfyui_loras(session: Session = Depends(get_session)):
-    client = ComfyUIClient()
-    comfy_loras = await client.get_loras()
-    comfy_norm = {n.replace("\\", "/") for n in comfy_loras}
-    comfy_basenames = {n.split("/")[-1] for n in comfy_norm}
-
-    existing = session.exec(select(Lora)).all()
+def _apply_sync_validity(existing: List[Lora], comfy_available: bool, comfy_loras: List[str]) -> int:
+    """就地更新 is_valid_file，返回变更数。ComfyUI 离线 => 0 变更（不碰现有值）。"""
+    if not comfy_available:
+        return 0
+    comfy_norm = [n.replace("\\", "/") for n in comfy_loras]
+    comfy_basenames = _comfy_basenames(comfy_norm)
+    all_filenames = [(r.filename or "").replace("\\", "/") for r in existing]
+    basename_counts = Counter(f.split("/")[-1] for f in all_filenames)
     changed = 0
     for rec in existing:
         f = (rec.filename or "").replace("\\", "/")
-        valid = f in comfy_norm or f.split("/")[-1] in comfy_basenames
+        if not f:
+            continue
+        basename = f.split("/")[-1]
+        ambiguous = basename_counts[basename] > 1
+        valid = _match_comfy(f, basename, comfy_norm, comfy_basenames, ambiguous=ambiguous) is not None
         if rec.is_valid_file != valid:
             rec.is_valid_file = valid
-            session.add(rec)
             changed += 1
+    return changed
+
+
+@router.post("/sync-comfyui")
+async def sync_comfyui_loras(session: Session = Depends(get_session)):
+    comfy_available, comfy_loras = await _fetch_comfy_loras()
+    existing = session.exec(select(Lora)).all()
+
+    if not comfy_available:
+        return {
+            "status": "ok",
+            "comfy_available": False,
+            "comfy_recognized_total": 0,
+            "library_total": len(existing),
+            "validity_updated": 0,
+            "note": "ComfyUI 离线，未修改 is_valid_file",
+        }
+
+    changed = _apply_sync_validity(existing, True, comfy_loras)
     session.commit()
     return {
         "status": "ok",
+        "comfy_available": True,
         "comfy_recognized_total": len(comfy_loras),
         "library_total": len(existing),
         "validity_updated": changed,

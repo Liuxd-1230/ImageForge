@@ -159,3 +159,22 @@ http://127.0.0.1:5173/（Vite dev server，cwd=frontend），模拟点击 + 几�
 ## 截图（`.verify/r2/`，本轮无视觉改动）
 沿用 `01_lora_library.png` … `09_library_search.png`；本轮只改行为不改外观。
 
+---
+
+# 第四轮：correctness closure（be3e91d 之后，仅 3 项，不扩范围）
+
+1. **sync-comfyui 复用权威匹配**（`_apply_sync_validity` 可测化 + `_fetch_comfy_loras`）：
+   - 显式 health check；ComfyUI 离线 → 返回 `comfy_available:false, validity_updated:0`，**不把整个库标 invalid**；
+   - exact / relative 匹配优先；basename fallback 仅当 ComfyUI 中该 basename 唯一且库内无同 basename 记录；
+   - 两个同 basename 的不同文件不会同时 valid（单元断言 `[True, False, True]`）。
+2. **DATABASE_URL / GENERATED_DIR cwd 无关**：
+   - `PROJECT_ROOT`（由 `backend/app/config.py` 的 `__file__` 推导）+ `DATABASE_URL_ABS`（SQLite 相对路径一律锚定项目根）；
+   - `database.py` 的 engine 与迁移默认改用 `DATABASE_URL_ABS`；`GENERATED_DIR` 派生自它；
+   - 测试用子进程分别以 `cwd=repo root` 与 `cwd=backend` 探测，两者 DB URL 与 GENERATED_DIR 完全一致，且均落在项目根下。
+3. **Settings POST/GET 统一按声明类型转换**（`_coerce` 共用）：
+   - `GENERATE_TIMEOUT_SECONDS` 收到字符串 `"300"` → 运行时与 GET 均为 int 300；
+   - 数字形式的 API Key / model 字段保持 string（`"123456"` 不被 int 化）。
+
+后端 `backend_test.py` 56/56；`verify2.cjs` / `verify3.cjs` 前端回归 ALL PASS；前端无代码改动。
+本 commit 后按用户要求停止 correctness/structure audit。
+

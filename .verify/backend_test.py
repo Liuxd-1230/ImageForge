@@ -205,17 +205,70 @@ def main():
     api("DELETE", f"/api/loras/sources/{src_id}")
     check("library records kept after source delete", len(api("GET", "/api/loras")[1]) == cnt)
 
-    # ── 10. sync-comfyui 仅校验不导入 ──
+    # ── 10. sync-comfyui 仅校验不导入（+ 权威匹配，closure #1） ──
     cnt = len(api("GET", "/api/loras")[1])
     st, body9 = api("POST", "/api/loras/sync-comfyui")
     check("sync-comfyui ok", st == 200, str(body9)[:160])
     check("sync-comfyui no new records", len(api("GET", "/api/loras")[1]) == cnt)
+    check("sync-comfyui returns comfy_available", isinstance(body9.get("comfy_available"), bool), str(body9)[:120])
 
-    # ── 11. settings 类型解析（审计 P2：数字字符串不无差别转 int） ──
+    from app.api.loras import _apply_sync_validity
+    from app.models.lora import Lora as LoraModel
+    def mk_rec(fn):
+        return LoraModel(name=fn, filename=fn, is_valid_file=True)
+    # 离线：0 变更，不碰现有 is_valid_file
+    recs = [mk_rec("dir1/foo.safetensors"), mk_rec("dir2/foo.safetensors")]
+    before_off = [r.is_valid_file for r in recs]
+    ch_off = _apply_sync_validity(recs, False, [])
+    check("sync 离线不改 is_valid_file", ch_off == 0 and before_off == [r.is_valid_file for r in recs])
+    # exact 优先；同 basename 不同文件不同时 valid（comfy 只有 dir1/foo 时，dir2/foo 不得经 fallback 变 valid）
+    recs2 = [mk_rec("dir1/foo.safetensors"), mk_rec("dir2/foo.safetensors"), mk_rec("exact_hit.safetensors")]
+    _apply_sync_validity(recs2, True, ["dir1/foo.safetensors", "exact_hit.safetensors", "relative/sub.safetensors"])
+    v2 = [r.is_valid_file for r in recs2]
+    check("sync exact/relative 匹配优先", v2[0] is True and v2[2] is True, str(v2))
+    check("sync 同 basename 不同文件不同时 valid", v2[1] is False, str(v2))
+    # relative 匹配
+    recs3 = [mk_rec("relative/sub.safetensors")]
+    _apply_sync_validity(recs3, True, ["relative/sub.safetensors"])
+    check("sync relative 匹配", recs3[0].is_valid_file is True)
+    # 唯一 basename fallback（无同 basename 记录时允许）
+    recs4 = [mk_rec("solo_style.safetensors")]
+    _apply_sync_validity(recs4, True, ["SomeDir/solo_style.safetensors"])
+    check("sync 唯一 basename fallback valid", recs4[0].is_valid_file is True)
+
+    # ── 11. cwd 无关的 DATABASE_URL / GENERATED_DIR（closure #2） ──
+    import subprocess
+    import sys as _sys
+    back_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+    probe_code = "from app.config import settings; print(settings.DATABASE_URL_ABS); print(settings.GENERATED_DIR)"
+    def probe(cwd):
+        env = {**os.environ, "PYTHONPATH": back_dir}
+        out = subprocess.check_output([_sys.executable, "-c", probe_code], cwd=cwd, env=env, text=True)
+        return out.strip().split("\n")
+    proj_root = os.path.abspath(os.path.join(back_dir, ".."))
+    p_root = probe(proj_root)
+    p_backend = probe(back_dir)
+    check("cwd=root 与 cwd=backend 的 DB URL 一致", p_root[0] == p_backend[0], f"{p_root[0]} vs {p_backend[0]}")
+    check("cwd 无关的 GENERATED_DIR", p_root[1] == p_backend[1], p_root[1])
+    check("DB 锚定项目根", p_root[0] == f"sqlite:///{os.path.join(proj_root, 'imageforge.db')}", p_root[0])
+    check("GENERATED_DIR 在项目根下", p_root[1] == os.path.join(proj_root, "data", "generated"), p_root[1])
+
+    # ── 12. settings 类型转换（closure #3） ──
+    from app.api.settings import _coerce as _coerce_fn
+    check("coerce int from string", _coerce_fn("GENERATE_TIMEOUT_SECONDS", "300") == 300 and isinstance(_coerce_fn("GENERATE_TIMEOUT_SECONDS", "300"), int))
+    check("coerce int from int", _coerce_fn("GENERATE_TIMEOUT_SECONDS", 300) == 300)
+    check("coerce API key string 保持 string", _coerce_fn("LM_STUDIO_API_KEY", "123456") == "123456" and isinstance(_coerce_fn("LM_STUDIO_API_KEY", "123456"), str))
+    check("coerce 数字→str 字段转回 string", _coerce_fn("CLOUD_API_KEY", 123456) == "123456")
+    # POST "300"(string) → GET 返回 int
+    api("POST", "/api/settings", {"GENERATE_TIMEOUT_SECONDS": "300"})
     st, stg = api("GET", "/api/settings")
-    if st == 200:
-        check("timeout parsed as int", isinstance(stg.get("GENERATE_TIMEOUT_SECONDS"), int))
-        check("base url stays string", isinstance(stg.get("COMFYUI_BASE_URL"), str))
+    check("POST string→GET int 300", isinstance(stg.get("GENERATE_TIMEOUT_SECONDS"), int) and stg["GENERATE_TIMEOUT_SECONDS"] == 300, str(stg.get("GENERATE_TIMEOUT_SECONDS")))
+    # 数字形式 API key 保持 string
+    api("POST", "/api/settings", {"LM_STUDIO_API_KEY": "123456"})
+    st, stg = api("GET", "/api/settings")
+    check("API key 保持 string", isinstance(stg.get("LM_STUDIO_API_KEY"), str) and stg["LM_STUDIO_API_KEY"] == "123456")
+    # 还原设置
+    api("POST", "/api/settings", {"GENERATE_TIMEOUT_SECONDS": 300, "LM_STUDIO_API_KEY": ""})
 
     clean()
     failed = [r for r in results if not r[1]]

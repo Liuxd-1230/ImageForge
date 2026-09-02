@@ -1,12 +1,27 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
+# ImageForge 项目根目录：backend/app/config.py -> <root>/backend/app -> <root>
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     APP_NAME: str = "ImageForge"
     DEBUG: bool = True
+    # 相对路径会经 DATABASE_URL_ABS 锚定到 PROJECT_ROOT，与启动 cwd 无关
     DATABASE_URL: str = "sqlite:///./imageforge.db"
+
+    @property
+    def DATABASE_URL_ABS(self) -> str:
+        """数据库绝对 URL：SQLite 相对路径一律解析到项目根目录，
+        repo root 启动或 `cd backend` 启动打开同一个数据库文件。"""
+        if "sqlite" in self.DATABASE_URL:
+            path = self.DATABASE_URL.replace("sqlite:///", "").split("?")[0]
+            if not os.path.isabs(path):
+                path = os.path.join(PROJECT_ROOT, path)
+            return f"sqlite:///{os.path.abspath(path)}"
+        return self.DATABASE_URL
     
     # Active Provider: "lm_studio" or "cloud"
     ACTIVE_PROVIDER: str = "lm_studio"
@@ -37,8 +52,8 @@ class Settings(BaseSettings):
     def GENERATED_DIR(self) -> str:
         """ImageForge 自己的生成图目录——锚定在数据库文件所在目录下，
         与启动 cwd 无关（repo root 启动或 cd backend 启动都指向同一目录）。"""
-        db_path = self.DATABASE_URL.replace("sqlite:///", "").split("?")[0]
-        base = os.path.dirname(os.path.abspath(db_path)) or os.getcwd()
+        db_path = self.DATABASE_URL_ABS.replace("sqlite:///", "").split("?")[0]
+        base = os.path.dirname(os.path.abspath(db_path)) or PROJECT_ROOT
         return os.path.join(base, self.DATA_DIR, "generated")
     
     # Defaults
