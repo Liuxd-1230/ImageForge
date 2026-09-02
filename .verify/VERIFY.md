@@ -228,3 +228,38 @@ A12 默认参数：web_search 不可用（key 失效），仓库内来源为
 
 **本轮未改 Prompt Engine**（按用户要求：先报告，等确认后再进入针对性修复）。
 
+---
+
+# 第六轮：Candidate B — 修复 PromptWriter 实体引用泄漏
+
+根因：`write_natural_language_scene` 直接把含内部实体 id 的 `Statement.text` 拼进最终
+Prompt，且 relation 的 target 检查基于未解析文本 → `holding c2's wrist Suisui`。
+
+修复（仅 `backend/app/services/prompt_engine/writer.py`）：
+- 新增确定性 helper `resolve_entity_refs(text, entity_by_id)`：token/boundary-aware
+  （`\b...\b`，按 id 长度降序），只替换 facts 中真实存在的 id；未知 id（c99）保留给
+  validator/benchmark 暴露；名称优先级 caption_name → canonical_tag → name → the character。
+- 对所有 statement kind（attribute/relation/scene/general）统一先解析引用再组装；
+  relation 的 target 追加改为「替换后文本已含 target 名则不追加」。
+- **只改最终 rendering，facts 保持 c1/c2 不变。**
+
+单元测试（`backend/tests/test_writer_refs.py`，无 LLM，9/9）：
+`c2's→Suisui's`、attribute 引用、relation 已含 target 不重复、c1 与 c10 不部分匹配、
+未知 c99 保留、scene/general 引用、两个原失败案例的精确期望、名称优先级。
+
+## A/B 分层对比
+
+| 层 | 内容 | 结果 |
+|----|------|------|
+| Baseline A | 完整 pipeline（`20260902_102015`） | **23/25**（2 例 c1/c2 泄漏） |
+| **B1** | 冻结 Baseline A `3_final_facts`，只重跑 assembly（`20260902_105602_frozen`） | **25/25**，原 23 例 0 回归 |
+| **B2** | 完整 pipeline 重跑（`20260902_105946`） | **25/25** |
+
+成功条件全部满足：
+- `action_b_to_a_08` → `Yangyang is catching up with Suisui and holding Suisui's wrist.`（无 c1/c2，方向不变）
+- `complex_long_25` → `Suisui is wearing a white swimsuit and holding hands with Yangyang ...`（无泄漏，泳装仍绑定 Suisui，两人 smiling/look at sunset，seaside at dusk 保留）
+- invariant：泄漏检查改为「按本案例 facts 的实体 id 精确检测 unresolved internal entity reference」，不笼统删 c数字。
+
+附：`test_golden_cases.py::test_case_21` 更新为匹配 closure 轮既定语义
+（sync-comfyui = validate-only，不自动导入、不覆盖用户编辑）；全部 38 个后端测试通过。
+

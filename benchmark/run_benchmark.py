@@ -113,9 +113,12 @@ def run_checks(case, final_facts, final_prompt, negative_prompt):
             if kw.lower() in entity_text(ent, statements):
                 issues.append(("extraction", f"【{e['name']}】出现被禁止/被覆盖的内容 {kw}"))
 
-    # ── 实体占位符泄漏：c1/c2 不得出现在最终 Prompt（真实正确性门槛）──
-    if re.search(r"\bc[0-9]\b", final_prompt):
-        issues.append(("prompt_assembly", "实体占位符（c1/c2）泄漏进最终 Prompt"))
+    # ── 实体占位符泄漏 invariant（精确到本案例事实的实体 id，不笼统删 c数字）──
+    for e in final_facts.entities:
+        if e.id and re.search(rf"\b{re.escape(str(e.id))}\b", final_prompt):
+            issues.append(("prompt_assembly",
+                           f"unresolved internal entity reference {e.id} in final prompt"))
+            break
 
     # ── must_not_bind（属性不得绑定到错误实体）──
     for mb in exp.get("must_not_bind", []):
@@ -165,38 +168,46 @@ def run_checks(case, final_facts, final_prompt, negative_prompt):
     return issues
 
 
-async def run_case(pipeline, case):
+async def run_case(pipeline, case, frozen_facts=None):
+    """跑单个案例。frozen_facts 非空时（Candidate B1）跳过 extraction/resolution，
+    只用冻结的 facts 重新执行 Prompt Assembly —— A/B 唯一变量就是 PromptWriter。"""
     rec = {
         "id": case["id"],
         "category": case.get("category", ""),
         "input": case["input"],
         "safety": case.get("safety", "Safe"),
+        "mode": "frozen" if frozen_facts is not None else "full",
         "stages": {},
         "checks": [],
         "failed": [],
     }
     try:
-        # stage 1: extraction
-        raw_facts = await pipeline.extractor.extract(
-            user_input=case["input"], rules_context="",
-            model=MODEL, reasoning_effort=REASONING,
-        )
-        rec["stages"]["1_extraction"] = {
-            "entities": [e.model_dump() for e in raw_facts.entities],
-            "statements": [s.model_dump() for s in raw_facts.statements],
-        }
-        # stage 2: character resolution
-        resolved_entities = await pipeline.resolver.resolve_entities_async(
-            entities=raw_facts.entities, statements=raw_facts.statements,
-            model=MODEL, reasoning_effort=REASONING,
-        )
-        rec["stages"]["2_character_resolution"] = {
-            "entities": [e.model_dump() for e in resolved_entities],
-        }
-        # stage 3: final facts (validation)
-        facts = pipeline.validator.validate_and_sanitize(
-            SemanticFacts(entities=resolved_entities, statements=raw_facts.statements)
-        )
+        if frozen_facts is None:
+            # stage 1: extraction
+            raw_facts = await pipeline.extractor.extract(
+                user_input=case["input"], rules_context="",
+                model=MODEL, reasoning_effort=REASONING,
+            )
+            rec["stages"]["1_extraction"] = {
+                "entities": [e.model_dump() for e in raw_facts.entities],
+                "statements": [s.model_dump() for s in raw_facts.statements],
+            }
+            # stage 2: character resolution
+            resolved_entities = await pipeline.resolver.resolve_entities_async(
+                entities=raw_facts.entities, statements=raw_facts.statements,
+                model=MODEL, reasoning_effort=REASONING,
+            )
+            rec["stages"]["2_character_resolution"] = {
+                "entities": [e.model_dump() for e in resolved_entities],
+            }
+            # stage 3: final facts (validation)
+            facts = pipeline.validator.validate_and_sanitize(
+                SemanticFacts(entities=resolved_entities, statements=raw_facts.statements)
+            )
+        else:
+            facts = frozen_facts
+            rec["stages"]["1_extraction"] = {"frozen": True}
+            rec["stages"]["2_character_resolution"] = {"frozen": True}
         rec["stages"]["3_final_facts"] = {
             "entities": [e.model_dump() for e in facts.entities],
             "statements": [s.model_dump() for s in facts.statements],
@@ -222,21 +233,42 @@ async def run_case(pipeline, case):
         rec["checks"] = [{"stage": s, "message": m} for s, m in issues]
         rec["failed"] = [{"stage": s, "message": m} for s, m in issues]
     except Exception as e:
-        rec["stages"]["1_extraction"] = {"error": f"{type(e).__name__}: {e}"}
+        rec["stages"]["1_extraction"] = rec["stages"].get("1_extraction", {})
+        rec["stages"]["1_extraction"]["error"] = f"{type(e).__name__}: {e}"
         rec["failed"] = [{"stage": "extraction", "message": f"运行异常 {type(e).__name__}: {e}"}]
     return rec
 
 
 async def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="ImageForge Prompt Benchmark")
+    parser.add_argument("--frozen", type=str, default=None,
+                        help="Candidate B1: 冻结 baseline JSON 的 3_final_facts，只重跑 Prompt Assembly")
+    args = parser.parse_args()
+
     cases = load_cases()
     engine = setup_db()
+
+    frozen_by_id = {}
+    mode = "full"
+    if args.frozen:
+        mode = "frozen"
+        with open(args.frozen, "r", encoding="utf-8") as f:
+            baseline = json.load(f)
+        for br in baseline.get("results", []):
+            ff = (br.get("stages") or {}).get("3_final_facts")
+            if ff:
+                frozen_by_id[br["id"]] = SemanticFacts(**ff)
+
     llm = LMStudioProvider(base_url=LM_BASE, api_key="")
     with Session(engine) as session:
         pipeline = PromptPipeline(session=session, llm_provider=llm)
         results = []
         for idx, case in enumerate(cases):
-            print(f"[{idx+1}/{len(cases)}] {case['id']} ...", flush=True)
-            rec = await run_case(pipeline, case)
+            frozen = frozen_by_id.get(case["id"])
+            tag = "frozen" if frozen is not None else ("no-frozen-facts" if mode == "frozen" else "full")
+            print(f"[{idx+1}/{len(cases)}] {case['id']} ({tag}) ...", flush=True)
+            rec = await run_case(pipeline, case, frozen_facts=frozen)
             results.append(rec)
             if rec["failed"]:
                 for f in rec["failed"]:
@@ -245,9 +277,10 @@ async def main():
                 print("    ✓", flush=True)
 
     ts = time.strftime("%Y%m%d_%H%M%S")
+    suffix = "_frozen" if mode == "frozen" else ""
     os.makedirs(os.path.join(BENCH_DIR, "results"), exist_ok=True)
-    json_path = os.path.join(BENCH_DIR, "results", f"{ts}.json")
-    md_path = os.path.join(BENCH_DIR, "results", f"{ts}.md")
+    json_path = os.path.join(BENCH_DIR, "results", f"{ts}{suffix}.json")
+    md_path = os.path.join(BENCH_DIR, "results", f"{ts}{suffix}.md")
 
     total = len(results)
     passed = sum(1 for r in results if not r["failed"])
@@ -258,6 +291,7 @@ async def main():
 
     report = {
         "timestamp": ts, "model": MODEL, "reasoning_effort": REASONING,
+        "mode": mode, "frozen_baseline": args.frozen,
         "total": total, "passed": passed, "failed": total - passed,
         "fail_by_stage": {k: {"count": len(v), "cases": v} for k, v in fail_by_stage.items()},
         "results": results,
@@ -265,11 +299,13 @@ async def main():
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
+    title = "Candidate B1 (frozen facts — assembly regression)" if mode == "frozen" else "Candidate B2 (full pipeline)"
     lines = [
-        f"# ImageForge Prompt Benchmark — Baseline A",
+        f"# ImageForge Prompt Benchmark — {title}",
         "",
         f"- 时间：{ts}",
         f"- 模型：{MODEL}（LM Studio），reasoning={REASONING}",
+        f"- 模式：{mode}",
         f"- 总案例：{total}｜通过：{passed}｜失败：{total - passed}",
         "",
         "## 失败阶段分布",

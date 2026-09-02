@@ -440,35 +440,32 @@ def test_case_20_dual_custom_characters_distinction(session: Session):
 
 @pytest.mark.asyncio
 async def test_case_21_lora_scan_edit_preservation(session: Session, monkeypatch):
-    """Case 21: LoRA 扫描与编辑触发词持久化 (执行真实 sync_comfyui_loras 不覆盖用户自定义 trigger 和属性)"""
+    """Case 21: sync_comfyui_loras 只校验 is_valid_file，不覆盖用户自定义 trigger/属性，也不自动导入新记录。
+    （自 closure 轮起 sync-comfyui 为 validate-only；导入必须走来源扫描两阶段。）"""
     from app.api.loras import sync_comfyui_loras
     from app.services.comfyui.client import ComfyUIClient
 
-    # 1. First ComfyUI scan discovers water_dress.safetensors
     monkeypatch.setattr(ComfyUIClient, "get_loras", lambda self: asyncio.sleep(0, result=["water_dress.safetensors", "other.safetensors"]))
-    await sync_comfyui_loras(session=session)
+    monkeypatch.setattr(ComfyUIClient, "check_health", lambda self: asyncio.sleep(0, result={"status": "connected"}))
 
-    lora = session.exec(select(Lora).where(Lora.filename == "water_dress.safetensors")).first()
-    assert lora is not None
-    assert lora.trigger_words == ""
-
-    # 2. User edits trigger words, name, and default strength
-    lora.trigger_words = "water_dress, flowing_water"
-    lora.name = "Water Dress Effect"
-    lora.default_strength = 1.25
+    # 记录需要显式导入（sync 不再自动导入）；先手动建一条并带有用户自定义编辑
+    lora = Lora(name="Water Dress Effect", filename="water_dress.safetensors",
+                trigger_words="water_dress, flowing_water", default_strength=1.25, is_valid_file=False)
     session.add(lora)
     session.commit()
 
-    # 3. Second ComfyUI scan runs
+    before = len(session.exec(select(Lora)).all())
     await sync_comfyui_loras(session=session)
 
-    # 4. Verify user custom edits are strictly preserved
+    # 用户自定义编辑严格保留；is_valid_file 被识别为 ComfyUI 已有
     re_synced = session.exec(select(Lora).where(Lora.filename == "water_dress.safetensors")).first()
     assert re_synced is not None
     assert re_synced.trigger_words == "water_dress, flowing_water"
     assert re_synced.name == "Water Dress Effect"
     assert re_synced.default_strength == 1.25
     assert re_synced.is_valid_file is True
+    # sync 不自动导入新记录
+    assert len(session.exec(select(Lora)).all()) == before
 
 def test_case_22_empty_gender_neutrality(session: Session):
     """Case 22: 自定义角色 gender 为空时不强制推断为 woman，使用中性称谓且不生成性别人数 tag"""
