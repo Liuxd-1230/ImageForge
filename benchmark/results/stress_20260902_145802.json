@@ -1,43 +1,35 @@
 {
-  "timestamp": "20260902_132707",
+  "timestamp": "20260902_145802",
   "model": "qwen3.6-35b-a3b-uncensored-genesis-hermes-v6",
   "reasoning_effort": "off",
   "mode": "full",
   "repeat": 3,
-  "total": 79,
-  "passed": 72,
-  "failed": 7,
+  "total": 84,
+  "passed": 81,
+  "failed": 3,
   "baseline": {
     "total": 25,
     "passed": 25
   },
   "stress": {
-    "total": 54,
-    "passed": 47
+    "total": 59,
+    "passed": 56
   },
   "fail_by_stage": {
     "extraction": {
-      "count": 7,
-      "cases": [
-        "shared_two_18",
-        "negation_hat_20",
-        "complex_long_34",
-        "transfer_glasses_46",
-        "transfer_coat_47",
-        "transfer_bag_48",
-        "different_object_51"
-      ]
-    },
-    "prompt_assembly": {
-      "count": 5,
-      "cases": [
-        "transfer_glasses_46",
-        "transfer_glasses_46",
-        "transfer_coat_47",
-        "transfer_coat_47",
-        "transfer_bag_48"
-      ]
+      "count": 2,
+      "cases": {
+        "count": 3,
+        "cases": [
+          "complex_long_34",
+          "negation_hat_20",
+          "shared_two_18"
+        ]
+      }
     }
+  },
+  "failed_checks_by_stage": {
+    "extraction": 3
   },
   "fail_by_category": {
     "14_共享属性": {
@@ -57,41 +49,13 @@
       "cases": [
         "complex_long_34"
       ]
-    },
-    "C_转移_眼镜": {
-      "count": 1,
-      "cases": [
-        "transfer_glasses_46"
-      ]
-    },
-    "C_转移_外套": {
-      "count": 1,
-      "cases": [
-        "transfer_coat_47"
-      ]
-    },
-    "C_转移_包": {
-      "count": 1,
-      "cases": [
-        "transfer_bag_48"
-      ]
-    },
-    "C_异物体对照": {
-      "count": 1,
-      "cases": [
-        "different_object_51"
-      ]
     }
   },
   "stability": {
     "deterministic": [
       "shared_two_18",
       "negation_hat_20",
-      "complex_long_34",
-      "transfer_glasses_46",
-      "transfer_coat_47",
-      "transfer_bag_48",
-      "different_object_51"
+      "complex_long_34"
     ],
     "highly_reproducible": [],
     "intermittent": [],
@@ -260,7 +224,7 @@
               "target": null,
               "text": "golden long hair tied into twin tails",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "modify"
             },
             {
               "kind": "attribute",
@@ -310,7 +274,7 @@
               "target": null,
               "text": "golden long hair tied into twin tails",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "modify"
             },
             {
               "kind": "attribute",
@@ -385,15 +349,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "sitting on a park bench",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
-              "text": "eating ice cream",
+              "text": "sitting on a park bench and eating an ice cream",
               "facet": null,
               "effect": null
             }
@@ -427,29 +383,21 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "sitting on a park bench",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
-              "text": "eating ice cream",
+              "text": "sitting on a park bench and eating an ice cream",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, 1girl, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the young woman with brown hair is sitting on a park bench and eating ice cream.",
+          "positive": "safe, 1girl, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the young woman with brown hair is sitting on a park bench and eating an ice cream.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, 1girl, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the young woman with brown hair is sitting on a park bench and eating ice cream.",
+      "final_prompt": "safe, 1girl, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the young woman with brown hair is sitting on a park bench and eating an ice cream.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -494,7 +442,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "standing alone under a cherry blossom tree",
+              "text": "standing under a cherry blossom tree",
               "facet": null,
               "effect": null
             }
@@ -528,21 +476,21 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "standing alone under a cherry blossom tree",
+              "text": "standing under a cherry blossom tree",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui. Suisui is standing alone under a cherry blossom tree.",
+          "positive": "safe, suisui. Suisui is standing under a cherry blossom tree.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui. Suisui is standing alone under a cherry blossom tree.",
+      "final_prompt": "safe, suisui. Suisui is standing under a cherry blossom tree.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -624,16 +572,8 @@
               "effect": "replace"
             },
             {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
-              "text": "at the seaside",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
+              "kind": "scene",
+              "subject": null,
               "target": null,
               "text": "at the seaside",
               "facet": null,
@@ -698,16 +638,8 @@
               "effect": "replace"
             },
             {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
-              "text": "at the seaside",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
+              "kind": "scene",
+              "subject": null,
               "target": null,
               "text": "at the seaside",
               "facet": null,
@@ -716,14 +648,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is wearing a white swimsuit and at the seaside. Yangyang is wearing a blue sailor uniform and at the seaside.",
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white swimsuit. Yangyang is wearing a blue sailor uniform. at the seaside.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white swimsuit and at the seaside. Yangyang is wearing a blue sailor uniform and at the seaside.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white swimsuit. Yangyang is wearing a blue sailor uniform. at the seaside.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -803,7 +735,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "black long hair",
+              "text": "long black hair",
               "facet": "hairstyle",
               "effect": "replace"
             }
@@ -861,21 +793,21 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "black long hair",
+              "text": "long black hair",
               "facet": "hairstyle",
               "effect": "replace"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui golden twin-tails. Yangyang black long hair.",
+          "positive": "safe, suisui, yangyang. Suisui golden twin-tails. Yangyang long black hair.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui golden twin-tails. Yangyang black long hair.",
+      "final_prompt": "safe, suisui, yangyang. Suisui golden twin-tails. Yangyang long black hair.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -1010,7 +942,9 @@
             "must_have_en": [
               "grab",
               "pull",
-              "catch"
+              "catch",
+              "chase",
+              "hold"
             ],
             "label_zh": "秧秧追上并拉住穗穗"
           }
@@ -1045,7 +979,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "catching up with c2",
+              "text": "catching up to c2",
               "facet": null,
               "effect": null
             },
@@ -1103,7 +1037,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "catching up with c2",
+              "text": "catching up to c2",
               "facet": null,
               "effect": null
             },
@@ -1118,14 +1052,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, yangyang, suisui. Yangyang is catching up with Suisui and holding Suisui's wrist.",
+          "positive": "safe, yangyang, suisui. Yangyang is catching up to Suisui and holding Suisui's wrist.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, yangyang, suisui. Yangyang is catching up with Suisui and holding Suisui's wrist.",
+      "final_prompt": "safe, yangyang, suisui. Yangyang is catching up to Suisui and holding Suisui's wrist.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -1186,8 +1120,8 @@
               "subject": "c1",
               "target": null,
               "text": "holding an umbrella",
-              "facet": null,
-              "effect": null
+              "facet": "accessory",
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -1202,8 +1136,8 @@
               "subject": "c2",
               "target": null,
               "text": "holding an umbrella",
-              "facet": null,
-              "effect": null
+              "facet": "accessory",
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -1260,8 +1194,8 @@
               "subject": "c1",
               "target": null,
               "text": "holding an umbrella",
-              "facet": null,
-              "effect": null
+              "facet": "accessory",
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -1276,8 +1210,8 @@
               "subject": "c2",
               "target": null,
               "text": "holding an umbrella",
-              "facet": null,
-              "effect": null
+              "facet": "accessory",
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -1536,7 +1470,7 @@
               "kind": "scene",
               "subject": null,
               "target": null,
-              "text": "Mount Fuji is in the distance",
+              "text": "Mount Fuji in the distance",
               "facet": null,
               "effect": null
             }
@@ -1578,21 +1512,21 @@
               "kind": "scene",
               "subject": null,
               "target": null,
-              "text": "Mount Fuji is in the distance",
+              "text": "Mount Fuji in the distance",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui. Suisui is standing on a hill covered with blooming cherry blossoms. Mount Fuji is in the distance.",
+          "positive": "safe, suisui. Suisui is standing on a hill covered with blooming cherry blossoms. Mount Fuji in the distance.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui. Suisui is standing on a hill covered with blooming cherry blossoms. Mount Fuji is in the distance.",
+      "final_prompt": "safe, suisui. Suisui is standing on a hill covered with blooming cherry blossoms. Mount Fuji in the distance.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -1644,7 +1578,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "shot from the side",
+              "text": "from the side",
               "facet": null,
               "effect": null
             }
@@ -1686,21 +1620,21 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "shot from the side",
+              "text": "from the side",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui. Suisui close-up shot and shot from the side.",
+          "positive": "safe, suisui. Suisui close-up shot and from the side.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui. Suisui close-up shot and shot from the side.",
+      "final_prompt": "safe, suisui. Suisui close-up shot and from the side.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -1754,8 +1688,8 @@
               "subject": "c1",
               "target": null,
               "text": "silhouette glowing with golden light",
-              "facet": null,
-              "effect": null
+              "facet": "lighting",
+              "effect": "add"
             }
           ]
         },
@@ -1796,8 +1730,8 @@
               "subject": "c1",
               "target": null,
               "text": "silhouette glowing with golden light",
-              "facet": null,
-              "effect": null
+              "facet": "lighting",
+              "effect": "add"
             }
           ]
         },
@@ -1856,7 +1790,7 @@
               "target": null,
               "text": "smiling with eyes narrowed happily",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             }
           ]
         },
@@ -1890,7 +1824,7 @@
               "target": null,
               "text": "smiling with eyes narrowed happily",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             }
           ]
         },
@@ -1960,6 +1894,14 @@
               "text": "standing under the starry sky",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "under the starry sky",
+              "facet": null,
+              "effect": null
             }
           ]
         },
@@ -2002,18 +1944,26 @@
               "text": "standing under the starry sky",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "under the starry sky",
+              "facet": null,
+              "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, @mika pikazo. Suisui is wearing a gorgeous dress and standing under the starry sky.",
+          "positive": "safe, suisui, @mika pikazo. Suisui is wearing a gorgeous dress and standing under the starry sky. under the starry sky.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, @mika pikazo. Suisui is wearing a gorgeous dress and standing under the starry sky.",
+      "final_prompt": "safe, suisui, @mika pikazo. Suisui is wearing a gorgeous dress and standing under the starry sky. under the starry sky.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -3042,7 +2992,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "smiling and looking at the distant sunset",
+              "text": "smiling",
               "facet": null,
               "effect": null
             },
@@ -3050,7 +3000,23 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "smiling and looking at the distant sunset",
+              "text": "smiling",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "looking at the distant sunset",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "looking at the distant sunset",
               "facet": null,
               "effect": null
             }
@@ -3132,7 +3098,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "smiling and looking at the distant sunset",
+              "text": "smiling",
               "facet": null,
               "effect": null
             },
@@ -3140,7 +3106,23 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "smiling and looking at the distant sunset",
+              "text": "smiling",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "looking at the distant sunset",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "looking at the distant sunset",
               "facet": null,
               "effect": null
             }
@@ -3228,18 +3210,18 @@
           ],
           "statements": [
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c1",
-              "target": "c2",
-              "text": "looking at",
+              "target": null,
+              "text": "looking at c2",
               "facet": null,
               "effect": null
             },
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c2",
-              "target": "c3",
-              "text": "looking at",
+              "target": null,
+              "text": "looking at c3",
               "facet": null,
               "effect": null
             }
@@ -3302,18 +3284,18 @@
           ],
           "statements": [
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c1",
-              "target": "c2",
-              "text": "looking at",
+              "target": null,
+              "text": "looking at c2",
               "facet": null,
               "effect": null
             },
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c2",
-              "target": "c3",
-              "text": "looking at",
+              "target": null,
+              "text": "looking at c3",
               "facet": null,
               "effect": null
             }
@@ -3402,7 +3384,7 @@
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "holding hands with",
+              "text": "holding hands with c2",
               "facet": null,
               "effect": null
             },
@@ -3410,7 +3392,7 @@
               "kind": "relation",
               "subject": "c2",
               "target": "c3",
-              "text": "holding hands with",
+              "text": "holding hands with c3",
               "facet": null,
               "effect": null
             }
@@ -3476,7 +3458,7 @@
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "holding hands with",
+              "text": "holding hands with c2",
               "facet": null,
               "effect": null
             },
@@ -3484,7 +3466,7 @@
               "kind": "relation",
               "subject": "c2",
               "target": "c3",
-              "text": "holding hands with",
+              "text": "holding hands with c3",
               "facet": null,
               "effect": null
             }
@@ -3567,25 +3549,25 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "taking off hat",
-              "facet": "accessory",
+              "text": "taking off her hat",
+              "facet": "outfit",
               "effect": "replace"
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "wearing hat",
-              "facet": "accessory",
-              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "putting hat on",
+              "text": "putting the hat on c2",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the hat",
+              "facet": "outfit",
+              "effect": "add"
             }
           ]
         },
@@ -3633,37 +3615,37 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "taking off hat",
-              "facet": "accessory",
+              "text": "taking off her hat",
+              "facet": "outfit",
               "effect": "replace"
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "wearing hat",
-              "facet": "accessory",
-              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "putting hat on",
+              "text": "putting the hat on c2",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the hat",
+              "facet": "outfit",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is putting hat on Yangyang. Yangyang is wearing hat.",
+          "positive": "safe, suisui, yangyang. Suisui is putting the hat on Yangyang. Yangyang is wearing the hat.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is putting hat on Yangyang. Yangyang is wearing hat.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is putting the hat on Yangyang. Yangyang is wearing the hat.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -3719,15 +3701,15 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "wearing c2's hat",
+              "text": "wearing the hat",
               "facet": "accessory",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "holding c2's hat",
+              "text": "taking the hat from c2",
               "facet": null,
               "effect": null
             }
@@ -3777,29 +3759,29 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "wearing c2's hat",
+              "text": "wearing the hat",
               "facet": "accessory",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "holding c2's hat",
+              "text": "taking the hat from c2",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is wearing Yangyang's hat and holding Yangyang's hat.",
+          "positive": "safe, suisui, yangyang. Suisui is wearing the hat and taking the hat from Yangyang.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is wearing Yangyang's hat and holding Yangyang's hat.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing the hat and taking the hat from Yangyang.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -3866,17 +3848,17 @@
           ],
           "statements": [
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c1",
-              "target": null,
-              "text": "holding c2's wrist",
+              "target": "c2",
+              "text": "grabbing c2's wrist",
               "facet": null,
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c3",
-              "target": null,
+              "target": "c1",
               "text": "touching c1's hair",
               "facet": null,
               "effect": null
@@ -3940,17 +3922,17 @@
           ],
           "statements": [
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c1",
-              "target": null,
-              "text": "holding c2's wrist",
+              "target": "c2",
+              "text": "grabbing c2's wrist",
               "facet": null,
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c3",
-              "target": null,
+              "target": "c1",
               "text": "touching c1's hair",
               "facet": null,
               "effect": null
@@ -3958,14 +3940,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, yangyang, suisui, xiaoxia. Yangyang is holding Suisui's wrist. Xiaoxia is touching Yangyang's hair.",
+          "positive": "safe, yangyang, suisui, xiaoxia. Yangyang is grabbing Suisui's wrist. Xiaoxia is touching Yangyang's hair.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, yangyang, suisui, xiaoxia. Yangyang is holding Suisui's wrist. Xiaoxia is touching Yangyang's hair.",
+      "final_prompt": "safe, yangyang, suisui, xiaoxia. Yangyang is grabbing Suisui's wrist. Xiaoxia is touching Yangyang's hair.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -4298,7 +4280,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "wearing a white skirt",
+              "text": "wearing a white dress",
               "facet": "outfit",
               "effect": "replace"
             },
@@ -4306,7 +4288,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "wearing a blue skirt",
+              "text": "wearing a blue dress",
               "facet": "outfit",
               "effect": "replace"
             },
@@ -4314,7 +4296,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "standing at the door",
+              "text": "standing at the doorway",
               "facet": null,
               "effect": null
             },
@@ -4322,7 +4304,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "standing at the door",
+              "text": "standing at the doorway",
               "facet": null,
               "effect": null
             }
@@ -4372,7 +4354,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "wearing a white skirt",
+              "text": "wearing a white dress",
               "facet": "outfit",
               "effect": "replace"
             },
@@ -4380,7 +4362,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "wearing a blue skirt",
+              "text": "wearing a blue dress",
               "facet": "outfit",
               "effect": "replace"
             },
@@ -4388,7 +4370,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "standing at the door",
+              "text": "standing at the doorway",
               "facet": null,
               "effect": null
             },
@@ -4396,21 +4378,21 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "standing at the door",
+              "text": "standing at the doorway",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is wearing a white skirt and standing at the door. Yangyang is wearing a blue skirt and standing at the door.",
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and standing at the doorway. Yangyang is wearing a blue dress and standing at the doorway.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white skirt and standing at the door. Yangyang is wearing a blue skirt and standing at the door.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and standing at the doorway. Yangyang is wearing a blue dress and standing at the doorway.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -4468,7 +4450,7 @@
               "target": null,
               "text": "wearing a red hat",
               "facet": "accessory",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -4487,26 +4469,10 @@
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c1",
-              "target": null,
+              "target": "c2",
               "text": "standing in a row with c2 and c3",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "standing in a row with c1 and c3",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c3",
-              "target": null,
-              "text": "standing in a row with c1 and c2",
               "facet": null,
               "effect": null
             }
@@ -4574,7 +4540,7 @@
               "target": null,
               "text": "wearing a red hat",
               "facet": "accessory",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -4593,40 +4559,24 @@
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c1",
-              "target": null,
+              "target": "c2",
               "text": "standing in a row with c2 and c3",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "standing in a row with c1 and c3",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c3",
-              "target": null,
-              "text": "standing in a row with c1 and c2",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, 3girls. the first girl is wearing a red hat and standing in a row with the second girl and the third girl. the second girl is holding a book and standing in a row with the first girl and the third girl. the third girl is holding an umbrella and standing in a row with the first girl and the second girl.",
+          "positive": "safe, 3girls. the first girl is wearing a red hat and standing in a row with the second girl and the third girl. the second girl is holding a book. the third girl is holding an umbrella.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, 3girls. the first girl is wearing a red hat and standing in a row with the second girl and the third girl. the second girl is holding a book and standing in a row with the first girl and the third girl. the third girl is holding an umbrella and standing in a row with the first girl and the second girl.",
+      "final_prompt": "safe, 3girls. the first girl is wearing a red hat and standing in a row with the second girl and the third girl. the second girl is holding a book. the third girl is holding an umbrella.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -4672,17 +4622,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "blonde hair",
+              "text": "with blonde hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "black hair",
+              "text": "with black hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -4762,17 +4712,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "blonde hair",
+              "text": "with blonde hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "black hair",
+              "text": "with black hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -4809,14 +4759,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, 2girls. the first girl blonde hair and sitting at a table and drinking coffee. the second girl black hair and sitting at a table and reading a book.",
+          "positive": "safe, 2girls. the first girl with blonde hair and sitting at a table and drinking coffee. the second girl with black hair and sitting at a table and reading a book.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, 2girls. the first girl blonde hair and sitting at a table and drinking coffee. the second girl black hair and sitting at a table and reading a book.",
+      "final_prompt": "safe, 2girls. the first girl with blonde hair and sitting at a table and drinking coffee. the second girl with black hair and sitting at a table and reading a book.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -4871,7 +4821,7 @@
               "target": null,
               "text": "with black hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -4880,14 +4830,6 @@
               "text": "holding a camera",
               "facet": "accessory",
               "effect": "add"
-            },
-            {
-              "kind": "relation",
-              "subject": "c2",
-              "target": "c1",
-              "text": "standing next to",
-              "facet": null,
-              "effect": null
             }
           ]
         },
@@ -4937,7 +4879,7 @@
               "target": null,
               "text": "with black hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -4946,26 +4888,18 @@
               "text": "holding a camera",
               "facet": "accessory",
               "effect": "add"
-            },
-            {
-              "kind": "relation",
-              "subject": "c2",
-              "target": "c1",
-              "text": "standing next to",
-              "facet": null,
-              "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui. the first girl with black hair and holding a camera and standing next to Suisui.",
+          "positive": "safe, suisui. the first girl with black hair and holding a camera.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui. the first girl with black hair and holding a camera and standing next to Suisui.",
+      "final_prompt": "safe, suisui. the first girl with black hair and holding a camera.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -5045,14 +4979,6 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "sitting by the sea",
-              "facet": "action",
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
               "text": "wearing a red jacket",
               "facet": "outfit",
               "effect": "replace"
@@ -5061,17 +4987,25 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
               "text": "sitting by the sea",
-              "facet": "action",
+              "facet": null,
               "effect": null
             },
             {
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "wearing a white swimsuit",
-              "facet": "outfit",
-              "effect": "replace"
+              "text": "sitting by the sea",
+              "facet": null,
+              "effect": null
             }
           ]
         },
@@ -5119,14 +5053,6 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "sitting by the sea",
-              "facet": "action",
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
               "text": "wearing a red jacket",
               "facet": "outfit",
               "effect": "replace"
@@ -5135,29 +5061,37 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
               "text": "sitting by the sea",
-              "facet": "action",
+              "facet": null,
               "effect": null
             },
             {
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "wearing a white swimsuit",
-              "facet": "outfit",
-              "effect": "replace"
+              "text": "sitting by the sea",
+              "facet": null,
+              "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, young adult, girl, long twintails brown hair, suisui. the young woman with brown hair is sitting by the sea and wearing a red jacket. Suisui is sitting by the sea and wearing a white swimsuit.",
+          "positive": "safe, young adult, girl, long twintails brown hair, suisui. the young woman with brown hair is wearing a red jacket and sitting by the sea. Suisui is wearing a white swimsuit and sitting by the sea.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, young adult, girl, long twintails brown hair, suisui. the young woman with brown hair is sitting by the sea and wearing a red jacket. Suisui is sitting by the sea and wearing a white swimsuit.",
+      "final_prompt": "safe, young adult, girl, long twintails brown hair, suisui. the young woman with brown hair is wearing a red jacket and sitting by the sea. Suisui is wearing a white swimsuit and sitting by the sea.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -5258,14 +5192,6 @@
               "effect": null
             },
             {
-              "kind": "attribute",
-              "subject": "c3",
-              "target": null,
-              "text": "with blonde hair",
-              "facet": "hairstyle",
-              "effect": "replace"
-            },
-            {
               "kind": "scene",
               "subject": null,
               "target": null,
@@ -5356,14 +5282,6 @@
               "effect": null
             },
             {
-              "kind": "attribute",
-              "subject": "c3",
-              "target": null,
-              "text": "with blonde hair",
-              "facet": "hairstyle",
-              "effect": "replace"
-            },
-            {
               "kind": "scene",
               "subject": null,
               "target": null,
@@ -5374,14 +5292,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, young adult, girl, long twintails brown hair, wearing 绿色背带裙, suisui, blonde hair. the young woman with brown hair is holding an umbrella. Suisui is looking at a mobile phone. Blonde-haired girl is taking a photo and with blonde hair. in a park.",
+          "positive": "safe, young adult, girl, long twintails brown hair, wearing 绿色背带裙, suisui, blonde hair. the young woman with brown hair is holding an umbrella. Suisui is looking at a mobile phone. Blonde-haired girl is taking a photo. in a park.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, young adult, girl, long twintails brown hair, wearing 绿色背带裙, suisui, blonde hair. the young woman with brown hair is holding an umbrella. Suisui is looking at a mobile phone. Blonde-haired girl is taking a photo and with blonde hair. in a park.",
+      "final_prompt": "safe, young adult, girl, long twintails brown hair, wearing 绿色背带裙, suisui, blonde hair. the young woman with brown hair is holding an umbrella. Suisui is looking at a mobile phone. Blonde-haired girl is taking a photo. in a park.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -5430,7 +5348,7 @@
           "entities": [
             {
               "id": "c1",
-              "name": "girl1",
+              "name": "蓝发女孩",
               "source": null,
               "canonical_tag": null,
               "caption_name": null,
@@ -5458,15 +5376,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "with blue hair",
-              "facet": "hair",
-              "effect": "replace"
-            },
-            {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
-              "text": "dancing by the stage",
+              "text": "dancing on the side of the stage",
               "facet": null,
               "effect": null
             },
@@ -5474,7 +5384,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "clapping by the stage",
+              "text": "clapping on the side of the stage",
               "facet": null,
               "effect": null
             },
@@ -5482,7 +5392,7 @@
               "kind": "attribute",
               "subject": "c3",
               "target": null,
-              "text": "adjusting sound by the stage",
+              "text": "adjusting the sound on the side of the stage",
               "facet": null,
               "effect": null
             }
@@ -5492,10 +5402,10 @@
           "entities": [
             {
               "id": "c1",
-              "name": "girl1",
-              "source": null,
-              "canonical_tag": "1girl",
-              "caption_name": "the first girl",
+              "name": "蓝发女孩",
+              "source": "model_character",
+              "canonical_tag": "blue_haired_girl",
+              "caption_name": "Blue Haired Girl",
               "custom_description": null
             },
             {
@@ -5520,10 +5430,10 @@
           "entities": [
             {
               "id": "c1",
-              "name": "girl1",
-              "source": null,
-              "canonical_tag": "1girl",
-              "caption_name": "the first girl",
+              "name": "蓝发女孩",
+              "source": "model_character",
+              "canonical_tag": "blue_haired_girl",
+              "caption_name": "Blue Haired Girl",
               "custom_description": null
             },
             {
@@ -5548,15 +5458,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "with blue hair",
-              "facet": "hair",
-              "effect": "replace"
-            },
-            {
-              "kind": "attribute",
-              "subject": "c1",
-              "target": null,
-              "text": "dancing by the stage",
+              "text": "dancing on the side of the stage",
               "facet": null,
               "effect": null
             },
@@ -5564,7 +5466,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "clapping by the stage",
+              "text": "clapping on the side of the stage",
               "facet": null,
               "effect": null
             },
@@ -5572,21 +5474,21 @@
               "kind": "attribute",
               "subject": "c3",
               "target": null,
-              "text": "adjusting sound by the stage",
+              "text": "adjusting the sound on the side of the stage",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, yangyang, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the first girl with blue hair and dancing by the stage. Yangyang is clapping by the stage. the young woman with brown hair is adjusting sound by the stage.",
+          "positive": "safe, blue haired girl, yangyang, young adult, girl, long twintails brown hair, wearing 绿色背带裙. Blue Haired Girl is dancing on the side of the stage. Yangyang is clapping on the side of the stage. the young woman with brown hair is adjusting the sound on the side of the stage.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, yangyang, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the first girl with blue hair and dancing by the stage. Yangyang is clapping by the stage. the young woman with brown hair is adjusting sound by the stage.",
+      "final_prompt": "safe, blue haired girl, yangyang, young adult, girl, long twintails brown hair, wearing 绿色背带裙. Blue Haired Girl is dancing on the side of the stage. Yangyang is clapping on the side of the stage. the young woman with brown hair is adjusting the sound on the side of the stage.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -5906,9 +5808,9 @@
               "kind": "attribute",
               "subject": "c4",
               "target": null,
-              "text": "blonde hair",
+              "text": "with blonde hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -6052,9 +5954,9 @@
               "kind": "attribute",
               "subject": "c4",
               "target": null,
-              "text": "blonde hair",
+              "text": "with blonde hair",
               "facet": "hairstyle",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -6123,14 +6025,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is standing in a row and smiling and waving. Yangyang is standing in a row and smiling and waving. Xiaoxia is standing in a row and smiling and waving. the first girl blonde hair and standing in a row and smiling and waving.",
+          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is standing in a row and smiling and waving. Yangyang is standing in a row and smiling and waving. Xiaoxia is standing in a row and smiling and waving. the first girl with blonde hair and standing in a row and smiling and waving.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is standing in a row and smiling and waving. Yangyang is standing in a row and smiling and waving. Xiaoxia is standing in a row and smiling and waving. the first girl blonde hair and standing in a row and smiling and waving.",
+      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is standing in a row and smiling and waving. Yangyang is standing in a row and smiling and waving. Xiaoxia is standing in a row and smiling and waving. the first girl with blonde hair and standing in a row and smiling and waving.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -6237,33 +6139,17 @@
             },
             {
               "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "sitting around the table",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c3",
-              "target": null,
-              "text": "sitting around the table",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c4",
-              "target": null,
-              "text": "sitting around the table",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
               "subject": "c1",
               "target": null,
               "text": "pouring tea",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "sitting around the table",
               "facet": null,
               "effect": null
             },
@@ -6279,7 +6165,23 @@
               "kind": "attribute",
               "subject": "c3",
               "target": null,
+              "text": "sitting around the table",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c3",
+              "target": null,
               "text": "drinking coffee",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c4",
+              "target": null,
+              "text": "sitting around the table",
               "facet": null,
               "effect": null
             },
@@ -6375,33 +6277,17 @@
             },
             {
               "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "sitting around the table",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c3",
-              "target": null,
-              "text": "sitting around the table",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c4",
-              "target": null,
-              "text": "sitting around the table",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "attribute",
               "subject": "c1",
               "target": null,
               "text": "pouring tea",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "sitting around the table",
               "facet": null,
               "effect": null
             },
@@ -6417,7 +6303,23 @@
               "kind": "attribute",
               "subject": "c3",
               "target": null,
+              "text": "sitting around the table",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c3",
+              "target": null,
               "text": "drinking coffee",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c4",
+              "target": null,
+              "text": "sitting around the table",
               "facet": null,
               "effect": null
             },
@@ -6513,7 +6415,7 @@
               "target": null,
               "text": "wearing a raincoat",
               "facet": "outfit",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -6521,7 +6423,7 @@
               "target": null,
               "text": "wearing a raincoat",
               "facet": "outfit",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -6595,7 +6497,7 @@
               "target": null,
               "text": "wearing a raincoat",
               "facet": "outfit",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -6603,7 +6505,7 @@
               "target": null,
               "text": "wearing a raincoat",
               "facet": "outfit",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -6906,7 +6808,7 @@
               "target": null,
               "text": "wearing a red hat",
               "facet": "accessory",
-              "effect": "replace"
+              "effect": "add"
             }
           ]
         },
@@ -6964,7 +6866,7 @@
               "target": null,
               "text": "wearing a red hat",
               "facet": "accessory",
-              "effect": "replace"
+              "effect": "add"
             }
           ]
         },
@@ -7406,9 +7308,9 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "wearing a red belt",
-              "facet": "accessory",
-              "effect": "add"
+              "text": "wearing a white skirt with a red belt",
+              "facet": "outfit",
+              "effect": "modify"
             }
           ]
         },
@@ -7440,21 +7342,21 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "wearing a red belt",
-              "facet": "accessory",
-              "effect": "add"
+              "text": "wearing a white skirt with a red belt",
+              "facet": "outfit",
+              "effect": "modify"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui. Suisui is wearing a red belt.",
+          "positive": "safe, suisui. Suisui is wearing a white skirt with a red belt.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui. Suisui is wearing a red belt.",
+      "final_prompt": "safe, suisui. Suisui is wearing a white skirt with a red belt.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -7646,18 +7548,18 @@
           ],
           "statements": [
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c1",
-              "target": "c2",
-              "text": "standing to the left of",
+              "target": null,
+              "text": "standing on the left of c2",
               "facet": null,
               "effect": null
             },
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c3",
-              "target": "c1",
-              "text": "standing behind",
+              "target": null,
+              "text": "standing behind c1",
               "facet": null,
               "effect": null
             }
@@ -7720,32 +7622,32 @@
           ],
           "statements": [
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c1",
-              "target": "c2",
-              "text": "standing to the left of",
+              "target": null,
+              "text": "standing on the left of c2",
               "facet": null,
               "effect": null
             },
             {
-              "kind": "relation",
+              "kind": "attribute",
               "subject": "c3",
-              "target": "c1",
-              "text": "standing behind",
+              "target": null,
+              "text": "standing behind c1",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is standing to the left of Yangyang. Xiaoxia is standing behind Suisui.",
+          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is standing on the left of Yangyang. Xiaoxia is standing behind Suisui.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is standing to the left of Yangyang. Xiaoxia is standing behind Suisui.",
+      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is standing on the left of Yangyang. Xiaoxia is standing behind Suisui.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -7816,7 +7718,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "standing on the left of c2",
+              "text": "standing to the left of c2",
               "facet": null,
               "effect": null
             },
@@ -7824,7 +7726,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "standing on the left of c3",
+              "text": "standing to the left of c3",
               "facet": null,
               "effect": null
             }
@@ -7890,7 +7792,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "standing on the left of c2",
+              "text": "standing to the left of c2",
               "facet": null,
               "effect": null
             },
@@ -7898,21 +7800,21 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "standing on the left of c3",
+              "text": "standing to the left of c3",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is standing on the left of Yangyang. Yangyang is standing on the left of Xiaoxia.",
+          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is standing to the left of Yangyang. Yangyang is standing to the left of Xiaoxia.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is standing on the left of Yangyang. Yangyang is standing on the left of Xiaoxia.",
+      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is standing to the left of Yangyang. Yangyang is standing to the left of Xiaoxia.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -8177,8 +8079,8 @@
               "subject": "c1",
               "target": null,
               "text": "close-up of the face",
-              "facet": null,
-              "effect": null
+              "facet": "shot_type",
+              "effect": "replace"
             },
             {
               "kind": "attribute",
@@ -8192,9 +8094,9 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "full body",
-              "facet": null,
-              "effect": null
+              "text": "full body shot",
+              "facet": "shot_type",
+              "effect": "replace"
             },
             {
               "kind": "attribute",
@@ -8251,8 +8153,8 @@
               "subject": "c1",
               "target": null,
               "text": "close-up of the face",
-              "facet": null,
-              "effect": null
+              "facet": "shot_type",
+              "effect": "replace"
             },
             {
               "kind": "attribute",
@@ -8266,9 +8168,9 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "full body",
-              "facet": null,
-              "effect": null
+              "text": "full body shot",
+              "facet": "shot_type",
+              "effect": "replace"
             },
             {
               "kind": "attribute",
@@ -8281,14 +8183,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui close-up of the face and on the left side of the frame. Yangyang full body and in the distance.",
+          "positive": "safe, suisui, yangyang. Suisui close-up of the face and on the left side of the frame. Yangyang full body shot and in the distance.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui close-up of the face and on the left side of the frame. Yangyang full body and in the distance.",
+      "final_prompt": "safe, suisui, yangyang. Suisui close-up of the face and on the left side of the frame. Yangyang full body shot and in the distance.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -8348,16 +8250,24 @@
               "subject": "c1",
               "target": null,
               "text": "in the foreground",
-              "facet": null,
-              "effect": null
+              "facet": "position",
+              "effect": "add"
             },
             {
               "kind": "attribute",
               "subject": "c2",
               "target": null,
               "text": "slightly blurred",
-              "facet": null,
-              "effect": null
+              "facet": "visual_effect",
+              "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "in the background",
+              "facet": "position",
+              "effect": "add"
             }
           ]
         },
@@ -8406,28 +8316,36 @@
               "subject": "c1",
               "target": null,
               "text": "in the foreground",
-              "facet": null,
-              "effect": null
+              "facet": "position",
+              "effect": "add"
             },
             {
               "kind": "attribute",
               "subject": "c2",
               "target": null,
               "text": "slightly blurred",
-              "facet": null,
-              "effect": null
+              "facet": "visual_effect",
+              "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "in the background",
+              "facet": "position",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui in the foreground. Yangyang slightly blurred.",
+          "positive": "safe, suisui, yangyang. Suisui in the foreground. Yangyang slightly blurred and in the background.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui in the foreground. Yangyang slightly blurred.",
+      "final_prompt": "safe, suisui, yangyang. Suisui in the foreground. Yangyang slightly blurred and in the background.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -8511,7 +8429,7 @@
               "target": null,
               "text": "smiling",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -8519,7 +8437,7 @@
               "target": null,
               "text": "frowning",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -8527,7 +8445,7 @@
               "target": null,
               "text": "expressionless",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             }
           ]
         },
@@ -8593,7 +8511,7 @@
               "target": null,
               "text": "smiling",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -8601,7 +8519,7 @@
               "target": null,
               "text": "frowning",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -8609,7 +8527,7 @@
               "target": null,
               "text": "expressionless",
               "facet": "expression",
-              "effect": "replace"
+              "effect": "add"
             }
           ]
         },
@@ -8695,9 +8613,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "smiling and waving",
+              "text": "smiling",
               "facet": "expression",
               "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "waving hand",
+              "facet": null,
+              "effect": null
             },
             {
               "kind": "attribute",
@@ -8711,9 +8637,17 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "frowning and pondering",
+              "text": "frowning",
               "facet": "expression",
               "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "pondering",
+              "facet": null,
+              "effect": null
             },
             {
               "kind": "attribute",
@@ -8769,9 +8703,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "smiling and waving",
+              "text": "smiling",
               "facet": "expression",
               "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "waving hand",
+              "facet": null,
+              "effect": null
             },
             {
               "kind": "attribute",
@@ -8785,9 +8727,17 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "frowning and pondering",
+              "text": "frowning",
               "facet": "expression",
               "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "pondering",
+              "facet": null,
+              "effect": null
             },
             {
               "kind": "attribute",
@@ -8800,14 +8750,14 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is smiling and waving and wearing a white dress. Yangyang is frowning and pondering and wearing a blue shirt.",
+          "positive": "safe, suisui, yangyang. Suisui is smiling and waving hand and wearing a white dress. Yangyang is frowning and pondering and wearing a blue shirt.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is smiling and waving and wearing a white dress. Yangyang is frowning and pondering and wearing a blue shirt.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is smiling and waving hand and wearing a white dress. Yangyang is frowning and pondering and wearing a blue shirt.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -8911,7 +8861,7 @@
               "kind": "scene",
               "subject": null,
               "target": null,
-              "text": "on the river embankment at dusk",
+              "text": "sunset riverbank",
               "facet": null,
               "effect": null
             },
@@ -8940,9 +8890,9 @@
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c2",
-              "target": null,
+              "target": "c1",
               "text": "holding an umbrella for c1",
               "facet": null,
               "effect": null
@@ -8956,10 +8906,10 @@
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c3",
-              "target": null,
-              "text": "playing with c4",
+              "target": "c4",
+              "text": "playing with a dog",
               "facet": null,
               "effect": null
             },
@@ -9065,7 +9015,7 @@
               "kind": "scene",
               "subject": null,
               "target": null,
-              "text": "on the river embankment at dusk",
+              "text": "sunset riverbank",
               "facet": null,
               "effect": null
             },
@@ -9094,9 +9044,9 @@
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c2",
-              "target": null,
+              "target": "c1",
               "text": "holding an umbrella for c1",
               "facet": null,
               "effect": null
@@ -9110,10 +9060,10 @@
               "effect": null
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c3",
-              "target": null,
-              "text": "playing with c4",
+              "target": "c4",
+              "text": "playing with a dog",
               "facet": null,
               "effect": null
             },
@@ -9144,7 +9094,7 @@
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang, xiaoxia, inu. Suisui is wearing a white dress and sitting on a bench and smiling. Yangyang is standing behind Suisui and holding an umbrella for Suisui and smiling. Xiaoxia is squatting by the river and playing with Dog and smiling. on the river embankment at dusk.",
+          "positive": "safe, suisui, yangyang, xiaoxia, inu. Suisui is wearing a white dress and sitting on a bench and smiling. Yangyang is standing behind Suisui and holding an umbrella for Suisui and smiling. Xiaoxia is squatting by the river and playing with a dog and smiling. sunset riverbank.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
@@ -9156,7 +9106,7 @@
         }
       ],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang, xiaoxia, inu. Suisui is wearing a white dress and sitting on a bench and smiling. Yangyang is standing behind Suisui and holding an umbrella for Suisui and smiling. Xiaoxia is squatting by the river and playing with Dog and smiling. on the river embankment at dusk.",
+      "final_prompt": "safe, suisui, yangyang, xiaoxia, inu. Suisui is wearing a white dress and sitting on a bench and smiling. Yangyang is standing behind Suisui and holding an umbrella for Suisui and smiling. Xiaoxia is squatting by the river and playing with a dog and smiling. sunset riverbank.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text",
       "repeat": {
         "attempts": 4,
@@ -9262,7 +9212,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "holding an umbrella in the left hand",
+              "text": "holding an umbrella in left hand",
               "facet": "accessory",
               "effect": "add"
             },
@@ -9270,25 +9220,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "carrying a shopping bag in the right hand",
+              "text": "carrying a shopping bag in right hand",
               "facet": "accessory",
               "effect": "add"
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c2",
-              "target": null,
-              "text": "walking side by side with c1 on the street after rain",
+              "target": "c3",
+              "text": "lending a scarf to c3",
               "facet": null,
               "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "lending a scarf to c3",
-              "facet": "accessory",
-              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -9303,14 +9245,6 @@
               "subject": "c3",
               "target": null,
               "text": "smiling gratefully",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "relation",
-              "subject": "c1",
-              "target": "c2",
-              "text": "walking side by side",
               "facet": null,
               "effect": null
             }
@@ -9384,7 +9318,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "holding an umbrella in the left hand",
+              "text": "holding an umbrella in left hand",
               "facet": "accessory",
               "effect": "add"
             },
@@ -9392,25 +9326,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "carrying a shopping bag in the right hand",
+              "text": "carrying a shopping bag in right hand",
               "facet": "accessory",
               "effect": "add"
             },
             {
-              "kind": "attribute",
+              "kind": "relation",
               "subject": "c2",
-              "target": null,
-              "text": "walking side by side with c1 on the street after rain",
+              "target": "c3",
+              "text": "lending a scarf to c3",
               "facet": null,
               "effect": null
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "lending a scarf to c3",
-              "facet": "accessory",
-              "effect": "add"
             },
             {
               "kind": "attribute",
@@ -9427,26 +9353,18 @@
               "text": "smiling gratefully",
               "facet": null,
               "effect": null
-            },
-            {
-              "kind": "relation",
-              "subject": "c1",
-              "target": "c2",
-              "text": "walking side by side",
-              "facet": null,
-              "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is walking side by side with Yangyang on the street after rain and holding an umbrella in the left hand and carrying a shopping bag in the right hand and walking side by side Yangyang. Yangyang is walking side by side with Suisui on the street after rain and lending a scarf to Xiaoxia. Xiaoxia is shivering from cold and smiling gratefully.",
+          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is walking side by side with Yangyang on the street after rain and holding an umbrella in left hand and carrying a shopping bag in right hand. Yangyang is lending a scarf to Xiaoxia. Xiaoxia is shivering from cold and smiling gratefully.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is walking side by side with Yangyang on the street after rain and holding an umbrella in the left hand and carrying a shopping bag in the right hand and walking side by side Yangyang. Yangyang is walking side by side with Suisui on the street after rain and lending a scarf to Xiaoxia. Xiaoxia is shivering from cold and smiling gratefully.",
+      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is walking side by side with Yangyang on the street after rain and holding an umbrella in left hand and carrying a shopping bag in right hand. Yangyang is lending a scarf to Xiaoxia. Xiaoxia is shivering from cold and smiling gratefully.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -9528,6 +9446,14 @@
               "effect": null
             },
             {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "sunlight slanting in from the window",
+              "facet": null,
+              "effect": null
+            },
+            {
               "kind": "attribute",
               "subject": "c1",
               "target": null,
@@ -9548,14 +9474,6 @@
               "subject": "c3",
               "target": null,
               "text": "sleeping on the desk",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "scene",
-              "subject": null,
-              "target": null,
-              "text": "sunlight slanting in from the window",
               "facet": null,
               "effect": null
             }
@@ -9626,6 +9544,14 @@
               "effect": null
             },
             {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "sunlight slanting in from the window",
+              "facet": null,
+              "effect": null
+            },
+            {
               "kind": "attribute",
               "subject": "c1",
               "target": null,
@@ -9646,14 +9572,6 @@
               "subject": "c3",
               "target": null,
               "text": "sleeping on the desk",
-              "facet": null,
-              "effect": null
-            },
-            {
-              "kind": "scene",
-              "subject": null,
-              "target": null,
-              "text": "sunlight slanting in from the window",
               "facet": null,
               "effect": null
             }
@@ -9901,7 +9819,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "drawing a picture next to c1",
+              "text": "drawing nearby",
               "facet": null,
               "effect": null
             }
@@ -9967,21 +9885,21 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "drawing a picture next to c1",
+              "text": "drawing nearby",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing a picture next to Suisui.",
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing nearby.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing a picture next to Suisui.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing nearby.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -10058,7 +9976,15 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "walking over to draw beside c1",
+              "text": "walking over",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "drawing beside c1",
               "facet": null,
               "effect": null
             }
@@ -10124,21 +10050,29 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "walking over to draw beside c1",
+              "text": "walking over",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "drawing beside c1",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is walking over to draw beside Suisui.",
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is walking over and drawing beside Suisui.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is walking over to draw beside Suisui.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is walking over and drawing beside Suisui.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -10215,7 +10149,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "drawing a picture next to c1",
+              "text": "drawing nearby",
               "facet": null,
               "effect": null
             }
@@ -10281,21 +10215,21 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "drawing a picture next to c1",
+              "text": "drawing nearby",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing a picture next to Suisui.",
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing nearby.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing a picture next to Suisui.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white dress and reading a book in the garden. Yangyang is drawing nearby.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -10501,7 +10435,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "focused on by the camera",
+              "text": "in focus",
               "facet": null,
               "effect": null
             },
@@ -10509,7 +10443,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "turned to by the camera",
+              "text": "in focus",
               "facet": null,
               "effect": null
             },
@@ -10517,7 +10451,7 @@
               "kind": "attribute",
               "subject": "c3",
               "target": null,
-              "text": "landed on by the camera",
+              "text": "in focus",
               "facet": null,
               "effect": null
             }
@@ -10583,7 +10517,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "focused on by the camera",
+              "text": "in focus",
               "facet": null,
               "effect": null
             },
@@ -10591,7 +10525,7 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "turned to by the camera",
+              "text": "in focus",
               "facet": null,
               "effect": null
             },
@@ -10599,21 +10533,21 @@
               "kind": "attribute",
               "subject": "c3",
               "target": null,
-              "text": "landed on by the camera",
+              "text": "in focus",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang, xiaoxia. Suisui focused on by the camera. Yangyang turned to by the camera. Xiaoxia landed on by the camera.",
+          "positive": "safe, suisui, yangyang, xiaoxia. Suisui in focus. Yangyang in focus. Xiaoxia in focus.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui focused on by the camera. Yangyang turned to by the camera. Xiaoxia landed on by the camera.",
+      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui in focus. Yangyang in focus. Xiaoxia in focus.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -10674,8 +10608,8 @@
               "subject": "c1",
               "target": null,
               "text": "holding a book",
-              "facet": null,
-              "effect": null
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
@@ -10724,8 +10658,8 @@
               "subject": "c1",
               "target": null,
               "text": "holding a book",
-              "facet": null,
-              "effect": null
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         }
@@ -11288,24 +11222,24 @@
               "subject": "c1",
               "target": null,
               "text": "taking off her scarf",
-              "facet": "accessory",
+              "facet": "outfit",
               "effect": "replace"
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "wearing a scarf",
-              "facet": "accessory",
-              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "giving her scarf to",
+              "text": "putting the scarf on c2",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the scarf",
+              "facet": "outfit",
+              "effect": "add"
             }
           ]
         },
@@ -11354,36 +11288,36 @@
               "subject": "c1",
               "target": null,
               "text": "taking off her scarf",
-              "facet": "accessory",
+              "facet": "outfit",
               "effect": "replace"
-            },
-            {
-              "kind": "attribute",
-              "subject": "c2",
-              "target": null,
-              "text": "wearing a scarf",
-              "facet": "accessory",
-              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "giving her scarf to",
+              "text": "putting the scarf on c2",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the scarf",
+              "facet": "outfit",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is giving her scarf to Yangyang. Yangyang is wearing a scarf.",
+          "positive": "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang. Yangyang is wearing the scarf.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is giving her scarf to Yangyang. Yangyang is wearing a scarf.",
+      "final_prompt": "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang. Yangyang is wearing the scarf.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -11452,7 +11386,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "taking off glasses",
+              "text": "taking off her glasses",
               "facet": "accessory",
               "effect": "replace"
             },
@@ -11460,9 +11394,17 @@
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "putting glasses on",
+              "text": "putting the glasses on c2",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the glasses",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
@@ -11510,7 +11452,7 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "taking off glasses",
+              "text": "taking off her glasses",
               "facet": "accessory",
               "effect": "replace"
             },
@@ -11518,40 +11460,30 @@
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "putting glasses on",
+              "text": "putting the glasses on c2",
               "facet": null,
               "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the glasses",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, yangyang, suisui. Yangyang is taking off glasses and putting glasses on Suisui.",
+          "positive": "safe, yangyang, suisui. Yangyang is putting the glasses on Suisui. Suisui is wearing the glasses.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
-      "failed": [
-        {
-          "stage": "extraction",
-          "message": "【穗穗】缺少属性 最终戴眼镜者=穗穗"
-        },
-        {
-          "stage": "prompt_assembly",
-          "message": "最终 Prompt 缺少 wearing"
-        },
-        {
-          "stage": "prompt_assembly",
-          "message": "最终 Prompt 不得出现瞬态/冲突片段 taking off"
-        }
-      ],
+      "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, yangyang, suisui. Yangyang is taking off glasses and putting glasses on Suisui.",
-      "negative_prompt": "lowres, bad anatomy, bad hands, text",
-      "repeat": {
-        "attempts": 4,
-        "fails": 4
-      },
-      "stability": "deterministic"
+      "final_prompt": "safe, yangyang, suisui. Yangyang is putting the glasses on Suisui. Suisui is wearing the glasses.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
       "id": "transfer_coat_47",
@@ -11620,16 +11552,24 @@
               "subject": "c1",
               "target": null,
               "text": "taking off her coat",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the coat on c2",
               "facet": null,
               "effect": null
             },
             {
               "kind": "attribute",
-              "subject": "c1",
+              "subject": "c2",
               "target": null,
-              "text": "putting the coat on c2",
-              "facet": null,
-              "effect": null
+              "text": "wearing the coat",
+              "facet": "outfit",
+              "effect": "add"
             }
           ]
         },
@@ -11678,47 +11618,37 @@
               "subject": "c1",
               "target": null,
               "text": "taking off her coat",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the coat on c2",
               "facet": null,
               "effect": null
             },
             {
               "kind": "attribute",
-              "subject": "c1",
+              "subject": "c2",
               "target": null,
-              "text": "putting the coat on c2",
-              "facet": null,
-              "effect": null
+              "text": "wearing the coat",
+              "facet": "outfit",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is taking off her coat and putting the coat on Yangyang.",
+          "positive": "safe, suisui, yangyang. Suisui is putting the coat on Yangyang. Yangyang is wearing the coat.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
-      "failed": [
-        {
-          "stage": "extraction",
-          "message": "【秧秧】缺少属性 最终穿外套者=秧秧"
-        },
-        {
-          "stage": "prompt_assembly",
-          "message": "最终 Prompt 缺少 wearing"
-        },
-        {
-          "stage": "prompt_assembly",
-          "message": "最终 Prompt 不得出现瞬态/冲突片段 taking off"
-        }
-      ],
+      "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is taking off her coat and putting the coat on Yangyang.",
-      "negative_prompt": "lowres, bad anatomy, bad hands, text",
-      "repeat": {
-        "attempts": 4,
-        "fails": 4
-      },
-      "stability": "deterministic"
+      "final_prompt": "safe, suisui, yangyang. Suisui is putting the coat on Yangyang. Yangyang is wearing the coat.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
       "id": "transfer_bag_48",
@@ -11745,14 +11675,15 @@
             "to": "秧秧",
             "must_have_en": [
               "hand",
-              "give"
+              "give",
+              "pass"
             ],
             "label_zh": "穗穗递包给秧秧"
           }
         ],
         "must_not_bind": [],
         "prompt_has_en": [
-          "holding"
+          "bag"
         ],
         "prompt_not_has_en": [
           "taking off"
@@ -11786,15 +11717,15 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "taking the bag off the shoulder",
-              "facet": null,
-              "effect": null
+              "text": "taking the bag off her shoulder",
+              "facet": "outfit",
+              "effect": "modify"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "passing the bag to",
+              "text": "handing the bag to c2",
               "facet": null,
               "effect": null
             },
@@ -11802,9 +11733,9 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "catching the bag",
-              "facet": null,
-              "effect": null
+              "text": "holding the bag",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
@@ -11852,15 +11783,15 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "taking the bag off the shoulder",
-              "facet": null,
-              "effect": null
+              "text": "taking the bag off her shoulder",
+              "facet": "outfit",
+              "effect": "modify"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "passing the bag to",
+              "text": "handing the bag to c2",
               "facet": null,
               "effect": null
             },
@@ -11868,36 +11799,22 @@
               "kind": "attribute",
               "subject": "c2",
               "target": null,
-              "text": "catching the bag",
-              "facet": null,
-              "effect": null
+              "text": "holding the bag",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is taking the bag off the shoulder and passing the bag to Yangyang. Yangyang is catching the bag.",
+          "positive": "safe, suisui, yangyang. Suisui is handing the bag to Yangyang. Yangyang is holding the bag.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
-      "failed": [
-        {
-          "stage": "extraction",
-          "message": "关系未抽取：穗穗递包给秧秧→秧秧"
-        },
-        {
-          "stage": "prompt_assembly",
-          "message": "最终 Prompt 缺少 holding"
-        }
-      ],
+      "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is taking the bag off the shoulder and passing the bag to Yangyang. Yangyang is catching the bag.",
-      "negative_prompt": "lowres, bad anatomy, bad hands, text",
-      "repeat": {
-        "attempts": 4,
-        "fails": 4
-      },
-      "stability": "deterministic"
+      "final_prompt": "safe, suisui, yangyang. Suisui is handing the bag to Yangyang. Yangyang is holding the bag.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
       "id": "transfer_book_handover_49",
@@ -11952,7 +11869,7 @@
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "handing a book to",
+              "text": "handing a book to c2",
               "facet": null,
               "effect": null
             }
@@ -12002,7 +11919,7 @@
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "handing a book to",
+              "text": "handing a book to c2",
               "facet": null,
               "effect": null
             }
@@ -12063,9 +11980,17 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "holding a hat in hand",
-              "facet": null,
-              "effect": null
+              "text": "taking off her hat",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding the hat in hand",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
@@ -12097,21 +12022,29 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "holding a hat in hand",
-              "facet": null,
-              "effect": null
+              "text": "taking off her hat",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding the hat in hand",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui. Suisui is holding a hat in hand.",
+          "positive": "safe, suisui. Suisui is taking off her hat and holding the hat in hand.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
       "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui. Suisui is holding a hat in hand.",
+      "final_prompt": "safe, suisui. Suisui is taking off her hat and holding the hat in hand.",
       "negative_prompt": "lowres, bad anatomy, bad hands, text"
     },
     {
@@ -12124,12 +12057,23 @@
         "entity_count": 2,
         "entities": [
           {
-            "name": "秧秧",
+            "name": "穗穗",
+            "must_have_en": [
+              "hat"
+            ],
+            "label_zh": "帽子留在穗穗自己身上(不被异物体转移删除)"
+          }
+        ],
+        "relations": [
+          {
+            "from": "穗穗",
+            "to": "秧秧",
             "must_have_en": [
               "scarf",
-              "wearing"
+              "put",
+              "wrap"
             ],
-            "label_zh": "围巾转移到秧秧"
+            "label_zh": "围巾转移给秧秧"
           }
         ],
         "must_not_bind": [],
@@ -12166,17 +12110,33 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "holding a hat in hand",
+              "text": "taking off her hat",
               "facet": "accessory",
               "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding the hat in hand",
+              "facet": "accessory",
+              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "putting a scarf around",
-              "facet": null,
-              "effect": null
+              "text": "putting the scarf on c2",
+              "facet": "accessory",
+              "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the scarf",
+              "facet": "accessory",
+              "effect": "add"
             }
           ]
         },
@@ -12224,40 +12184,663 @@
               "kind": "attribute",
               "subject": "c1",
               "target": null,
-              "text": "holding a hat in hand",
+              "text": "taking off her hat",
               "facet": "accessory",
               "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding the hat in hand",
+              "facet": "accessory",
+              "effect": "add"
             },
             {
               "kind": "relation",
               "subject": "c1",
               "target": "c2",
-              "text": "putting a scarf around",
+              "text": "putting the scarf on c2",
+              "facet": "accessory",
+              "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing the scarf",
+              "facet": "accessory",
+              "effect": "add"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is taking off her hat and holding the hat in hand and putting the scarf on Yangyang. Yangyang is wearing the scarf.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "variant_results": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui is taking off her hat and holding the hat in hand and putting the scarf on Yangyang. Yangyang is wearing the scarf.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "D_hat_progress_52",
+      "dataset": "stress",
+      "category": "D_进行式转移_帽子",
+      "input": "穗穗正在给秧秧戴帽子。",
+      "safety": "Safe",
+      "expected": {
+        "entity_count": 2,
+        "entities": [
+          {
+            "name": "秧秧",
+            "must_not_have_en": [
+              "wearing",
+              "holding"
+            ],
+            "label_not_zh": "进行式不得脑补秧秧已戴上帽子"
+          }
+        ],
+        "any_has_en": [
+          "put",
+          "hat"
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": [
+          "hat"
+        ]
+      },
+      "ambiguity_expected": false,
+      "capability_gap": null,
+      "mode": "full",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the hat on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the hat on c2",
               "facet": null,
               "effect": null
             }
           ]
         },
         "4_prompt_assembly": {
-          "positive": "safe, suisui, yangyang. Suisui is holding a hat in hand and putting a scarf around Yangyang.",
+          "positive": "safe, suisui, yangyang. Suisui is putting the hat on Yangyang.",
           "negative": "lowres, bad anatomy, bad hands, text"
         }
       },
       "checks": [],
-      "failed": [
-        {
-          "stage": "extraction",
-          "message": "【秧秧】缺少属性 围巾转移到秧秧"
-        }
-      ],
+      "failed": [],
       "variant_results": [],
-      "final_prompt": "safe, suisui, yangyang. Suisui is holding a hat in hand and putting a scarf around Yangyang.",
-      "negative_prompt": "lowres, bad anatomy, bad hands, text",
-      "repeat": {
-        "attempts": 4,
-        "fails": 4
+      "final_prompt": "safe, suisui, yangyang. Suisui is putting the hat on Yangyang.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "D_coat_progress_53",
+      "dataset": "stress",
+      "category": "D_进行式转移_外套",
+      "input": "穗穗正在给秧秧披外套。",
+      "safety": "Safe",
+      "expected": {
+        "entity_count": 2,
+        "entities": [
+          {
+            "name": "秧秧",
+            "must_not_have_en": [
+              "wearing",
+              "holding"
+            ],
+            "label_not_zh": "进行式不得脑补秧秧已穿上外套"
+          }
+        ],
+        "any_has_en": [
+          "put",
+          "coat"
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": [
+          "coat"
+        ]
       },
-      "stability": "deterministic"
+      "ambiguity_expected": false,
+      "capability_gap": null,
+      "mode": "full",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the coat on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the coat on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is putting the coat on Yangyang.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "variant_results": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui is putting the coat on Yangyang.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "D_scarf_progress_54",
+      "dataset": "stress",
+      "category": "D_进行式转移_围巾",
+      "input": "穗穗正在给秧秧围围巾。",
+      "safety": "Safe",
+      "expected": {
+        "entity_count": 2,
+        "entities": [
+          {
+            "name": "秧秧",
+            "must_not_have_en": [
+              "wearing",
+              "holding"
+            ],
+            "label_not_zh": "进行式不得脑补秧秧已围上围巾"
+          }
+        ],
+        "any_has_en": [
+          "scarf"
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": [
+          "scarf"
+        ]
+      },
+      "ambiguity_expected": false,
+      "capability_gap": null,
+      "mode": "full",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the scarf on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting the scarf on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "variant_results": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "D_glasses_progress_55",
+      "dataset": "stress",
+      "category": "D_进行式转移_眼镜",
+      "input": "秧秧正在给穗穗戴眼镜。",
+      "safety": "Safe",
+      "expected": {
+        "entity_count": 2,
+        "entities": [
+          {
+            "name": "穗穗",
+            "must_not_have_en": [
+              "wearing",
+              "holding"
+            ],
+            "label_not_zh": "进行式不得脑补穗穗已戴上眼镜"
+          }
+        ],
+        "any_has_en": [
+          "put",
+          "glasses"
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": [
+          "glasses"
+        ]
+      },
+      "ambiguity_expected": false,
+      "capability_gap": null,
+      "mode": "full",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting glasses on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "putting glasses on c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, yangyang, suisui. Yangyang is putting glasses on Suisui.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "variant_results": [],
+      "final_prompt": "safe, yangyang, suisui. Yangyang is putting glasses on Suisui.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "D_book_handover_56",
+      "dataset": "stress",
+      "category": "D_递书不确认结果",
+      "input": "穗穗把一本书递给秧秧。",
+      "safety": "Safe",
+      "expected": {
+        "entity_count": 2,
+        "entities": [
+          {
+            "name": "秧秧",
+            "must_not_have_en": [
+              "holding",
+              "wearing"
+            ],
+            "label_not_zh": "递书未确认秧秧已拿到，不得脑补 holding"
+          }
+        ],
+        "relations": [
+          {
+            "from": "穗穗",
+            "to": "秧秧",
+            "must_have_en": [
+              "hand",
+              "give",
+              "pass"
+            ],
+            "label_zh": "递书动作保留"
+          }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": [
+          "book"
+        ]
+      },
+      "ambiguity_expected": false,
+      "capability_gap": null,
+      "mode": "full",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "handing a book to c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "handing a book to c2",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is handing a book to Yangyang.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "variant_results": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui is handing a book to Yangyang.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
     }
   ]
 }

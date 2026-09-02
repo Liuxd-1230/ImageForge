@@ -112,6 +112,18 @@ class PromptWriter:
         return entity.caption_name or entity.canonical_tag or entity.name or "the character"
 
     @staticmethod
+    def _render_relation_target(text: str, target_name: str) -> str:
+        """结构感知的 relation-target 渲染（D1）：
+        仅当 relation text 的尾部介词宾语位置使用 target 代词（to/on/onto/around/for/toward/at
+        + her/him/them）时，把代词替换为结构化 target 的可读名。
+        不全局替换 her/him/them（如 'holding her own hat' 不受影响）；替换后若已含 target 名则不再追加。"""
+        t = (text or "").strip()
+        m = re.search(r"\b(to|onto|on|around|for|toward|at)\s+(?:her|him|them)\s*([.,;]?)\s*$", t, re.I)
+        if m:
+            return f"{t[:m.start(1)]}{m.group(1)} {target_name}{m.group(2) or ''}".strip()
+        return t
+
+    @staticmethod
     def resolve_entity_refs(text: str, entity_by_id: Dict[str, Entity]) -> str:
         """把 Statement.text 中的内部实体引用（c1/c2/...）替换为可读名称。
 
@@ -173,16 +185,18 @@ class PromptWriter:
             for s_idx, s in enumerate(stmts):
                 if (e_id, s_idx) in suppress:
                     continue  # source-side transient removal 已被最终态覆盖，不渲染
-                # 统一先解析已知实体引用（c1/c2 → 可读名称），再决定是否追加 target
+                # 统一先解析已知实体引用（c1/c2 → 可读名称），再决定 relation target 如何渲染
                 text = PromptWriter.resolve_entity_refs(s.text.strip(), entity_by_id)
                 if s.kind == "relation" and s.target and s.target in entity_by_id:
                     target_entity = entity_by_id[s.target]
                     target_name = PromptWriter._display_name(target_entity)
-                    # 替换后文本已含 target 名则不再追加（避免 "… Suisui Suisui"）
-                    if target_name.lower() not in text.lower():
-                        actions.append(f"{text} {target_name}")
+                    # D1：介词宾语位 target 代词 → target 名（on her → on Yangyang）
+                    rendered = PromptWriter._render_relation_target(text, target_name)
+                    # 渲染后若仍不含 target 名（无代词也无显式名），才追加 target
+                    if target_name.lower() not in rendered.lower():
+                        actions.append(f"{rendered} {target_name}")
                     else:
-                        actions.append(text)
+                        actions.append(rendered)
                 else:
                     actions.append(text)
 

@@ -347,3 +347,59 @@ Prompt，且 relation 的 target 检查基于未解析文本 → `holding c2's w
 - complex_long_34：非人实体，单独记录。
 - 无 intermittent/unstable（本轮 failures 全部 deterministic）。
 
+---
+
+# 第九轮：Candidate D — Completed Transfer Semantics
+
+范围：D1 relation target 代词渲染 + D2/D3 extraction contract（只改 system prompt，不扩 schema）
++ D4 成对案例 + D6 稳定性 ×4 + D8 frozen 回归 + D9 tooling 修复。
+
+## D1 — relation-target rendering（`writer.py`）
+
+`_render_relation_target`：仅当 relation text 尾部**介词宾语位**为 target 代词
+（to/on/onto/around/for/toward/at + her/him/them）时替换为结构化 target 可读名；
+不全局替换 her/him/them（`holding her own hat` 不受影响）；已含 target 名不重复。
+`putting the coat on her + c2/Yangyang → putting the coat on Yangyang`（不再 her Yangyang）。
+确定性单测 8/8（`test_writer_relation_target.py`）。
+
+## D2/D3 — extraction contract（`extractor.py` EXTRACTION_SYSTEM_PROMPT）
+
+新增规则 7-9 + 两个 few-shot：
+- **完成式转移**（戴到B头上/围到B脖子上/披到B身上/戴到B脸上/递给B且B接住）：
+  必须同时输出 relation(转移) + 接收方 final visual state attribute（wearing/holding X）。
+- **进行式/未确认**（正在给B戴/正准备递/朝B递出）：只输出转移动作，**禁止脑补**接收方已持有。
+- 不扩 schema（仍是 entity/statement 最小结构）。
+
+## D4 — transfer pair cases
+
+新增 5 例（`D_hat_progress_52` / `D_coat_progress_53` / `D_scarf_progress_54` /
+`D_glasses_progress_55` 进行式 + `D_book_handover_56` 递书不确认）；既有 5 个 completed
+案例加 `d_contract` 元数据。总案例 84（baseline 25 + stress 59）。
+
+## D6 — extraction contract 稳定性（×4/例，`transfer_stability_20260902_142627`）
+
+| 类型 | 接收方 final state 出现 |
+|------|------|
+| completed ×5（hat/scarf/glasses/coat/bag） | **4/4**（契约稳定达成） |
+| in_progress ×4 + unconfirmed ×1 | **0/4**（零脑补） |
+
+## D8 — frozen regression（D1 改动后，`stress_20260902_143131_frozen`）
+
+原 79 例冻结只重跑 assembly：**0 regression**；Candidate B（c1/c2）与 Candidate C（瞬态抑制）无退化。
+
+## 最终全量 pipeline（`stress_20260902_145802`）
+
+**81/84**（baseline 25/25，stress 56/59）。原 79 例 **0 回归**；
+`transfer_coat_47`（C 轮确定性失败）转 **PASS**：
+`Suisui is putting the coat on Yangyang. Yangyang is wearing the coat.`
+（契约补齐秧秧 wearing → C 规则抑制 taking off 瞬态；D1 无 "her Yangyang"）。
+剩余 3 项失败全部在 D 范围外：shared_two_18 / negation_hat_20（否定 gap）、complex_long_34（非人实体）。
+
+## D9 — benchmark tooling
+
+`fail_by_stage` 改为统计 **unique 失败案例**，另加 `failed_checks_by_stage` 记录 constraint 总数。
+
+## 附带修复（benchmark 数据）
+
+`action_b_to_a_08` 关系关键词补 chase/hold（LLM 措辞 chase vs catch up 变体）——非产品回归。
+

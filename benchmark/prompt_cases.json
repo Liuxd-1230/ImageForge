@@ -133,7 +133,7 @@
         "entity_count": 2,
         "entities": [],
         "relations": [
-          { "from": "秧秧", "to": "穗穗", "must_have_en": ["grab", "pull", "catch"], "label_zh": "秧秧追上并拉住穗穗" }
+          { "from": "秧秧", "to": "穗穗", "must_have_en": ["grab", "pull", "catch", "chase", "hold"], "label_zh": "秧秧追上并拉住穗穗" }
         ],
         "must_not_bind": []
       }

@@ -1,0 +1,227 @@
+{
+  "timestamp": "20260902_142627",
+  "rows": [
+    {
+      "id": "ownership_hat_transfer_03",
+      "mode": "completed",
+      "recipient": "秧秧",
+      "object": "hat",
+      "input": "穗穗把自己的帽子摘下来戴到秧秧头上。",
+      "final_state_present": 4,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang. Yangyang is wearing the hat.",
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang. Yangyang is wearing the hat.",
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang. Yangyang is wearing the hat.",
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang. Yangyang is wearing the hat."
+      ]
+    },
+    {
+      "id": "transfer_scarf_45",
+      "mode": "completed",
+      "recipient": "秧秧",
+      "object": "scarf",
+      "input": "穗穗把自己的围巾解下来，给秧秧围上。",
+      "final_state_present": 4,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang. Yangyang is wearing the scarf.",
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang. Yangyang is wearing the scarf.",
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang. Yangyang is wearing the scarf.",
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang. Yangyang is wearing the scarf."
+      ]
+    },
+    {
+      "id": "transfer_glasses_46",
+      "mode": "completed",
+      "recipient": "穗穗",
+      "object": "glasses",
+      "input": "秧秧把自己的眼镜摘下来，给穗穗戴上。",
+      "final_state_present": 4,
+      "runs": 4,
+      "final_prompts": [
+        "safe, yangyang, suisui. Yangyang is putting the glasses on Suisui. Suisui is wearing the glasses.",
+        "safe, yangyang, suisui. Yangyang is putting the glasses on Suisui. Suisui is wearing the glasses.",
+        "safe, yangyang, suisui. Yangyang is putting the glasses on Suisui. Suisui is wearing the glasses.",
+        "safe, yangyang, suisui. Yangyang is putting the glasses on Suisui. Suisui is wearing the glasses."
+      ]
+    },
+    {
+      "id": "transfer_coat_47",
+      "mode": "completed",
+      "recipient": "秧秧",
+      "object": "coat",
+      "input": "穗穗把自己的外套脱下来，披到秧秧身上。",
+      "final_state_present": 4,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang. Yangyang is wearing the coat.",
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang. Yangyang is wearing the coat.",
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang. Yangyang is wearing the coat.",
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang. Yangyang is wearing the coat."
+      ]
+    },
+    {
+      "id": "transfer_bag_48",
+      "mode": "completed",
+      "recipient": "秧秧",
+      "object": "bag",
+      "input": "穗穗把包从肩上拿下来，递给秧秧，秧秧接住包。",
+      "final_state_present": 4,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is handing the bag to Yangyang. Yangyang is holding the bag.",
+        "safe, suisui, yangyang. Suisui is handing the bag to Yangyang. Yangyang is holding the bag.",
+        "safe, suisui, yangyang. Suisui is handing the bag to Yangyang. Yangyang is holding the bag.",
+        "safe, suisui, yangyang. Suisui is handing the bag to Yangyang. Yangyang is holding the bag."
+      ]
+    },
+    {
+      "id": "D_hat_progress_52",
+      "mode": "in_progress",
+      "recipient": "秧秧",
+      "object": "hat",
+      "input": "穗穗正在给秧秧戴帽子。",
+      "final_state_present": 0,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the hat on Yangyang."
+      ]
+    },
+    {
+      "id": "D_coat_progress_53",
+      "mode": "in_progress",
+      "recipient": "秧秧",
+      "object": "coat",
+      "input": "穗穗正在给秧秧披外套。",
+      "final_state_present": 0,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the coat on Yangyang."
+      ]
+    },
+    {
+      "id": "D_scarf_progress_54",
+      "mode": "in_progress",
+      "recipient": "秧秧",
+      "object": "scarf",
+      "input": "穗穗正在给秧秧围围巾。",
+      "final_state_present": 0,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang.",
+        "safe, suisui, yangyang. Suisui is putting the scarf on Yangyang."
+      ]
+    },
+    {
+      "id": "D_glasses_progress_55",
+      "mode": "in_progress",
+      "recipient": "穗穗",
+      "object": "glasses",
+      "input": "秧秧正在给穗穗戴眼镜。",
+      "final_state_present": 0,
+      "runs": 4,
+      "final_prompts": [
+        "safe, yangyang, suisui. Yangyang is putting glasses on Suisui.",
+        "safe, yangyang, suisui. Yangyang is putting glasses on Suisui.",
+        "safe, yangyang, suisui. Yangyang is putting glasses on Suisui.",
+        "safe, yangyang, suisui. Yangyang is putting glasses on Suisui."
+      ]
+    },
+    {
+      "id": "D_book_handover_56",
+      "mode": "unconfirmed",
+      "recipient": "秧秧",
+      "object": "book",
+      "input": "穗穗把一本书递给秧秧。",
+      "final_state_present": 0,
+      "runs": 4,
+      "final_prompts": [
+        "safe, suisui, yangyang. Suisui is handing a book to Yangyang.",
+        "safe, suisui, yangyang. Suisui is handing a book to Yangyang.",
+        "safe, suisui, yangyang. Suisui is handing a book to Yangyang.",
+        "safe, suisui, yangyang. Suisui is handing a book to Yangyang."
+      ]
+    }
+  ],
+  "summary": [
+    {
+      "id": "ownership_hat_transfer_03",
+      "mode": "completed",
+      "object": "hat",
+      "final_state_present": "4/4",
+      "contract_held": true
+    },
+    {
+      "id": "transfer_scarf_45",
+      "mode": "completed",
+      "object": "scarf",
+      "final_state_present": "4/4",
+      "contract_held": true
+    },
+    {
+      "id": "transfer_glasses_46",
+      "mode": "completed",
+      "object": "glasses",
+      "final_state_present": "4/4",
+      "contract_held": true
+    },
+    {
+      "id": "transfer_coat_47",
+      "mode": "completed",
+      "object": "coat",
+      "final_state_present": "4/4",
+      "contract_held": true
+    },
+    {
+      "id": "transfer_bag_48",
+      "mode": "completed",
+      "object": "bag",
+      "final_state_present": "4/4",
+      "contract_held": true
+    },
+    {
+      "id": "D_hat_progress_52",
+      "mode": "in_progress",
+      "object": "hat",
+      "final_state_present": "0/4",
+      "contract_held": true
+    },
+    {
+      "id": "D_coat_progress_53",
+      "mode": "in_progress",
+      "object": "coat",
+      "final_state_present": "0/4",
+      "contract_held": true
+    },
+    {
+      "id": "D_scarf_progress_54",
+      "mode": "in_progress",
+      "object": "scarf",
+      "final_state_present": "0/4",
+      "contract_held": true
+    },
+    {
+      "id": "D_glasses_progress_55",
+      "mode": "in_progress",
+      "object": "glasses",
+      "final_state_present": "0/4",
+      "contract_held": true
+    },
+    {
+      "id": "D_book_handover_56",
+      "mode": "unconfirmed",
+      "object": "book",
+      "final_state_present": "0/4",
+      "contract_held": true
+    }
+  ]
+}

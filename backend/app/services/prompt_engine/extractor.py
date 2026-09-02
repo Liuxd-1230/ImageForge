@@ -17,7 +17,13 @@ CRITICAL RULES:
 4. If a statement modifies or replaces an attribute (like wearing a swimsuit, ponytailed hair), set optional "facet" (e.g. "outfit", "hairstyle", "expression", "accessory") and optional "effect" ("replace", "add", "modify").
 5. ACTIONS BELONG TO CHARACTERS: When a location or manner modifies an entity's action (e.g. "在沙滩上奔跑" -> "running on the beach", "坐在长椅上" -> "sitting on a bench"), assign it as an attribute/action of that character (subject="c1"), NOT as a global scene statement. Only pure background environment descriptions without character actions (e.g. "on a beach", "sunny day", "in a classroom") should have kind="scene".
 6. ANONYMOUS/UNNAMED CHARACTERS: If the user mentions unnamed characters (e.g. "一个女孩", "另一个女孩", "一个男生", "一个人", "路人"), name them sequentially as "girl1", "girl2", "boy1", "boy2", "person1", "person2".
-7. Output ONLY valid JSON matching this schema:
+7. COMPLETED ITEM TRANSFER (完成式人物间物品转移): when the original sentence states an explicit final visual outcome for an item handed from one character to another — e.g. 把帽子戴到B头上 / 把围巾围到B脖子上 / 把外套披到B身上 / 把眼镜戴到B脸上 / 递给B且B接住 — you MUST emit BOTH:
+   (a) a relation from source to target describing the transfer (kind="relation", subject=A, target=B, text like "putting the coat on c2"), AND
+   (b) the target's final visual state as an attribute of B (kind="attribute", subject=B, text like "wearing the coat", facet="outfit", effect="add").
+   The transient source action (taking off / removing) may additionally be kept as its own attribute of A.
+8. IN-PROGRESS / UNCONFIRMED TRANSFER: when the original sentence describes an ongoing or attempted action whose outcome is NOT confirmed — e.g. 正在给B戴帽子 / 正准备把书递给B / 朝B递出一件外套 — emit ONLY the transfer action (relation or attribute). You MUST NOT invent that B is already wearing/holding the item. Do not add a target final state that the user did not confirm.
+9. NEVER invent a final possession (wearing/holding) for a character when the sentence only describes an action toward them (handing, showing, offering).
+10. Output ONLY valid JSON matching this schema:
 {
   "entities": [
     { "id": "c1", "name": "穗穗" },
@@ -28,6 +34,24 @@ CRITICAL RULES:
     { "kind": "attribute", "subject": "c1", "text": "running on the beach" },
     { "kind": "attribute", "subject": "c2", "text": "wearing a blue sailor uniform", "facet": "outfit", "effect": "replace" },
     { "kind": "relation", "subject": "c1", "target": "c2", "text": "chasing" }
+  ]
+}
+
+COMPLETED TRANSFER EXAMPLE — input "穗穗把自己的外套脱下来，披到秧秧身上。":
+{
+  "entities": [ { "id": "c1", "name": "穗穗" }, { "id": "c2", "name": "秧秧" } ],
+  "statements": [
+    { "kind": "attribute", "subject": "c1", "text": "taking off her coat", "facet": "outfit", "effect": "replace" },
+    { "kind": "relation", "subject": "c1", "target": "c2", "text": "putting the coat on c2", "facet": null, "effect": null },
+    { "kind": "attribute", "subject": "c2", "text": "wearing the coat", "facet": "outfit", "effect": "add" }
+  ]
+}
+
+IN-PROGRESS TRANSFER EXAMPLE — input "穗穗正在给秧秧披外套。":
+{
+  "entities": [ { "id": "c1", "name": "穗穗" }, { "id": "c2", "name": "秧秧" } ],
+  "statements": [
+    { "kind": "relation", "subject": "c1", "target": "c2", "text": "putting the coat on c2" }
   ]
 }
 """

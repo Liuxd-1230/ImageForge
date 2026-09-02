@@ -37,6 +37,7 @@
       "category": "3_所有权_帽子转移",
       "input": "穗穗把自己的帽子摘下来戴到秧秧头上。",
       "note": "facts 中 source 侧的 removal 语义正确（帽子原属穗穗、执行转移），不做 extraction 级判定；验证转移保留、最终穿戴者、渲染不输出冲突瞬态。",
+      "d_contract": { "mode": "completed", "recipient": "秧秧", "object": "hat" },
       "expect": {
         "entity_count": 2,
         "entities": [
@@ -687,6 +688,7 @@
       "id": "transfer_scarf_45",
       "category": "C_转移_围巾",
       "input": "穗穗把自己的围巾解下来，给秧秧围上。",
+      "d_contract": { "mode": "completed", "recipient": "秧秧", "object": "scarf" },
       "expect": {
         "entity_count": 2,
         "entities": [
@@ -704,6 +706,7 @@
       "id": "transfer_glasses_46",
       "category": "C_转移_眼镜",
       "input": "秧秧把自己的眼镜摘下来，给穗穗戴上。",
+      "d_contract": { "mode": "completed", "recipient": "穗穗", "object": "glasses" },
       "expect": {
         "entity_count": 2,
         "entities": [
@@ -721,6 +724,7 @@
       "id": "transfer_coat_47",
       "category": "C_转移_外套",
       "input": "穗穗把自己的外套脱下来，披到秧秧身上。",
+      "d_contract": { "mode": "completed", "recipient": "秧秧", "object": "coat" },
       "expect": {
         "entity_count": 2,
         "entities": [
@@ -738,6 +742,7 @@
       "id": "transfer_bag_48",
       "category": "C_转移_包",
       "input": "穗穗把包从肩上拿下来，递给秧秧，秧秧接住包。",
+      "d_contract": { "mode": "completed", "recipient": "秧秧", "object": "bag" },
       "expect": {
         "entity_count": 2,
         "entities": [
@@ -792,6 +797,83 @@
         ],
         "must_not_bind": [],
         "prompt_has_en": ["hat", "scarf"]
+      }
+    },
+    {
+      "id": "D_hat_progress_52",
+      "category": "D_进行式转移_帽子",
+      "input": "穗穗正在给秧秧戴帽子。",
+      "d_contract": { "mode": "in_progress", "recipient": "秧秧", "object": "hat" },
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_not_have_en": ["wearing", "holding"], "label_not_zh": "进行式不得脑补秧秧已戴上帽子" }
+        ],
+        "any_has_en": ["put", "hat"],
+        "must_not_bind": [],
+        "prompt_has_en": ["hat"]
+      }
+    },
+    {
+      "id": "D_coat_progress_53",
+      "category": "D_进行式转移_外套",
+      "input": "穗穗正在给秧秧披外套。",
+      "d_contract": { "mode": "in_progress", "recipient": "秧秧", "object": "coat" },
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_not_have_en": ["wearing", "holding"], "label_not_zh": "进行式不得脑补秧秧已穿上外套" }
+        ],
+        "any_has_en": ["put", "coat"],
+        "must_not_bind": [],
+        "prompt_has_en": ["coat"]
+      }
+    },
+    {
+      "id": "D_scarf_progress_54",
+      "category": "D_进行式转移_围巾",
+      "input": "穗穗正在给秧秧围围巾。",
+      "d_contract": { "mode": "in_progress", "recipient": "秧秧", "object": "scarf" },
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_not_have_en": ["wearing", "holding"], "label_not_zh": "进行式不得脑补秧秧已围上围巾" }
+        ],
+        "any_has_en": ["scarf"],
+        "must_not_bind": [],
+        "prompt_has_en": ["scarf"]
+      }
+    },
+    {
+      "id": "D_glasses_progress_55",
+      "category": "D_进行式转移_眼镜",
+      "input": "秧秧正在给穗穗戴眼镜。",
+      "d_contract": { "mode": "in_progress", "recipient": "穗穗", "object": "glasses" },
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_not_have_en": ["wearing", "holding"], "label_not_zh": "进行式不得脑补穗穗已戴上眼镜" }
+        ],
+        "any_has_en": ["put", "glasses"],
+        "must_not_bind": [],
+        "prompt_has_en": ["glasses"]
+      }
+    },
+    {
+      "id": "D_book_handover_56",
+      "category": "D_递书不确认结果",
+      "input": "穗穗把一本书递给秧秧。",
+      "d_contract": { "mode": "unconfirmed", "recipient": "秧秧", "object": "book" },
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_not_have_en": ["holding", "wearing"], "label_not_zh": "递书未确认秧秧已拿到，不得脑补 holding" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["hand", "give", "pass"], "label_zh": "递书动作保留" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["book"]
       }
     }
   ]

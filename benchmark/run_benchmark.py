@@ -392,13 +392,18 @@ async def main():
     stress_n = sum(1 for r in results if r["dataset"] == "stress")
     stress_pass = sum(1 for r in results if r["dataset"] == "stress" and not r["failed"])
 
-    fail_by_stage = {}
-    fail_by_category = {}
+    # fail_by_stage 按 unique 失败案例统计；failed_checks_by_stage 记录失败 constraint 总数
+    fail_by_stage: dict = {}
+    fail_checks_by_stage: dict = {}
+    fail_by_category: dict = {}
     for r in results:
         if r["failed"]:
             for f in r["failed"]:
-                fail_by_stage.setdefault(f["stage"], []).append(r["id"])
+                fail_checks_by_stage[f["stage"]] = fail_checks_by_stage.get(f["stage"], 0) + 1
+                s = fail_by_stage.setdefault(f["stage"], set())
+                s.add(r["id"])
             fail_by_category.setdefault(r["category"], []).append(r["id"])
+    fail_by_stage = {k: {"count": len(v), "cases": sorted(v)} for k, v in fail_by_stage.items()}
 
     deterministic = [r["id"] for r in results if r.get("stability") == "deterministic"]
     high_rep = [r["id"] for r in results if r.get("stability") == "highly_reproducible"]
@@ -415,6 +420,7 @@ async def main():
         "baseline": {"total": baseline_n, "passed": baseline_pass},
         "stress": {"total": stress_n, "passed": stress_pass},
         "fail_by_stage": {k: {"count": len(v), "cases": v} for k, v in fail_by_stage.items()},
+        "failed_checks_by_stage": fail_checks_by_stage,
         "fail_by_category": {k: {"count": len(v), "cases": v} for k, v in fail_by_category.items()},
         "stability": {
             "deterministic": deterministic, "highly_reproducible": high_rep,
@@ -497,8 +503,8 @@ async def main():
         f.write("\n".join(lines))
 
     print(f"\n===== {passed}/{total} passed (baseline {baseline_pass}/{baseline_n}, stress {stress_pass}/{stress_n}) =====")
-    for stage, ids in fail_by_stage.items():
-        print(f"  {stage}: {len(ids)} — {', '.join(ids)}")
+    for stage, info in fail_by_stage.items():
+        print(f"  {stage}: {info['count']} case(s) — {', '.join(info['cases'])}")
     if args.repeat:
         print(f"  deterministic: {deterministic}")
         print(f"  high_rep: {high_rep}")
