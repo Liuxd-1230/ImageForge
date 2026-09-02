@@ -86,7 +86,8 @@ class FactExtractor:
         user_input: str,
         rules_context: Optional[str] = None,
         model: Optional[str] = None,
-        reasoning_effort: Optional[str] = "instruct"
+        reasoning_effort: Optional[str] = "instruct",
+        explicit_names: Optional[List[str]] = None
     ) -> SemanticFacts:
         if not user_input.strip():
             return SemanticFacts(entities=[], statements=[])
@@ -97,6 +98,19 @@ class FactExtractor:
         sys_content = EXTRACTION_SYSTEM_PROMPT
         if rules_context:
             sys_content += f"\n\nUser Guidelines / Reference:\n{rules_context}"
+        if explicit_names:
+            # 显式角色 <角色名>：用户对“xx 是角色主体”的确定声明 → extractor 必须输出为 entity
+            listed = "\n".join(f"- {n}" for n in dict.fromkeys(explicit_names))
+            sys_content += (
+                "\n\nUSER-DECLARED CHARACTERS (MANDATORY): The user explicitly declared the "
+                "following names as character subjects (they were wrapped in angle brackets in "
+                "their input). You MUST emit EACH of them as an entity using its ORIGINAL name "
+                "unchanged, even if the name looks like an animal/object/place — here it is a "
+                "character. Attribute the mentioned actions/attributes to that entity. Do NOT "
+                "translate, modify, or re-bracket these names; do NOT invent additional details "
+                "about them.\n"
+                + listed
+            )
 
         messages = [
             {"role": "system", "content": sys_content},

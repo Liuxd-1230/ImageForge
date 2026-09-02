@@ -172,8 +172,11 @@ class OnlineCharacterResolver:
         return [name]
 
     # ── main resolve ────────────────────────────────────────────────────────
-    async def resolve(self, name: str) -> Dict[str, Any]:
+    async def resolve(self, name: str, force: bool = False) -> Dict[str, Any]:
         """Run the online chain. Never raises.
+
+        `force=True`（“重新解析并替换”）对**唯一 resolved 结果同样生效**：
+        写缓存时允许覆盖 manual 非空字段；自动/background backfill 一律 force=False。
 
         Returns one of:
           {"status": "resolved",   "result": {canonical_tag, series_tag, caption_name, aliases}}
@@ -225,7 +228,7 @@ class OnlineCharacterResolver:
             # 唯一候选但证据过低（LLM 幻觉/冷门泛指 tag）→ 当作未找到，避免把错结论写进缓存
             return {"status": "not_found", "reason": f"evidence too low ({top.post_count} posts)"}
         if self.write_cache:
-            self._write(name, top)
+            self._write(name, top, force=force)
         return {"status": "resolved", "result": self._encode(top)}
 
     async def confirm(self, name: str, candidate: Dict[str, Any], force: bool = False) -> Dict[str, Any]:

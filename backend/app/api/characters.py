@@ -48,14 +48,14 @@ async def resolve_online(req: ResolveOnlineRequest, session: Session = Depends(g
     """Character metadata online lookup (V1).
 
     status: resolved | ambiguous | not_found | offline
-    唯一结果 → 直接写缓存；多候选 → 返回 candidates，由前端让用户选择后
-    带 candidate_index 再次调用确认并写缓存。"""
+    唯一结果 → 直接写缓存（force=req.force：“重新解析并替换”可覆盖 manual）；
+    多候选 → 返回 candidates，由前端让用户选择后带 candidate_index 再次调用确认写缓存。"""
     name = (req.name or "").strip()
     if not name:
         return {"status": "offline", "reason": "empty name"}
     resolver = _build_online_resolver(session)
     try:
-        outcome = await resolver.resolve(name)
+        outcome = await resolver.resolve(name, force=req.force)
     except Exception as e:
         return {"status": "offline", "reason": f"{type(e).__name__}: {str(e)[:120]}"}
 

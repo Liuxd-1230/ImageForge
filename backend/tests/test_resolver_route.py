@@ -110,42 +110,39 @@ async def test_cache_hit_no_second_online_call(wired, session):
 
 
 @pytest.mark.asyncio
-async def test_resolve_online_force_flows(session):
-    # 预置 manual 缓存
-    session.add(CharacterTriggerCache(name="穗穗", canonical_tag="my precious",
-                                      caption_name="Mine", series_tag=None, source="manual"))
+async def test_resolve_online_force_flows(session, monkeypatch):
+    """force 必须贯穿唯一 resolved 结果（真实 endpoint，不直接调 confirm）。
+
+    A: force=false → manual 非空 canonical 保持
+    B: force=true  → online 唯一结果覆盖 manual canonical
+    """
+    # 预置 manual 缓存（ASCII 名 → 无需 LLM 转写，直接走唯一 resolved 路径）
+    session.add(CharacterTriggerCache(name="Pikachu", canonical_tag="manual_tag",
+                                      caption_name="Manual", series_tag=None, source="manual"))
     session.commit()
-    fake_src = FakeSource()
-    monkeypatch = None
-    orig_llm = characters_api.LMStudioProvider
 
-    class FLLM:
-        def __init__(self, *a, **k): pass
+    monkeypatch.setattr(settings, "ONLINE_RESOLVE_CACHE_WRITE", True)
+    fake_src = FakeSource()  # search → 唯一 [pikachu / pokemon, 14177 posts]
+    from app.services.character_meta import source as source_mod
+    monkeypatch.setattr(source_mod, "BooruTagSource", lambda *a, **k: fake_src)
+    monkeypatch.setattr(characters_api, "LMStudioProvider", lambda *a, **k: object())
 
-    characters_api.LMStudioProvider = FLLM
-    characters_api.BooruTagSource = lambda *a, **k: fake_src
-    try:
-        from app.api.characters import ResolveOnlineRequest, resolve_online
-        # 普通候选选择 force=false：manual 非空不覆盖，只补空 series
-        req = ResolveOnlineRequest(name="穗穗", candidate_index=0, force=False)
-        # resolve() 对 CJK 需要 LLM 转写 → FLLM 返回空 → cand_names [] → offline
-        # 因此直接测 confirm 路径（绕过 resolve 的转写）：
-        from app.services.character_meta.resolver import OnlineCharacterResolver
-        from app.services.character_meta.source import BooruTagSource
-        res = OnlineCharacterResolver(session=session, source=BooruTagSource(), llm_provider=None, write_cache=True)
-        await res.confirm("穗穗", {"canonical_tag": "suisui", "series_tag": "wuthering waves",
-                                   "caption_name": "Suisui", "aliases": []}, force=False)
-        row = session.exec(__import__("sqlmodel").select(CharacterTriggerCache).where(
-            CharacterTriggerCache.name == "穗穗")).first()
-        assert row.canonical_tag == "my precious"      # manual 非空不覆盖
-        assert row.caption_name == "Mine"
-        assert row.series_tag == "wuthering waves"     # 空字段补全
-        # force=true → 覆盖
-        await res.confirm("穗穗", {"canonical_tag": "suisui", "series_tag": "ww2",
-                                   "caption_name": "Suisui", "aliases": []}, force=True)
-        row = session.exec(__import__("sqlmodel").select(CharacterTriggerCache).where(
-            CharacterTriggerCache.name == "穗穗")).first()
-        assert row.canonical_tag == "suisui"
-        assert row.series_tag == "ww2"
-    finally:
-        characters_api.LMStudioProvider = orig_llm
+    from app.api.characters import ResolveOnlineRequest, resolve_online
+
+    # A: force=false → 唯一结果不覆盖 manual 非空字段
+    out_a = await resolve_online(ResolveOnlineRequest(name="Pikachu", force=False), session)
+    assert out_a["status"] == "resolved"
+    row_a = session.exec(__import__("sqlmodel").select(CharacterTriggerCache).where(
+        CharacterTriggerCache.name == "Pikachu")).first()
+    assert row_a.canonical_tag == "manual_tag"   # manual 非空保持
+    assert row_a.caption_name == "Manual"
+    assert row_a.series_tag == "pokemon"         # 空字段仍被补全
+
+    # B: force=true → 唯一结果覆盖 manual canonical（row 保持 manual 归属，
+    #    代表用户已接管：后续自动联网仍只补空字段，不会静默再覆盖）
+    out_b = await resolve_online(ResolveOnlineRequest(name="Pikachu", force=True), session)
+    assert out_b["status"] == "resolved"
+    row_b = session.exec(__import__("sqlmodel").select(CharacterTriggerCache).where(
+        CharacterTriggerCache.name == "Pikachu")).first()
+    assert row_b.canonical_tag == "pikachu"      # online 唯一结果覆盖
+    assert row_b.source == "manual"              # 归属标记保持 manual（设计语义）

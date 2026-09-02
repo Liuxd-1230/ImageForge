@@ -1,4 +1,5 @@
 import re
+import logging
 from typing import Optional, List, Dict, Any
 from sqlmodel import Session, select
 from app.models.preset import Preset
@@ -6,6 +7,7 @@ from app.models.rule import RuleFile
 from app.models.trigger_cache import CharacterTriggerCache
 from app.models.prompt_engine import (
     SemanticFacts,
+    Entity,
     PromptBuildRequest,
     PromptBuildResponse,
     SafetyLevel
@@ -15,6 +17,8 @@ from app.services.prompt_engine.resolver import CharacterResolver
 from app.services.prompt_engine.validator import SemanticValidator
 from app.services.prompt_engine.policy import PromptPolicy, SAFETY_TAG_MAP
 from app.services.llm.base import BaseLLMProvider
+
+logger = logging.getLogger(__name__)
 
 # 匿名占位符（Candidate E / 显式标记之后：只保留非常确定的 anonymous placeholder）
 _GENERIC_ANON_RE = re.compile(r"^(girl|boy|person|woman|man|male|female)\d*$", re.I)
@@ -41,6 +45,36 @@ class PromptPipeline:
         if _GENERIC_ANON_RE.match(n):
             return True
         return False
+
+    @staticmethod
+    def _ensure_explicit_entities(facts: SemanticFacts, explicit_names: Optional[List[str]]) -> SemanticFacts:
+        """显式角色 invariant：<角色名> 是用户对“该名字是角色主体”的确定声明。
+
+        extractor 漏抽时不允许静默当作没发生 —— 确定性补回 Entity（只补身份，不补任何
+        未提及的属性/动作；名称使用用户原始干净名，绝无尖括号）。不扩 schema。
+        """
+        if not explicit_names:
+            return facts
+        existing = {e.name.strip() for e in facts.entities}
+        missing = [
+            n for n in dict.fromkeys((x or "").strip() for x in explicit_names)
+            if n and n not in existing
+        ]
+        if not missing:
+            return facts
+        max_seq = 0
+        for e in facts.entities:
+            m = re.match(r"^c(\d+)$", e.id or "")
+            if m:
+                max_seq = max(max_seq, int(m.group(1)))
+        entities = list(facts.entities)
+        for n in missing:
+            max_seq += 1
+            entities.append(Entity(id=f"c{max_seq}", name=n))
+            logger.warning(
+                "explicit <%s> missing from extraction → deterministically re-added as character entity", n
+            )
+        return SemanticFacts(entities=entities, statements=facts.statements)
 
     async def _online_backfill(self, entities, explicit_names: Optional[List[str]] = None) -> None:
         """Online Resolver 预回填（best-effort，失败静默 → 既有 LLM fallback 兜底）。
@@ -91,13 +125,16 @@ class PromptPipeline:
                 rules = self.session.exec(stmt).all()
                 rule_context = "\n\n".join([f"[{r.name}]:\n{r.content}" for r in rules])
         
-        # 1. Fact Extraction
+        # 1. Fact Extraction（explicit_names 作为权威角色提示注入 extractor）
         raw_facts = await self.extractor.extract(
             user_input=raw_text,
             rules_context=rule_context,
             model=model,
-            reasoning_effort=reasoning_effort
+            reasoning_effort=reasoning_effort,
+            explicit_names=explicit_names
         )
+        # 显式角色 invariant：extractor 漏抽的 <角色名> 确定性补回（非静默）
+        raw_facts = self._ensure_explicit_entities(raw_facts, explicit_names)
 
         # 2. Online Resolver 预回填（可选；角色书/缓存完整则不联网）
         await self._online_backfill(raw_facts.entities, explicit_names=explicit_names)
