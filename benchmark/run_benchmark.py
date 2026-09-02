@@ -192,6 +192,13 @@ def run_checks(case, final_facts, final_prompt, negative_prompt, variant_meta=No
     if exp.get("safety_tag"):
         if exp["safety_tag"].lower() not in final_prompt.lower():
             issues.append(("prompt_assembly", f"safety tag {exp['safety_tag']} 未出现在最终 Prompt"))
+    # ── 渲染级检查（final prompt 层面，assembly 阶段）──
+    for kw in exp.get("prompt_has_en", []):
+        if not matches_kw(final_prompt, kw):
+            issues.append(("prompt_assembly", f"最终 Prompt 缺少 {kw}"))
+    for kw in exp.get("prompt_not_has_en", []):
+        if matches_kw(final_prompt, kw):
+            issues.append(("prompt_assembly", f"最终 Prompt 不得出现瞬态/冲突片段 {kw}"))
     return issues
 
 

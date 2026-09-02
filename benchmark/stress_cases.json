@@ -36,14 +36,18 @@
       "id": "ownership_hat_transfer_03",
       "category": "3_所有权_帽子转移",
       "input": "穗穗把自己的帽子摘下来戴到秧秧头上。",
+      "note": "facts 中 source 侧的 removal 语义正确（帽子原属穗穗、执行转移），不做 extraction 级判定；验证转移保留、最终穿戴者、渲染不输出冲突瞬态。",
       "expect": {
         "entity_count": 2,
         "entities": [
-          { "name": "秧秧", "must_have_en": ["hat"], "label_zh": "帽子最终戴在秧秧头上" }
+          { "name": "秧秧", "must_have_en": ["hat", "wearing"], "label_zh": "最终戴帽者=秧秧" }
         ],
-        "must_not_bind": [
-          { "keyword_en": "hat", "other": "穗穗", "label_zh": "帽子不得仍算在穗穗身上" }
-        ]
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["put", "hat"], "label_zh": "穗穗给秧秧戴帽(转移保留)" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["putting", "wearing"],
+        "prompt_not_has_en": ["taking off"]
       }
     },
     {
@@ -677,6 +681,117 @@
           { "name": "穗穗", "must_have_en": ["pajama", "room"], "label_zh": "睡衣+房间" }
         ],
         "must_not_bind": []
+      }
+    },
+    {
+      "id": "transfer_scarf_45",
+      "category": "C_转移_围巾",
+      "input": "穗穗把自己的围巾解下来，给秧秧围上。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_have_en": ["scarf", "wearing"], "label_zh": "最终戴围巾者=秧秧" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["put", "scarf"], "label_zh": "穗穗给秧秧围围巾" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["wearing"],
+        "prompt_not_has_en": ["taking off"]
+      }
+    },
+    {
+      "id": "transfer_glasses_46",
+      "category": "C_转移_眼镜",
+      "input": "秧秧把自己的眼镜摘下来，给穗穗戴上。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["glasses", "wearing"], "label_zh": "最终戴眼镜者=穗穗" }
+        ],
+        "relations": [
+          { "from": "秧秧", "to": "穗穗", "must_have_en": ["put", "glasses"], "label_zh": "秧秧给穗穗戴眼镜" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["wearing"],
+        "prompt_not_has_en": ["taking off", "removing"]
+      }
+    },
+    {
+      "id": "transfer_coat_47",
+      "category": "C_转移_外套",
+      "input": "穗穗把自己的外套脱下来，披到秧秧身上。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_have_en": ["coat", "wearing"], "label_zh": "最终穿外套者=秧秧" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["put", "coat"], "label_zh": "穗穗给秧秧披外套" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["wearing"],
+        "prompt_not_has_en": ["taking off", "removing"]
+      }
+    },
+    {
+      "id": "transfer_bag_48",
+      "category": "C_转移_包",
+      "input": "穗穗把包从肩上拿下来，递给秧秧，秧秧接住包。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_have_en": ["bag", "holding", "hold"], "label_zh": "最终持包者=秧秧" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["hand", "give", "pass"], "label_zh": "穗穗递包给秧秧" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["bag"],
+        "prompt_not_has_en": ["taking off"]
+      }
+    },
+    {
+      "id": "transfer_book_handover_49",
+      "category": "C_转移_递交无最终态控制",
+      "input": "穗穗把一本书递给秧秧。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["hand", "give"], "label_zh": "递书动作保留" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["book"]
+      }
+    },
+    {
+      "id": "removal_only_50",
+      "category": "C_仅移除控制",
+      "input": "穗穗把自己的帽子摘下来，拿在手里。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["hat", "holding", "hand"], "label_zh": "摘帽/持帽动作保留在自己身上" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["hat"]
+      }
+    },
+    {
+      "id": "different_object_51",
+      "category": "C_异物体对照",
+      "input": "穗穗把自己的帽子摘下来拿在手里，又把自己的围巾给秧秧围上。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["hat"], "label_zh": "帽子留在穗穗自己身上(不被异物体转移删除)" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["scarf", "put", "wrap"], "label_zh": "围巾转移给秧秧" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["hat", "scarf"]
       }
     }
   ]

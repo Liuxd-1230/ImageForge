@@ -308,3 +308,42 @@ Prompt，且 relation 的 target 检查基于未解析文本 → `holding c2's w
 候选：assembly 阶段对 `take off / put on / hand to` 类动作做「最终穿戴者优先」归并，
 把转移动作简化为最终状态（`Yangyang is wearing a hat`），同时不引入新 schema。
 
+---
+
+# 第八轮：Candidate C — Static Visual State Rendering
+
+目标：完成式物品转移不再同时渲染中间态（taking off X）与最终态；facts 保持不变。
+
+实现（仅 `backend/app/services/prompt_engine/writer.py` + benchmark）：
+- `compute_transient_suppression`：**结构组合**判定——同一物体同时存在
+  ① A removal（take off/remove/untie...）＋ ② A→B transfer（put/hand/pass/wrap... on/to/around）
+  ＋ ③ B final possession（wearing/holding/catching...）时，才抑制 ① 的渲染。
+  非关键词删句器：单独 "taking off hat" 仍保留；无 target final state 不抑制；异物体不抑制。
+- 物体名词规范化（去冠词/属格 + 地点短语终止符如 "wearing a hat on her head"）。
+- 原案例 ownership_hat_transfer_03 重归类：facts 语义正确不再判 extraction，
+  改为验证 转移保留 + 最终穿戴者 + 渲染无冲突瞬态（prompt_has/not_has_en 渲染级检查）。
+
+## 结果
+
+| 层 | 结果 |
+|----|------|
+| writer 单测（`test_writer_visual_state.py`，无 LLM） | **13/13**（完成转移/仅摘保留/仅戴/异物体/自身换装/眼镜/地点短语/facts 不变） |
+| **C1** 冻结原 72 例 facts 只跑 assembly（`stress_20260902_134932_frozen`） | 03 FAIL→**PASS**；原 68 通过 **0 回归**；剩余失败恰为 C 范围外 3 项 |
+| **C2** 完整 pipeline（`stress_20260902_140016`） | **75/79**；03 PASS；transfer 控制案例（围巾/眼镜/包/书/仅移除/异物体）全过；原 72 例 **0 回归** |
+
+03 最终渲染（facts 未变）：
+`Suisui is putting her hat on Yangyang. Yangyang is wearing hat.`（taking off hat 已抑制）。
+
+## 新的确定性发现（Candidate D 候选，本轮不修 Extractor）
+
+- **transfer_coat_47**：`穗穗把外套脱下来披到秧秧身上` → 抽取**稳定省略接收方最终态**
+  （facts 只有 taking off + putting on，无秧秧 wearing）→ 按规则正确不抑制，
+  输出 `Suisui is taking off her coat and putting the coat on her Yangyang`。
+  这是 extraction 完整性缺口（转移场景缺 target final state），非渲染 bug。
+
+## 未处理（按用户范围）
+
+- shared_two_18 / negation_hat_20：NEGATION CAPABILITY GAP（不扩 schema）。
+- complex_long_34：非人实体，单独记录。
+- 无 intermittent/unstable（本轮 failures 全部 deterministic）。
+
