@@ -20,6 +20,16 @@
   /* MAX signature gradient (Cloud reasoning = max only) */
   --max-gradient: linear-gradient(90deg, #7c4dff 0%, #35cfff 33%, #ff4fba 66%, #7c4dff 100%);
   --max-gradient-size: 250% 100%;
+
+  /* ═══ Radius tokens — M3 Expressive（基准 = LoRA Library 真实视觉） ═══
+     field ≈ LoRA search field(16px)；container ≈ filter-bar(24px)；
+     card ≈ 20px；dialog ≈ 24px；button ≈ 12px；pill 仅 chip/status。 */
+  --if-radius-field: 16px;
+  --if-radius-container: 24px;
+  --if-radius-card: 20px;
+  --if-radius-dialog: 24px;
+  --if-radius-button: 12px;
+  --if-radius-pill: 999px;
 }
 
 html {
@@ -148,4 +158,67 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   全局 M3 Expressive 圆角统一
+   —— 集中一处覆盖 Vuetify .v-field outline 与原生输入，避免各页 scattered !important。
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Vuetify outlined fields：真实 DOM 的 outline 也要圆（不只是外层圆）。
+   Vuetify 3 实际类名是 v-field--variant-outlined（旧版为 v-field--outlined），两者都覆盖。 */
+.v-field--outlined .v-field__outline,
+.v-field--variant-outlined .v-field__outline {
+  border-radius: var(--if-radius-field, 16px);
+}
+.v-field--outlined .v-field__outline__start,
+.v-field--variant-outlined .v-field__outline__start {
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+}
+.v-field--outlined .v-field__outline__notch,
+.v-field--variant-outlined .v-field__outline__notch {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+.v-field--outlined .v-field__outline__end,
+.v-field--variant-outlined .v-field__outline__end {
+  border-top-right-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+/* Vuetify card 默认圆角统一为 card token（VCard 全局默认 rounded=xl → 由此处收敛为 20px） */
+.v-card {
+  border-radius: var(--if-radius-card, 20px) !important;
+}
+/* Vuetify dialog 大圆角（M3 Expressive） */
+.v-dialog .v-card {
+  border-radius: var(--if-radius-dialog, 24px) !important;
+}
+/* Vuetify button 圆角（与 LoRA 页一致；pill 型保持 999px 不覆盖） */
+.v-btn:not(.v-btn--icon) {
+  border-radius: var(--if-radius-button, 12px) !important;
+}
+
+/* 自定义原生输入（各页 .field-input / .pd-trigger-input 等）统一 field 圆角 */
+.field-input,
+.pd-trigger-input,
+.pv-path-input,
+input.library-search,
+textarea.field-input {
+  border-radius: var(--if-radius-field, 16px) !important;
+}
+/* 通用原生控件兜底（避免个别原生 input 直角） */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+  border-radius: var(--if-radius-field, 16px);
+}
+/* 通用容器圆角：仅作用在真正的容器/工具条卡（角色库 library-toolbar 等），
+   不污染普通 item 卡（VCard 全局默认 rounded=xl 会把每个 v-card 都带上 rounded-xl）。 */
+.v-card.library-toolbar {
+  border-radius: var(--if-radius-container, 24px) !important;
 }

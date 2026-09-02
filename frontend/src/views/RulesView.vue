@@ -27,6 +27,12 @@
         <v-btn color="primary" variant="flat" size="small" prepend-icon="mdi-plus" class="px-3" @click="openCreateDialog">
           新建规则
         </v-btn>
+        <BulkSelectionBar
+          :selected-count="bulkSel.selectedCount"
+          :is-all-selected="bulkSel.isAllSelected"
+          @toggle-all="bulkSel.toggleAll()"
+          @delete="openBulkDelete"
+        />
       </div>
     </div>
 
@@ -49,6 +55,9 @@
           <!-- Card Header -->
           <div class="d-flex justify-space-between align-center mb-2 pb-2 border-b">
             <div class="d-flex align-center gap-2">
+              <label class="row-check">
+                <input type="checkbox" :checked="bulkSel.isSelected(rule.id)" @change="bulkSel.toggleOne(rule.id)" />
+              </label>
               <v-icon color="primary" size="18">mdi-file-code-outline</v-icon>
               <span class="font-weight-bold text-body-2">{{ rule.name }}</span>
               <v-chip size="x-small" variant="tonal" color="secondary" class="font-mono">
@@ -66,7 +75,7 @@
                 @update:model-value="val => ruleStore.setEnabled(rule, !!val)"
               />
               <v-btn icon="mdi-pencil-outline" size="x-small" variant="text" color="primary" title="编辑" @click="openEditDialog(rule)" />
-              <v-btn icon="mdi-delete-outline" size="x-small" variant="text" color="error" title="删除" @click="deleteRule(rule.id)" />
+              <v-btn icon="mdi-delete-outline" size="x-small" variant="text" color="error" title="删除" @click="requestDeleteRule(rule)" />
             </div>
           </div>
 
@@ -114,6 +123,16 @@
       </v-card>
     </v-dialog>
 
+    <BulkDeleteDialog
+      :open="confirmOpen"
+      :count="confirmCount"
+      :title="confirmTitle"
+      :semantics="confirmSemantics"
+      :loading="confirmLoading"
+      @confirm="confirmDelete"
+      @cancel="confirmOpen = false"
+    />
+
     <v-snackbar v-model="snackbar" :timeout="2000" color="success">
       文件已成功导入
     </v-snackbar>
@@ -121,9 +140,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useRuleStore } from '../stores/rules'
+import { useBulkSelection } from '../composables/useBulkSelection'
+import BulkSelectionBar from '../components/BulkSelectionBar.vue'
+import BulkDeleteDialog from '../components/BulkDeleteDialog.vue'
 import type { RuleFile } from '../types'
 
 const ruleStore = useRuleStore()
@@ -131,6 +153,16 @@ const dialog = ref(false)
 const isEdit = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const snackbar = ref(false)
+
+/* ── 多选 / 删除确认 ── */
+const visibleRules = computed(() => ruleStore.rules)
+const bulkSel = useBulkSelection(() => visibleRules.value)
+const confirmOpen = ref(false)
+const confirmCount = ref(1)
+const confirmTitle = ref('')
+const confirmSemantics = ref('')
+const confirmLoading = ref(false)
+let pendingDelete: (() => Promise<void>) | null = null
 
 const form = ref({
   id: undefined as number | undefined,
@@ -199,9 +231,39 @@ async function saveRule() {
   dialog.value = false
 }
 
-async function deleteRule(id: number) {
-  if (confirm('确定删除该规则文件吗？')) {
-    await ruleStore.deleteRule(id)
+function requestDeleteRule(rule: RuleFile) {
+  confirmTitle.value = '删除此规则文件？'
+  confirmCount.value = 1
+  confirmSemantics.value = `确定删除「${rule.name}」吗？该规则将不再作为语义抽取上下文。`
+  pendingDelete = async () => { await ruleStore.deleteRule(rule.id) }
+  confirmOpen.value = true
+}
+
+function openBulkDelete() {
+  if (bulkSel.selected.length === 0) return
+  confirmTitle.value = `删除所选 ${bulkSel.selected.length} 个规则文件？`
+  confirmCount.value = bulkSel.selected.length
+  confirmSemantics.value = '确定删除所选规则文件吗？删除后不再作为语义抽取上下文。'
+  pendingDelete = async () => {
+    const failed: Array<number | string> = []
+    for (const id of bulkSel.selected) {
+      try { await ruleStore.deleteRule(Number(id)) } catch { failed.push(id) }
+    }
+    bulkSel.clear()
+    if (failed.length) alert(`删除失败 ${failed.length} 项`)
+  }
+  confirmOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!pendingDelete) return
+  confirmLoading.value = true
+  try {
+    await pendingDelete()
+  } finally {
+    confirmLoading.value = false
+    pendingDelete = null
+    confirmOpen.value = false
   }
 }
 </script>
@@ -214,5 +276,16 @@ async function deleteRule(id: number) {
 }
 .rule-card:hover {
   border-color: #4F46E5 !important;
+}
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.row-check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: rgb(var(--v-theme-primary));
+  cursor: pointer;
 }
 </style>

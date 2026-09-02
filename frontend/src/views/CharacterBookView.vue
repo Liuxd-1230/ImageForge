@@ -181,7 +181,7 @@
                 variant="text"
                 color="error"
                 title="删除"
-                @click="deleteChar(char.id!)"
+                @click="openBulkDelete('custom', [char.id!])"
               />
             </div>
           </div>
@@ -369,7 +369,7 @@
       <v-card class="pa-4 bg-surface rounded-2xl">
         <div class="d-flex align-center gap-2 mb-2">
           <v-icon color="error">mdi-delete-alert-outline</v-icon>
-          <span class="text-subtitle-1 font-weight-bold">删除所选 {{ delIds.length }} 项？</span>
+          <span class="text-subtitle-1 font-weight-bold">{{ delIds.length === 1 ? '删除此角色？' : `删除所选 ${delIds.length} 项？` }}</span>
         </div>
         <p class="text-caption text-grey mb-0">
           {{ delSemantics }}
@@ -466,12 +466,6 @@ async function saveChar() {
   if (!form.value.name.trim()) return
   await characterStore.saveCharacter(form.value)
   dialog.value = false
-}
-
-async function deleteChar(id: number) {
-  if (confirm('确定删除该角色设定吗？')) {
-    await characterStore.deleteCharacter(id)
-  }
 }
 
 /* ════ 已解析角色（Trigger Cache）tab ════ */

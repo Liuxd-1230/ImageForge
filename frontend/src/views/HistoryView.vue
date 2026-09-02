@@ -6,8 +6,14 @@
         <div class="page-header-title">生图历史 (Generation History)</div>
         <div class="text-caption text-grey">记录每次生图的全部 Prompt、Seed 与 ComfyUI 工作台配置，支持完整恢复至创作台。</div>
       </div>
-      <div class="text-caption text-grey font-mono">
-        共 {{ historyStore.history.length }} 条生图记录
+      <div class="d-flex align-center gap-2">
+        <span class="text-caption text-grey font-mono">共 {{ historyStore.history.length }} 条生图记录</span>
+        <BulkSelectionBar
+          :selected-count="bulkSel.selectedCount"
+          :is-all-selected="bulkSel.isAllSelected"
+          @toggle-all="bulkSel.toggleAll()"
+          @delete="openBulkDelete"
+        />
       </div>
     </div>
 
@@ -49,6 +55,10 @@
               <v-icon size="36" color="grey-lighten-1" class="mb-1">mdi-image-off-outline</v-icon>
               <div>纯 Prompt 记录 (无图片)</div>
             </div>
+
+            <label class="row-check history-check" @click.stop>
+              <input type="checkbox" :checked="bulkSel.isSelected(item.id)" @change="bulkSel.toggleOne(item.id)" />
+            </label>
 
             <v-chip
               size="x-small"
@@ -108,7 +118,7 @@
                 variant="text"
                 color="error"
                 title="删除记录"
-                @click="historyStore.deleteHistory(item.id)"
+                @click="requestDeleteHistory(item)"
               />
             </div>
           </div>
@@ -128,6 +138,16 @@
         </div>
       </v-card>
     </v-dialog>
+
+    <BulkDeleteDialog
+      :open="confirmOpen"
+      :count="confirmCount"
+      :title="confirmTitle"
+      :semantics="confirmSemantics"
+      :loading="confirmLoading"
+      @confirm="confirmDelete"
+      @cancel="confirmOpen = false"
+    />
   </div>
 </template>
 
@@ -136,6 +156,9 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHistoryStore } from '../stores/history'
 import { useStudioStore } from '../stores/studio'
+import { useBulkSelection } from '../composables/useBulkSelection'
+import BulkSelectionBar from '../components/BulkSelectionBar.vue'
+import BulkDeleteDialog from '../components/BulkDeleteDialog.vue'
 import type { GenerationHistory } from '../types'
 
 const historyStore = useHistoryStore()
@@ -144,6 +167,15 @@ const router = useRouter()
 
 const imagePreviewDialog = ref(false)
 const previewImageUrl = ref('')
+
+/* ── 多选 / 删除确认 ── */
+const bulkSel = useBulkSelection(() => historyStore.history)
+const confirmOpen = ref(false)
+const confirmCount = ref(1)
+const confirmTitle = ref('')
+const confirmSemantics = ref('')
+const confirmLoading = ref(false)
+let pendingDelete: (() => Promise<void>) | null = null
 
 onMounted(() => {
   historyStore.fetchHistory()
@@ -190,6 +222,42 @@ function restoreToStudio(item: GenerationHistory) {
   studioStore.restoreSession(item)
   router.push('/')
 }
+
+function requestDeleteHistory(item: GenerationHistory) {
+  confirmTitle.value = '删除此条历史记录？'
+  confirmCount.value = 1
+  confirmSemantics.value = `确定删除 ${formatDate(item.created_at)} 的生图记录吗？删除后不可恢复。`
+  pendingDelete = async () => { await historyStore.deleteHistory(item.id) }
+  confirmOpen.value = true
+}
+
+function openBulkDelete() {
+  if (bulkSel.selected.length === 0) return
+  confirmTitle.value = `删除所选 ${bulkSel.selected.length} 条历史记录？`
+  confirmCount.value = bulkSel.selected.length
+  confirmSemantics.value = '确定删除所选生图历史记录吗？删除后不可恢复。'
+  pendingDelete = async () => {
+    const failed: Array<number | string> = []
+    for (const id of bulkSel.selected) {
+      try { await historyStore.deleteHistory(Number(id)) } catch { failed.push(id) }
+    }
+    bulkSel.clear()
+    if (failed.length) alert(`删除失败 ${failed.length} 项`)
+  }
+  confirmOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!pendingDelete) return
+  confirmLoading.value = true
+  try {
+    await pendingDelete()
+  } finally {
+    confirmLoading.value = false
+    pendingDelete = null
+    confirmOpen.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -199,5 +267,25 @@ function restoreToStudio(item: GenerationHistory) {
 }
 .history-card:hover {
   border-color: #4F46E5 !important;
+}
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.row-check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+}
+.history-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
 }
 </style>

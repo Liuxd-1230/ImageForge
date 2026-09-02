@@ -598,3 +598,68 @@ Character Book 用户角色不强制加 series。SemanticFacts 未加任何字�
 - Safebooru 是 SFW booru；NSFW 角色数据可能稀疏。
 - 小帖数角色（<10 帖）会被判 not_found（证据过低，避免把 LLM 幻觉当结论）。
 
+---
+
+# 第十四轮：Character Resolver Closure + 全局 UX 一致性（Commit A `cdb9392` + Commit B）
+
+## Commit A — `fix(character-resolver): explicit <name> markers + online resolver closure + unified character cache`
+
+后端 78 tests（+11 markers / +4 resolver-route），前端 build 通过，live smoke 通过：
+- **显式 `<角色名>` 标记**：`parse_explicit_markers(raw)` 契约 —— 剥括号、去重、≤64 字符、
+  拒绝嵌套/换行/控制字符/`()[]=,<>/\`；`<lora:xxx:1>` 不是标记；标记剥离后干净文本进
+  extractor、显式名单进 pipeline（绕过 generic 检查，仍尊重 ONLINE_RESOLVE_ENABLED 与缓存）。
+- **Closure 3 bugs**：
+  1. `prompt.py` target_model 顺序（先赋 `req.model or ...` 再走 online 分支）；
+  2. 手工维护不覆盖：`resolver.confirm(force=False)` 只补空字段，`GET/PUT/DELETE /api/characters/cache/*`
+     提供手动编辑/删除入口；
+  3. generic 检查收敛为 `^(girl|boy|person|woman|man|male|female)\d*$`（精确匿名占位），
+     删除全部中文子串标记 —— 猫又/花火/小鸟游六花 等不再被误拦。
+- **统一角色库**：`CharacterTriggerCache`（角色名+canonical+series+caption+aliases+source+resolved_at）
+  即“已解析角色”；已解析角色 tab / 自定义角色 tab 分段管理；解析成功写缓存 → 下次同名直接复用
+  （不重复联网）。
+- 验证：`pytest backend/tests/ -q` **78 passed**；真实 smoke（ONLINE_RESOLVE_ENABLED=true）：
+  `<三月七>站在车站里，拿着手机。` → entity 三月七 source=model_character，
+  canonical=`march 7th`，cache 落库 8 行（含 series `honkai: star rail`）。
+
+## Commit B — `fix(ux): generation progress overlay + global M3 radii + bulk selection/delete`
+
+### 1) Canvas 进度浮层（旧图 + 重新生成）
+- `.canvas-progress-overlay`：absolute bottom:18px / z-index:20 / width min(380px,100%-40px) /
+  近白 88% + `backdrop-filter: blur(6px)` / radius 20px / shadow。
+- 真实进度 `x / N`（running 且 max>0），否则 indeterminate 扫光；queued/running/saving 阶段文案；
+  停止等待 / 中断生成（is_running 门控）保留；无旧图时保留中央 .canvas-empty 进度空态。
+- Playwright 几何断言：overlay(700–858) 完全位于旧图(240–640) 之下——**不遮主体** ✅；
+  视觉复核（describe_image）确认“gap ~60px，浮层在画布灰底上、不重叠图片” ✅。
+
+### 2) 全局 M3 Expressive 圆角 tokens（集中 style.css，一处覆盖）
+`:root --if-radius-{field:16,container:24,card:20,dialog:24,button:12,pill:999}px`。
+QA 中发现并修复两个真实缺陷：
+- **Vuetify 3 实际类名是 `v-field--variant-outlined`**（不是 `v-field--outlined`）→ 原 override 是死 CSS，
+  outline 实测 4px。改为双类覆盖后实测 outline/start/end = **16px** ✅。
+- **Vuetify 全局默认 `VCard.rounded='xl'`** 使每个 v-card 都带 `rounded-xl` → 原 `.v-card.rounded-xl→24px`
+  把 item 卡也变 24px。改为 `.v-card` = card 20px；`.v-dialog .v-card` = 24px；
+  容器仅 `.v-card.library-toolbar`（角色书/画师过滤条）= 24px。实测 item 卡 20px / 工具条 24px /
+  dialog 卡 24px / 非 icon 按钮 12px ✅。
+
+### 3) 资源页批量选择/删除（useBulkSelection + BulkSelectionBar + BulkDeleteDialog，M3 确认、无 browser confirm）
+- 已加：角色库（已解析+自定义）/ 画师库 / LoRA 库 / 规则文件 / 提示词预设 / 生图历史。
+- 未加：Settings、Studio（无列表型删除场景）。
+- 语义：LoRA 只删库记录不删文件；已解析角色只删 Trigger Cache；自定义角色只删 Character Book；
+  History 沿用单条删除语义；Presets `is_default` 复选框禁用 + 不进 bulk 集合（实测 chip=默认 →
+  checkboxDisabled=true ✅）；全选=当前过滤结果；过滤变化自动剪枝；删除后清空 selected；
+  部分失败提示失败数；不持久化。
+- QA 修复一个运行时隐患：`useBulkSelection` 返回 `reactive()` 会立即读 computed → 若 getVisible
+  引用的 computed 声明在后会 TDZ 崩溃（画师页整页白屏、后续路由全空）。已把 bulkSel 移到
+  `filteredArtists` 之后；probe 确认所有页面零 pageerror。
+
+### 4) Playwright 验收（1440×900 + 1920×1080，`.verify/commitB_qa.cjs`）
+- 全页面无横向 overflow（1440/1920 均 docW==docCw）；纵向滚动仅存在于多行列表页（正常）。
+- 资源页批量选中后出现「已选择 N 项 + 删除所选」✅（artists/loras/history；rules 当前 0 条记录，
+  空态正确无勾选项）。
+- 截图 20 张（`.verify/cb_*`），含画布浮层 running 态 / 中央空态 / 角色书 / 各资源页 bulk /
+  设置页 / 字段圆角 dialog / 1920 四页。
+
+## 提交
+- Commit A: `cdb9392`（已推送 main）
+- Commit B: 本文件同轮（见 git log）
+

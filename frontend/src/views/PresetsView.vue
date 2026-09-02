@@ -6,9 +6,17 @@
         <div class="page-header-title">提示词预设 (Prompt Presets)</div>
         <div class="text-caption text-grey">配置不同场景的正向固定质量词与默认 Negative Prompt。</div>
       </div>
-      <v-btn color="primary" variant="flat" size="small" prepend-icon="mdi-plus" class="px-3" @click="openCreateDialog">
-        新建预设
-      </v-btn>
+      <div class="d-flex align-center gap-2">
+        <v-btn color="primary" variant="flat" size="small" prepend-icon="mdi-plus" class="px-3" @click="openCreateDialog">
+          新建预设
+        </v-btn>
+        <BulkSelectionBar
+          :selected-count="bulkSel.selectedCount"
+          :is-all-selected="bulkSel.isAllSelected"
+          @toggle-all="bulkSel.toggleAll()"
+          @delete="openBulkDelete"
+        />
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -30,6 +38,15 @@
           <!-- Card Header -->
           <div class="d-flex justify-space-between align-center mb-2 pb-2 border-b">
             <div class="d-flex align-center gap-2">
+              <label class="row-check">
+                <input
+                  type="checkbox"
+                  :checked="bulkSel.isSelected(preset.id)"
+                  :disabled="preset.is_default"
+                  :title="preset.is_default ? '默认预设不可删除' : ''"
+                  @change="bulkSel.toggleOne(preset.id)"
+                />
+              </label>
               <v-icon color="primary" size="18">mdi-tune</v-icon>
               <span class="font-weight-bold text-body-2">{{ preset.name }}</span>
               <v-chip v-if="preset.is_default" size="x-small" color="primary" variant="flat">默认</v-chip>
@@ -44,7 +61,7 @@
                 color="error"
                 title="删除"
                 :disabled="preset.is_default"
-                @click="deletePreset(preset.id)"
+                @click="requestDeletePreset(preset)"
               />
             </div>
           </div>
@@ -103,17 +120,40 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <BulkDeleteDialog
+      :open="confirmOpen"
+      :count="confirmCount"
+      :title="confirmTitle"
+      :semantics="confirmSemantics"
+      :loading="confirmLoading"
+      @confirm="confirmDelete"
+      @cancel="confirmOpen = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePresetStore } from '../stores/presets'
+import { useBulkSelection } from '../composables/useBulkSelection'
+import BulkSelectionBar from '../components/BulkSelectionBar.vue'
+import BulkDeleteDialog from '../components/BulkDeleteDialog.vue'
 import type { Preset } from '../types'
 
 const presetStore = usePresetStore()
 const dialog = ref(false)
 const isEdit = ref(false)
+
+/* ── 多选 / 删除确认（默认预设不可删除：不进多选集合、复选框禁用） ── */
+const deletablePresets = computed(() => presetStore.presets.filter(p => !p.is_default))
+const bulkSel = useBulkSelection(() => deletablePresets.value)
+const confirmOpen = ref(false)
+const confirmCount = ref(1)
+const confirmTitle = ref('')
+const confirmSemantics = ref('')
+const confirmLoading = ref(false)
+let pendingDelete: (() => Promise<void>) | null = null
 
 const form = ref({
   id: undefined as number | undefined,
@@ -157,9 +197,40 @@ async function savePreset() {
   dialog.value = false
 }
 
-async function deletePreset(id: number) {
-  if (confirm('确定删除该预设吗？')) {
-    await presetStore.deletePreset(id)
+function requestDeletePreset(preset: Preset) {
+  if (preset.is_default) return
+  confirmTitle.value = '删除此预设？'
+  confirmCount.value = 1
+  confirmSemantics.value = `确定删除「${preset.name}」吗？删除后其正向前缀与默认 Negative Prompt 不再生效。`
+  pendingDelete = async () => { await presetStore.deletePreset(preset.id) }
+  confirmOpen.value = true
+}
+
+function openBulkDelete() {
+  if (bulkSel.selected.length === 0) return
+  confirmTitle.value = `删除所选 ${bulkSel.selected.length} 个预设？`
+  confirmCount.value = bulkSel.selected.length
+  confirmSemantics.value = '确定删除所选预设吗？默认预设不可删除；删除后其前缀与默认 Negative 不再生效。'
+  pendingDelete = async () => {
+    const failed: Array<number | string> = []
+    for (const id of bulkSel.selected) {
+      try { await presetStore.deletePreset(Number(id)) } catch { failed.push(id) }
+    }
+    bulkSel.clear()
+    if (failed.length) alert(`删除失败 ${failed.length} 项`)
+  }
+  confirmOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!pendingDelete) return
+  confirmLoading.value = true
+  try {
+    await pendingDelete()
+  } finally {
+    confirmLoading.value = false
+    pendingDelete = null
+    confirmOpen.value = false
   }
 }
 </script>
@@ -178,5 +249,20 @@ async function deletePreset(id: number) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.row-check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+}
+.row-check input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 </style>

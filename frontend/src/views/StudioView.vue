@@ -603,6 +603,33 @@
               </div>
             </div>
             <p v-if="errorMessage" class="canvas-error mono">{{ errorMessage }}</p>
+
+            <!-- 已有上一张图 + 新一轮生成：旧图保持显示，进度浮层叠加（不遮主体） -->
+            <div v-if="studioStore.isGenerating" class="canvas-progress-overlay">
+              <div class="canvas-progress">
+                <div class="canvas-progress-track">
+                  <div
+                    class="canvas-progress-fill"
+                    :class="{ indeterminate: !realProgress }"
+                    :style="realProgress ? { width: progressPct + '%' } : {}"
+                  />
+                </div>
+                <span v-if="realProgress" class="canvas-progress-text mono">
+                  {{ studioStore.generationProgressValue }} / {{ studioStore.generationProgressMax }}
+                </span>
+              </div>
+              <p class="canvas-empty-caption">{{ stageLabel }}</p>
+              <p class="canvas-gen-msg">{{ studioStore.generationMessage }}</p>
+              <div class="canvas-gen-actions">
+                <button type="button" class="gen-ghost-btn" @click="studioStore.stopWaiting()">停止等待</button>
+                <button
+                  v-if="studioStore.generationIsRunning"
+                  type="button"
+                  class="gen-ghost-btn danger"
+                  @click="askInterrupt"
+                >中断生成</button>
+              </div>
+            </div>
           </template>
 
           <div v-else-if="studioStore.isGenerating" class="canvas-empty">
@@ -2988,6 +3015,24 @@ function clearDraftWorkbench() {
   display: flex;
   gap: 10px;
   justify-content: center;
+}
+/* 已有旧图时的新一轮生成进度浮层（清晰但不遮主体，透明卡片不打整图模糊遮罩） */
+.canvas-progress-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(380px, calc(100% - 40px));
+  padding: 14px 18px 16px;
+  border-radius: 20px;
+  background: color-mix(in srgb, rgb(var(--v-theme-surface)) 88%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+  text-align: center;
+}
+.canvas-progress-overlay .canvas-progress {
+  margin: 0 auto 10px;
 }
 .err-detail-toggle {
   margin-top: 12px;

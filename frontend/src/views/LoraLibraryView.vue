@@ -29,6 +29,12 @@
           <span class="mdi mdi-close" />
         </button>
       </div>
+      <BulkSelectionBar
+        :selected-count="bulkSel.selectedCount"
+        :is-all-selected="bulkSel.isAllSelected"
+        @toggle-all="bulkSel.toggleAll()"
+        @delete="openBulkDelete"
+      />
       <div class="filter-side">
         <button
           type="button"
@@ -52,6 +58,11 @@
     <!-- ── List ── -->
     <div v-else class="lora-list">
       <div class="lora-head">
+        <span class="cell col-check">
+          <label class="head-check">
+            <input type="checkbox" :checked="bulkSel.isAllSelected" @change="bulkSel.toggleAll()" />
+          </label>
+        </span>
         <span class="cell col-fav">收藏</span>
         <span class="cell col-name">名称 / 分类</span>
         <span class="cell col-file">文件名</span>
@@ -61,6 +72,11 @@
         <span class="cell col-ops">操作</span>
       </div>
       <div v-for="lora in filteredLoras" :key="lora.id" class="lora-row">
+        <div class="cell col-check">
+          <label class="head-check">
+            <input type="checkbox" :checked="bulkSel.isSelected(lora.id)" @change="bulkSel.toggleOne(lora.id)" />
+          </label>
+        </div>
         <div class="cell col-fav">
           <button
             type="button"
@@ -340,6 +356,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLoraStore } from '../stores/lora'
 import { useStudioStore } from '../stores/studio'
+import { useBulkSelection } from '../composables/useBulkSelection'
+import BulkSelectionBar from '../components/BulkSelectionBar.vue'
 import type { Lora, LoraSource, ScanCandidate } from '../types'
 
 const loraStore = useLoraStore()
@@ -400,6 +418,8 @@ const filteredLoras = computed(() => {
     return matchFav && matchQuery
   })
 })
+
+const bulkSel = useBulkSelection(() => filteredLoras.value)
 
 const strengthPct = computed(() => ((form.value.default_strength - 0.1) / 1.4) * 100)
 
@@ -563,6 +583,28 @@ function askDeleteLora(lora: Lora) {
     studioStore.syncLorasFromLibrary(loraStore.loras)
     confirmDialog.value = false
     notify('已删除')
+  }
+  confirmDialog.value = true
+}
+
+/* ── 批量删除 ── */
+function openBulkDelete() {
+  if (bulkSel.selected.length === 0) return
+  confirmTitle.value = `删除所选 ${bulkSel.selected.length} 项 LoRA 记录`
+  confirmText.value = '确定删除所选 LoRA 库记录吗？该操作只删除库记录，不影响磁盘文件。'
+  confirmAction = async () => {
+    try {
+      const failed: Array<number | string> = []
+      for (const id of bulkSel.selected) {
+        try { await loraStore.deleteLora(Number(id)) } catch { failed.push(id) }
+      }
+      studioStore.syncLorasFromLibrary(loraStore.loras)
+      bulkSel.clear()
+      if (failed.length) notify(`删除失败 ${failed.length} 项`, 'error')
+      else notify('已删除所选 LoRA 记录')
+    } finally {
+      confirmDialog.value = false
+    }
   }
   confirmDialog.value = true
 }
@@ -774,7 +816,7 @@ function onStrengthDown(e: PointerEvent) {
 }
 .lora-head, .lora-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1.25fr) minmax(0, 1.55fr) minmax(0, 1.3fr) 72px 96px 96px;
+  grid-template-columns: 44px 44px minmax(0, 1.25fr) minmax(0, 1.55fr) minmax(0, 1.3fr) 72px 96px 96px;
   align-items: center;
   min-width: 0;
 }
@@ -796,6 +838,18 @@ function onStrengthDown(e: PointerEvent) {
 .lora-row:hover { background: rgb(var(--v-theme-surface-container-low)); }
 .cell { min-width: 0; }
 .col-fav { text-align: center; }
+.col-check { display: flex; align-items: center; justify-content: center; }
+.head-check {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.head-check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+}
 .col-ops { text-align: right; display: flex; justify-content: flex-end; gap: 2px; }
 
 .fav-star {

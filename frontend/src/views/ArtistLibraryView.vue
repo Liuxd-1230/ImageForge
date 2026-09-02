@@ -12,7 +12,7 @@
     </div>
 
     <!-- Filter Bar -->
-    <v-card variant="outlined" class="pa-2 mb-3 bg-surface rounded-lg">
+    <v-card variant="outlined" class="pa-2 mb-3 bg-surface rounded-lg library-toolbar">
       <div class="d-flex align-center gap-2 flex-wrap">
         <v-text-field
           v-model="searchQuery"
@@ -55,6 +55,12 @@
             仅看收藏
           </v-chip>
         </div>
+        <BulkSelectionBar
+          :selected-count="bulkSel.selectedCount"
+          :is-all-selected="bulkSel.isAllSelected"
+          @toggle-all="bulkSel.toggleAll()"
+          @delete="openBulkDelete"
+        />
       </div>
     </v-card>
 
@@ -78,6 +84,9 @@
         <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden artist-item-card">
           <!-- Image Preview Area (Hero) -->
           <div class="artist-preview-box bg-surface-variant d-flex align-center justify-center border-b position-relative">
+            <label class="row-check artist-check">
+              <input type="checkbox" :checked="bulkSel.isSelected(art.id)" @change="bulkSel.toggleOne(art.id)" />
+            </label>
             <v-img
               v-if="art.preview_url"
               :src="art.preview_url"
@@ -157,7 +166,7 @@
                   variant="text"
                   color="error"
                   title="删除"
-                  @click="deleteArt(art.id)"
+                  @click="openDeleteArt(art)"
                 />
               </div>
             </div>
@@ -189,6 +198,16 @@
       </v-card>
     </v-dialog>
 
+    <BulkDeleteDialog
+      :open="confirmOpen"
+      :count="confirmCount"
+      :title="confirmTitle"
+      :semantics="confirmSemantics"
+      :loading="bulkLoading"
+      @confirm="confirmDelete"
+      @cancel="confirmOpen = false"
+    />
+
     <v-snackbar v-model="snackbar" :timeout="1500" color="success">
       {{ snackbarText }}
     </v-snackbar>
@@ -199,6 +218,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useArtistStore } from '../stores/artist'
 import { useStudioStore } from '../stores/studio'
+import { useBulkSelection } from '../composables/useBulkSelection'
+import BulkSelectionBar from '../components/BulkSelectionBar.vue'
+import BulkDeleteDialog from '../components/BulkDeleteDialog.vue'
 import type { Artist } from '../types'
 
 const artistStore = useArtistStore()
@@ -241,6 +263,14 @@ const filteredArtists = computed(() => {
     return matchCat && matchFav && matchQuery
   })
 })
+
+const bulkSel = useBulkSelection(() => filteredArtists.value)
+const confirmOpen = ref(false)
+const confirmCount = ref(1)
+const confirmTitle = ref('')
+const confirmSemantics = ref('')
+const bulkLoading = ref(false)
+let pendingDelete: (() => Promise<void>) | null = null
 
 onMounted(() => {
   artistStore.fetchArtists()
@@ -293,10 +323,43 @@ async function saveArtist() {
   snackbar.value = true
 }
 
-async function deleteArt(id: number) {
-  if (confirm('确定删除该画师记录吗？')) {
-    await artistStore.deleteArtist(id)
+function openDeleteArt(art: Artist) {
+  confirmTitle.value = '删除此画师记录？'
+  confirmCount.value = 1
+  confirmSemantics.value = `确定删除「${art.name}」吗？只删除画师记录，不影响任何本地文件。`
+  pendingDelete = async () => {
+    await artistStore.deleteArtist(art.id)
     studioStore.syncArtistsFromLibrary(artistStore.artists)
+  }
+  confirmOpen.value = true
+}
+
+function openBulkDelete() {
+  if (bulkSel.selected.length === 0) return
+  confirmTitle.value = `删除所选 ${bulkSel.selected.length} 个画师记录？`
+  confirmCount.value = bulkSel.selected.length
+  confirmSemantics.value = '只删除画师记录（不删除任何本地图片/文件）。'
+  pendingDelete = async () => {
+    const failed: Array<number | string> = []
+    for (const id of bulkSel.selected) {
+      try { await artistStore.deleteArtist(Number(id)) } catch { failed.push(id) }
+    }
+    studioStore.syncArtistsFromLibrary(artistStore.artists)
+    bulkSel.clear()
+    if (failed.length) alert(`删除失败 ${failed.length} 项`)
+  }
+  confirmOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!pendingDelete) return
+  bulkLoading.value = true
+  try {
+    await pendingDelete()
+  } finally {
+    bulkLoading.value = false
+    pendingDelete = null
+    confirmOpen.value = false
   }
 }
 </script>
@@ -315,5 +378,25 @@ async function deleteArt(id: number) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.row-check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+}
+.artist-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
 }
 </style>
