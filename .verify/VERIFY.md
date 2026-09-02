@@ -509,6 +509,15 @@ KSampler：**steps 12 / cfg 1 / euler / beta57**（turbo 蒸馏配置）。
 
 ## 已知边界
 
-- 默认无 turbo LoRA 时 12 步/cfg1 会缺蒸馏效果（用户决策：turbo 为可切换）；建议默认勾选。
+- 默认无 turbo LoRA 时 12 步/cfg1 会缺蒸馏效果（用户决策：turbo 为可切换）；**已按用户要求默认勾选 turbo LoRA**。
 - ComfyUI object_info 的 lora 列表查询偶发返回空，但应用 DB 与提交均正常（Win32 文件系统路径解析）。
+
+## turbo LoRA 默认勾选（用户确认后落地）
+
+`frontend/src/stores/studio.ts`：
+- 新增 `isDefaultEnabledLora(filename)`：按文件名匹配 `anima-turbo-lora`。
+- `syncLorasFromLibrary`：新出现且无既有用户状态的 LoRA，turbo LoRA 默认 `isEnabled: true`，其余默认 `false`；
+  已存在条目（含用户显式关掉、草稿恢复）保留原状态。
+- 验证：playwright DOM 断言 `.lora-check.on` —— `anima\anima-turbo-lora-v0.2` `enabled: true`（带勾号），其余 LoRA 全关。
+  截图 `.verify/r12_turbo_default_on.png`。
 

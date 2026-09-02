@@ -8,6 +8,11 @@ export interface ActiveLoraItem {
   isEnabled: boolean;
 }
 
+/** turbo LoRA（Anima 2.9B Turbo 默认蒸馏 LoRA）：按文件名识别，作为默认勾选项。 */
+function isDefaultEnabledLora(filename: string): boolean {
+  return /anima-turbo-lora/i.test(filename || '')
+}
+
 /** 一次生成提交时的参数快照（A9）：任务提交后改 Studio 参数不污染已完成图片的 metadata。 */
 export interface GenerationSnapshot {
   prompt: string;
@@ -230,7 +235,8 @@ export const useStudioStore = defineStore('studio', {
         return {
           lora,
           strength: existing ? existing.strength : lora.default_strength,
-          isEnabled: existing ? existing.isEnabled : false
+          // 新出现且未显式设置过的 LoRA：turbo LoRA 默认勾选，其余默认不勾
+          isEnabled: existing ? existing.isEnabled : isDefaultEnabledLora(lora.filename)
         }
       })
     },
