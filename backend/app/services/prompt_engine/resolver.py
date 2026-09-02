@@ -16,9 +16,9 @@ OUTPUT SCHEMA (JSON ONLY):
 {
   "characters": [
     {
-      "name": "穗穗",
-      "canonical_tag": "suisui",
-      "caption_name": "Suisui"
+      "name": "林澄",
+      "canonical_tag": "lincheng",
+      "caption_name": "Lin Cheng"
     },
     {
       "name": "希露菲",

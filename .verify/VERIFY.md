@@ -399,6 +399,43 @@ Prompt，且 relation 的 target 检查基于未解析文本 → `holding c2's w
 
 `fail_by_stage` 改为统计 **unique 失败案例**，另加 `failed_checks_by_stage` 记录 constraint 总数。
 
+---
+
+# 第十轮：Candidate D follow-up — 聚合修复 + production fixture 净化
+
+## D9 聚合 bug 修复（`run_benchmark.py`）
+
+上一轮实现有个二次包装 bug：`fail_by_stage` 已在循环里转成 `{stage:{count,cases}}`，
+report dict 里又用 `{k:{count:len(v), cases:v}}` 再包一层 → 产生
+`count=2(字典键数), cases={count,cases}` 的嵌套对象。
+
+修复：抽 `summarize_failures(results)` helper（fail_by_stage 按 unique case、
+failed_checks_by_stage 按 constraint 总数、fail_by_category 按案例），report 直接用。
+MD 报告同步改。加确定性测试 `test_benchmark_aggregation.py`（3 例：unique-case 计数、
+无嵌套对象回归、全过无阶段）。
+
+真实报告验证（`stress_20260902_163251`）：
+```json
+"fail_by_stage": { "extraction": { "count": 3, "cases": ["complex_long_34","negation_hat_20","shared_two_18"] } },
+"failed_checks_by_stage": { "extraction": 3 }
+```
+
+## production few-shot 人名净化
+
+`EXTRACTION_SYSTEM_PROMPT`（schema 示例 + 完成式/进行式 few-shot）与
+`resolver.py` production prompt 里的 benchmark 角色名 穗穗/秧秧/Suisui/Yangyang
+→ 无关虚构名 **林澄 / 周遥 / Lin Cheng**（`lincheng`）。JSON 结构、c1/c2、语义内容完全不变。
+同步替换 pydantic 字段描述里的示例名（不进 LLM，为语义层冻结保持一致）。
+
+## 验证
+
+- backend tests：**53 passed**（50 + 聚合 3）。
+- D6 transfer stability ×4：**10/10**（completed 4/4 final-state、in_progress+递书 0/4 脑补）——人名替换无副作用。
+- 全量 Baseline/Stress：**81/84**（baseline 25/25，stress 56/59），与原结果一致，0 回归。
+- D9 聚合修复在真实报告结构验证通过。
+
+commit message 澄清：上一轮实际 50 测试（非 58），本轮 53。
+
 ## 附带修复（benchmark 数据）
 
 `action_b_to_a_08` 关系关键词补 chase/hold（LLM 措辞 chase vs catch up 变体）——非产品回归。

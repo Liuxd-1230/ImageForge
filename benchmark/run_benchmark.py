@@ -308,6 +308,25 @@ async def run_case(pipeline, case, frozen_facts=None):
     return rec
 
 
+def summarize_failures(results):
+    """按阶段/类别聚合失败。返回：
+      fail_by_stage:       {stage: {"count": unique_cases, "cases": [ids]}}
+      fail_checks_by_stage: {stage: failed_check_count}
+      fail_by_category:     {category: [ids]}
+    同案例多个失败 constraint 只算 1 个 unique case；failed_checks 记录 constraint 总数。"""
+    fail_by_stage: dict = {}
+    fail_checks_by_stage: dict = {}
+    fail_by_category: dict = {}
+    for r in results:
+        if r["failed"]:
+            for f in r["failed"]:
+                fail_checks_by_stage[f["stage"]] = fail_checks_by_stage.get(f["stage"], 0) + 1
+                fail_by_stage.setdefault(f["stage"], set()).add(r["id"])
+            fail_by_category.setdefault(r["category"], []).append(r["id"])
+    fail_by_stage = {k: {"count": len(v), "cases": sorted(v)} for k, v in fail_by_stage.items()}
+    return fail_by_stage, fail_checks_by_stage, fail_by_category
+
+
 async def main():
     import argparse
     parser = argparse.ArgumentParser(description="ImageForge Prompt Benchmark (Baseline + Stress)")
@@ -393,17 +412,7 @@ async def main():
     stress_pass = sum(1 for r in results if r["dataset"] == "stress" and not r["failed"])
 
     # fail_by_stage 按 unique 失败案例统计；failed_checks_by_stage 记录失败 constraint 总数
-    fail_by_stage: dict = {}
-    fail_checks_by_stage: dict = {}
-    fail_by_category: dict = {}
-    for r in results:
-        if r["failed"]:
-            for f in r["failed"]:
-                fail_checks_by_stage[f["stage"]] = fail_checks_by_stage.get(f["stage"], 0) + 1
-                s = fail_by_stage.setdefault(f["stage"], set())
-                s.add(r["id"])
-            fail_by_category.setdefault(r["category"], []).append(r["id"])
-    fail_by_stage = {k: {"count": len(v), "cases": sorted(v)} for k, v in fail_by_stage.items()}
+    fail_by_stage, fail_checks_by_stage, fail_by_category = summarize_failures(results)
 
     deterministic = [r["id"] for r in results if r.get("stability") == "deterministic"]
     high_rep = [r["id"] for r in results if r.get("stability") == "highly_reproducible"]
@@ -419,9 +428,9 @@ async def main():
         "total": total, "passed": passed, "failed": total - passed,
         "baseline": {"total": baseline_n, "passed": baseline_pass},
         "stress": {"total": stress_n, "passed": stress_pass},
-        "fail_by_stage": {k: {"count": len(v), "cases": v} for k, v in fail_by_stage.items()},
+        "fail_by_stage": fail_by_stage,
         "failed_checks_by_stage": fail_checks_by_stage,
-        "fail_by_category": {k: {"count": len(v), "cases": v} for k, v in fail_by_category.items()},
+        "fail_by_category": fail_by_category,
         "stability": {
             "deterministic": deterministic, "highly_reproducible": high_rep,
             "intermittent": intermittent, "unstable_extraction": unstable,
@@ -448,8 +457,8 @@ async def main():
         "## 按失败阶段分布", "",
     ]
     if fail_by_stage:
-        for stage, ids in fail_by_stage.items():
-            lines.append(f"- **{stage}**：{len(ids)} 例 — {', '.join(ids)}")
+        for stage, info in fail_by_stage.items():
+            lines.append(f"- **{stage}**：{info['count']} 例（failed checks {fail_checks_by_stage.get(stage, 0)}）— {', '.join(info['cases'])}")
     else:
         lines.append("- 无")
     lines += ["", "## 按 Stress 类别分布", ""]

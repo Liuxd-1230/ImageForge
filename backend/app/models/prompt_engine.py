@@ -5,13 +5,13 @@ SafetyLevel = Literal["Safe", "Sensitive", "NSFW", "Explicit"]
 
 class Entity(BaseModel):
     id: str = Field(description="Unique entity ID, e.g. c1, c2")
-    name: str = Field(description="Character name as entered by user, e.g. 穗穗")
+    name: str = Field(description="Character name as entered by user, e.g. 林澄")
     source: Optional[Literal["user_defined", "model_character"]] = Field(
         default=None, 
         description="Assigned by character book lookup, not by fact extractor"
     )
-    canonical_tag: Optional[str] = Field(default=None, description="Trigger tag for tag area, e.g. suisui")
-    caption_name: Optional[str] = Field(default=None, description="English name for natural language caption, e.g. Suisui")
+    canonical_tag: Optional[str] = Field(default=None, description="Trigger tag for tag area, e.g. lincheng")
+    caption_name: Optional[str] = Field(default=None, description="English name for natural language caption, e.g. Lin Cheng")
     custom_description: Optional[str] = Field(default=None, description="Expanded appearance text if user_defined")
 
 class Statement(BaseModel):

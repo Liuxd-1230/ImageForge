@@ -26,8 +26,8 @@ CRITICAL RULES:
 10. Output ONLY valid JSON matching this schema:
 {
   "entities": [
-    { "id": "c1", "name": "穗穗" },
-    { "id": "c2", "name": "秧秧" }
+    { "id": "c1", "name": "林澄" },
+    { "id": "c2", "name": "周遥" }
   ],
   "statements": [
     { "kind": "attribute", "subject": "c1", "text": "wearing a swimsuit", "facet": "outfit", "effect": "replace" },
@@ -37,9 +37,9 @@ CRITICAL RULES:
   ]
 }
 
-COMPLETED TRANSFER EXAMPLE — input "穗穗把自己的外套脱下来，披到秧秧身上。":
+COMPLETED TRANSFER EXAMPLE — input "林澄把自己的外套脱下来，披到周遥身上。":
 {
-  "entities": [ { "id": "c1", "name": "穗穗" }, { "id": "c2", "name": "秧秧" } ],
+  "entities": [ { "id": "c1", "name": "林澄" }, { "id": "c2", "name": "周遥" } ],
   "statements": [
     { "kind": "attribute", "subject": "c1", "text": "taking off her coat", "facet": "outfit", "effect": "replace" },
     { "kind": "relation", "subject": "c1", "target": "c2", "text": "putting the coat on c2", "facet": null, "effect": null },
@@ -47,9 +47,9 @@ COMPLETED TRANSFER EXAMPLE — input "穗穗把自己的外套脱下来，披到
   ]
 }
 
-IN-PROGRESS TRANSFER EXAMPLE — input "穗穗正在给秧秧披外套。":
+IN-PROGRESS TRANSFER EXAMPLE — input "林澄正在给周遥披外套。":
 {
-  "entities": [ { "id": "c1", "name": "穗穗" }, { "id": "c2", "name": "秧秧" } ],
+  "entities": [ { "id": "c1", "name": "林澄" }, { "id": "c2", "name": "周遥" } ],
   "statements": [
     { "kind": "relation", "subject": "c1", "target": "c2", "text": "putting the coat on c2" }
   ]

@@ -4,8 +4,8 @@ from sqlmodel import SQLModel, Field
 
 class CharacterTriggerCacheBase(SQLModel):
     name: str = Field(index=True, unique=True)
-    canonical_tag: str = Field(description="Used in tag section, e.g. suisui")
-    caption_name: str = Field(description="Used in natural language caption, e.g. Suisui")
+    canonical_tag: str = Field(description="Used in tag section, e.g. lincheng")
+    caption_name: str = Field(description="Used in natural language caption, e.g. Lin Cheng")
     notes: Optional[str] = Field(default="")
 
 class CharacterTriggerCache(CharacterTriggerCacheBase, table=True):
