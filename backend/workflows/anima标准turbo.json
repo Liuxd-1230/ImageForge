@@ -1,0 +1,155 @@
+{
+  "118": {
+    "inputs": {
+      "clip_name": "qwen_3_06b_base.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "119": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "120": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "121": {
+    "inputs": {
+      "samples": [
+        "135",
+        0
+      ],
+      "vae": [
+        "120",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "122": {
+    "inputs": {
+      "sage_attention": "auto",
+      "allow_compile": false,
+      "model": [
+        "129",
+        0
+      ]
+    },
+    "class_type": "PathchSageAttentionKJ",
+    "_meta": {
+      "title": "Patch Sage Attention KJ"
+    }
+  },
+  "123": {
+    "inputs": {
+      "filename_prefix": "Anima29B_ImageForge",
+      "images": [
+        "133",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "124": {
+    "inputs": {
+      "text": "worst quality, low quality, score_1, score_2, score_3, artist name,\nblurry, jpeg artifacts, chromatic aberration,\nlong fingers, sepia, bad anatomy, missing fingers, watermark, ",
+      "clip": [
+        "118",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "129": {
+    "inputs": {
+      "unet_name": "anima29BInt8Convrot_v10.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "130": {
+    "inputs": {
+      "text": "masterpiece, best quality, score_9, score_8，highres, absurdres, anime screenshot, official art，mature female, milf, wife, @Mizuryu Kei, @gonza, sfw, 1girl, solo, 42 year old woman, former cosplayer, full-time housewife, height half a head taller than her son, slim waist, full chest, full hips, long straight legs, full thighs, thin ankles, round pink toes, chestnut long curly hair, sweet facial features, mouth corners naturally upturned, eye corners curve when looking, strands of hair on neck and cheeks, soft lighting, wearing low-cut cosplay-style dress or home clothes, chestnut long curly hair down or in loose bun, soft indoor lighting, hand focus, dappled sunlight, light on hand, pale skin, slender fingers, hands resting on knee, hand on hand, white summer dress hem, fabric folds, straw hat brim visible, hat shadow edge, sitting pose, lakeside, willow tree, loose strands on shoulder, peaceful expression, soft smile, half-closed eyes, looking down at hand, quiet contemplation, warm sunlight, golden hour glow, leaf shadows, moving light patterns, wind, gentle breeze, dress hem fluttering, water ripple sounds, ripple reflections, soft focus background, bokeh, macro detail, skin texture, warm tones, intimate framing, close-up, cinematic feel, emotional depth, unspoken connection, moment of calm, shoulders relaxed, chest rising gently, natural beauty, glowing skin, summer warmth, nostalgic mood, poetic detail, delicate wrist, gentle curve of fingers, light play on skin, best quality, amazing quality, very aesthetic, absurdres",
+      "clip": [
+        "118",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "133": {
+    "inputs": {
+      "mode": "双次缓存清理",
+      "anything": [
+        "121",
+        0
+      ]
+    },
+    "class_type": "XB_ROCmMemCleaner",
+    "_meta": {
+      "title": "XB-BOX - 显存清理"
+    }
+  },
+  "135": {
+    "inputs": {
+      "seed": 204860730399474,
+      "steps": 12,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "beta57",
+      "denoise": 1,
+      "model": [
+        "122",
+        0
+      ],
+      "positive": [
+        "130",
+        0
+      ],
+      "negative": [
+        "124",
+        0
+      ],
+      "latent_image": [
+        "119",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  }
+}

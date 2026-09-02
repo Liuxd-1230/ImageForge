@@ -152,7 +152,7 @@ def init_db():
                 content="""# Anima-2.9B 提示词指南
 - 画师格式：使用 `@artist_name` 格式（如 `@mika_pikazo`）。
 - 角色与动作绑定：多人场景必须使用自然语言明确谁穿什么、谁对谁做什么。
-- 采样推荐：Euler 采样器 + sgm_uniform / beta 调度器，分辨率 1024x1536 或 1152x1536。
+- 采样推荐：Euler 采样器 + beta57 调度器（Anima 2.9B Turbo 默认：12 步 / CFG 1），分辨率 1024x1536 或 1152x1536。
 """,
                 is_enabled=True,
                 sort_order=1

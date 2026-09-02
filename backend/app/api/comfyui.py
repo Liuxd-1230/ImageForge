@@ -19,17 +19,17 @@ router = APIRouter(prefix="/comfyui", tags=["comfyui"])
 class GenerateRequest(BaseModel):
     positive_prompt: str
     negative_prompt: str
-    unet_name: str = "anima29B_v10.safetensors"
+    unet_name: str = "anima29BInt8Convrot_v10.safetensors"
     clip_name: str = "qwen_3_06b_base.safetensors"
     vae_name: str = "qwen_image_vae.safetensors"
     loras: List[LoraBuildItem] = []
     width: int = 1024
     height: int = 1536
     batch_size: int = 1
-    steps: int = 28
-    cfg: float = 4.5
+    steps: int = 12
+    cfg: float = 1.0
     sampler_name: str = "euler"
-    scheduler: str = "sgm_uniform"
+    scheduler: str = "beta57"
     seed: Optional[int] = -1
     client_id: str = "imageforge_client"
     custom_template: Optional[Dict[str, Any]] = None

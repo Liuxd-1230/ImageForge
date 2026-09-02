@@ -473,3 +473,42 @@ commit message 澄清：上一轮实际 50 测试（非 58），本轮 53。
 
 `action_b_to_a_08` 关系关键词补 chase/hold（LLM 措辞 chase vs catch up 变体）——非产品回归。
 
+---
+
+# 第十二轮：内置工作流替换为 Anima 2.9B Turbo（用户提供）
+
+用户提供 `backend/workflows/anima标准turbo.json`（ComfyUI API 格式），解析后替换内置默认工作流。
+
+## 工作流解析（原文件）
+
+节点图：`129 UNET(anima29BInt8Convrot_v10) → 122 PatchSageAttentionKJ → [131 turbo-LoRA@1.0] → 135 KSampler`；
+`118 CLIP(qwen_3_06b_base) → 130/124 正负编码 → 135`；`119 EmptyLatent → 135`；
+`135 → 121 VAEDecode → 133 XB_ROCmMemCleaner → 123 输出`。
+KSampler：**steps 12 / cfg 1 / euler / beta57**（turbo 蒸馏配置）。
+
+## 按用户决定落地
+
+1. **结果图**：把工作流里 `PreviewImage(123)` → `SaveImage`（保持 `images←133`），现有前后端读 `outputs[].images` 逻辑不动。
+2. **默认参数对齐 12/1/beta57**：`workflow.py` DEFAULT_STEPS/CFG/SCHEDULER、`GenerateRequest`、前端 store 默认（steps 12 / cfg 1 / scheduler beta57 / unet anima29BInt8Convrot_v10）。
+3. **自定义节点保留**：PatchSageAttentionKJ + XB_ROCmMemCleaner（已在 ComfyUI 确认存在）。
+4. **turbo LoRA 可切换**：移除工作流内置的 131 节点（KSampler.model→122），turbo LoRA 作为应用库里普通 LoRA 由用户切换（DB 已有 `anima\anima-turbo-lora-v0.2.safetensors`）。
+
+## workflow.py 重构
+
+- `build_anima_29b_workflow` 无 custom_template 时自动加载 `backend/workflows/anima标准turbo.json`（单一事实源），
+  统一走注入路径（单 KSampler 校验 / prompt / 尺寸 / 参数 / 用户 LoRA 链）；删除旧的硬编码蓝图分支。
+- 默认模型常量更新为 INT8 Convrot + qwen_3_06b_base + qwen_image_vae。
+
+## 验证
+
+- 后端 53 单测 + `backend_test.py` 56/56 + 前端 build 通过。
+- **真实端到端**（应用 API → ComfyUI 127.0.0.1:8188）：
+  - 无 LoRA：提交 200 / node_errors {}（自定义节点与模型均有效）→ 真实进度 5/12→12/12 → done → SaveImage 产出 `outputs.images` 可读。
+  - 带 turbo LoRA：提交 200 / done / 读图正常（LoraLoader 链接在 122 之后）。
+- 前端读图解包逻辑（`.data[pid].outputs[nid].images`）与新工作流兼容（已确认）。
+
+## 已知边界
+
+- 默认无 turbo LoRA 时 12 步/cfg1 会缺蒸馏效果（用户决策：turbo 为可切换）；建议默认勾选。
+- ComfyUI object_info 的 lora 列表查询偶发返回空，但应用 DB 与提交均正常（Win32 文件系统路径解析）。
+
