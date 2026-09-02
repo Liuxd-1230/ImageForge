@@ -165,4 +165,9 @@ export interface AppSettings {
   COMFYUI_BASE_URL: string;
   DEFAULT_SAFETY: SafetyLevel;
   GENERATE_TIMEOUT_SECONDS: number;
+
+  // 角色联网解析（Character Online Resolver V1）
+  ONLINE_RESOLVE_ENABLED: boolean;
+  ONLINE_RESOLVE_CACHE_WRITE: boolean;
+  ONLINE_RESOLVE_AMBIGUOUS: 'ask';
 }

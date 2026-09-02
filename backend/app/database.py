@@ -32,12 +32,14 @@ def ensure_data_dirs() -> None:
 def _migrate_legacy_sqlite(database_url: str | None = None) -> None:
     """Lightweight migrations for legacy SQLite schemas.
 
-    - Only touches tables that actually exist: on a fresh database (no `loras`
-      table yet) this is a strict no-op — `create_all()` runs afterwards.
+    - Only touches tables that actually exist: on a fresh database (no known
+      tables yet) this is a strict no-op — `create_all()` runs afterwards.
     - `loras.is_enabled` was NOT NULL in older databases while the ORM now
       declares it Optional — INSERTs then fail with NOT NULL constraint
       (POST /api/loras 500). Rebuild the table with a nullable column.
     - `loras.source_path` column added for source-scan imports.
+    - `character_trigger_cache` extended with series_tag/aliases/source/resolved_at
+      for the Online Resolver (V1).
     """
     url = database_url or settings.DATABASE_URL_ABS
     if "sqlite" not in url:
@@ -47,7 +49,8 @@ def _migrate_legacy_sqlite(database_url: str | None = None) -> None:
     try:
         cur = conn.cursor()
         tables = {r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-        if "loras" not in tables:
+        known = {"loras", "character_trigger_cache"}
+        if not (tables & known):
             return  # fresh DB: nothing to migrate (create_all will build the schema)
 
         # -- 1. loras.is_enabled NOT NULL -> nullable with default 0 ----------
@@ -63,6 +66,19 @@ def _migrate_legacy_sqlite(database_url: str | None = None) -> None:
             cur.execute("ALTER TABLE loras ADD COLUMN source_path TEXT")
             conn.commit()
             logger.info("Added loras.source_path column")
+
+        # -- 3. character_trigger_cache online-resolver columns ----------------
+        cache_cols = {r[1] for r in cur.execute("PRAGMA table_info(character_trigger_cache)").fetchall()}
+        for col, ddl in (
+            ("series_tag", "TEXT"),
+            ("aliases", "TEXT"),
+            ("source", "TEXT"),
+            ("resolved_at", "DATETIME"),
+        ):
+            if col not in cache_cols:
+                cur.execute(f"ALTER TABLE character_trigger_cache ADD COLUMN {col} {ddl}")
+                conn.commit()
+                logger.info(f"Added character_trigger_cache.{col} column")
     except Exception as e:  # pragma: no cover
         logger.error(f"Schema migration failed: {e}")
         raise

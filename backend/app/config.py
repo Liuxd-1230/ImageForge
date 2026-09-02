@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     
     # ComfyUI Settings
     COMFYUI_BASE_URL: str = "http://127.0.0.1:8188"
+    # 角色联网解析（Character Online Resolver V1）
+    ONLINE_RESOLVE_ENABLED: bool = False
+    ONLINE_RESOLVE_CACHE_WRITE: bool = True
+    ONLINE_RESOLVE_AMBIGUOUS: str = "ask"
 
     # Generation
     GENERATE_TIMEOUT_SECONDS: int = 300  # 前端等待 ComfyUI 生成的最长秒数（慢 GPU/高分辨率可调）
@@ -75,4 +79,7 @@ EDITABLE_SETTING_KEYS = {
     "COMFYUI_BASE_URL",
     "DEFAULT_SAFETY",
     "GENERATE_TIMEOUT_SECONDS",
+    "ONLINE_RESOLVE_ENABLED",
+    "ONLINE_RESOLVE_CACHE_WRITE",
+    "ONLINE_RESOLVE_AMBIGUOUS",
 }

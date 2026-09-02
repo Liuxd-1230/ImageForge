@@ -280,13 +280,14 @@ export const useStudioStore = defineStore('studio', {
       this.buildPrompt()
     },
 
-    async saveEntityTrigger(entity: Entity) {
+    async saveEntityTrigger(entity: Entity, seriesTag?: string) {
       if (entity.source === 'model_character' && entity.canonical_tag && entity.caption_name) {
-        // 1. Save to cache
+        // 1. Save to cache（source=manual：自动联网只补空字段，不覆盖手工值）
         await axios.post('/api/prompt/resolve-trigger', {
           name: entity.name,
           canonical_tag: entity.canonical_tag,
           caption_name: entity.caption_name,
+          series_tag: seriesTag ?? '',
           save_to_cache: true
         })
         // 2. Try to build prompt (swallow compile error so save is not marked as failed)
@@ -297,6 +298,27 @@ export const useStudioStore = defineStore('studio', {
         }
       } else {
         throw new Error('Canonical Tag 与 Caption Name 均不能为空')
+      }
+    },
+
+    /** 角色联网解析（V1）：返回 resolved / ambiguous / not_found / offline。 */
+    async resolveOnlineCharacter(name: string, candidateIndex?: number): Promise<any> {
+      const payload: any = { name }
+      if (typeof candidateIndex === 'number') payload.candidate_index = candidateIndex
+      const resp = await axios.post('/api/characters/resolve-online', payload)
+      return resp.data
+    },
+
+    /** 读取已缓存的角色元数据（含 series_tag / source），用于卡片回填展示。 */
+    async fetchCachedEntityMeta(name: string): Promise<any> {
+      try {
+        const resp = await axios.post('/api/prompt/resolve-trigger', {
+          name,
+          save_to_cache: false
+        })
+        return resp.data
+      } catch {
+        return { from_cache: false, series_tag: '', source: '' }
       }
     },
 

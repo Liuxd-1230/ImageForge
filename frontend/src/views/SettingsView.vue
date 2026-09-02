@@ -241,6 +241,42 @@
           </div>
         </v-card>
       </v-col>
+
+      <!-- Section 5: 角色联网解析（Online Resolver V1） -->
+      <v-col cols="12">
+        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3">
+          <div class="section-label mb-2">5. 角色联网解析</div>
+          <div class="d-flex align-center justify-space-between py-1">
+            <div class="text-caption">未知角色自动联网查询（Tag 数据源 + 本地 LLM 转写；失败时回退既有 LLM 解析，不中断）</div>
+            <v-switch v-model="form.ONLINE_RESOLVE_ENABLED" color="primary" density="compact" hide-details class="ma-0" />
+          </div>
+          <div class="d-flex align-center justify-space-between py-1 border-t mt-1">
+            <div class="text-caption">查询结果写入本地缓存（之后离线直接复用；manual 手工值永不被覆盖）</div>
+            <v-switch
+              v-model="form.ONLINE_RESOLVE_CACHE_WRITE"
+              color="primary"
+              density="compact"
+              hide-details
+              class="ma-0"
+              :disabled="!form.ONLINE_RESOLVE_ENABLED"
+            />
+          </div>
+          <div class="d-flex align-center justify-space-between py-1 border-t mt-1">
+            <div class="text-caption">多个候选时：询问我（不静默选中第一个）</div>
+            <v-select
+              v-model="form.ONLINE_RESOLVE_AMBIGUOUS"
+              :items="[{ value: 'ask', title: '询问我' }]"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="flex-grow-0 text-caption"
+              style="width: 180px"
+              disabled
+            />
+          </div>
+          <div class="text-caption text-grey mt-2">数据源：Safebooru（gelbooru 系 SFW booru），输出 canonical_tag + series_tag + caption + aliases。</div>
+        </v-card>
+      </v-col>
     </v-row>
 
     <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="2500">
@@ -274,7 +310,11 @@ const form = ref<AppSettings>({
 
   COMFYUI_BASE_URL: 'http://127.0.0.1:8188',
   DEFAULT_SAFETY: 'Safe',
-  GENERATE_TIMEOUT_SECONDS: 300
+  GENERATE_TIMEOUT_SECONDS: 300,
+
+  ONLINE_RESOLVE_ENABLED: false,
+  ONLINE_RESOLVE_CACHE_WRITE: true,
+  ONLINE_RESOLVE_AMBIGUOUS: 'ask'
 })
 
 onMounted(async () => {

@@ -521,3 +521,80 @@ KSampler：**steps 12 / cfg 1 / euler / beta57**（turbo 蒸馏配置）。
 - 验证：playwright DOM 断言 `.lora-check.on` —— `anima\anima-turbo-lora-v0.2` `enabled: true`（带勾号），其余 LoRA 全关。
   截图 `.verify/r12_turbo_default_on.png`。
 
+---
+
+# 第十三轮：Character Online Resolver V1
+
+轻量、local-first 的联网角色元数据解析（canonical_tag + series_tag + caption_name + aliases → 本地缓存）。
+**Semantic Engine 未动**（extractor / SemanticFacts schema / resolver 语义契约 / writer NL 策略均冻结）。
+
+## 在线数据源（实验确定）
+
+- **Safebooru**（gelbooru 系 SFW booru，`https://safebooru.org/`）：gelbooru.com 401 / danbooru 403(Cloudflare)，Safebooru 可达。
+  - tag 搜索 `s=tag&q=index&name_pattern=<子串>`（XML，type=4 角色 tag + 帖数）
+  - post 搜索 `s=post&q=index&json=1&tags=<精确tag>`（JSON，共现 copyright tag）
+- 选择理由：booru tag 即「模型相关 tag 数据源」（训练语料同源），无需 key/agent；实验验证
+  `march 7th→honkai: star rail`（100% 共现）、`suisui→wuthering waves`、`pikachu→pokemon` 稳定。
+- CJK 名用本地 LLM（LM Studio）转写候选 + **独立拼音调用**（去调号/空格，如 穗穗→suisui），
+  拼音精确命中者加权置顶（suisui 压过同音热门 suiseiseki）。非 LLM 自评，无 confidence 系统。
+
+## 查询流程
+
+```
+用户输入角色名 → 角色书命中?(不联网) → Trigger Cache
+  完整(canonical+series) → 直接用
+  canonical 在、缺 series → 在线只补 series
+  完全未知 → 在线解析 → 写缓存（source=online, resolved_at）
+在线失败/离线 → 既有 LLM fallback（解析不中断）
+在线多候选 → 不静默猜 → 返回 candidates 给前端选择（选择后写缓存）
+```
+
+## 数据库新增字段（CharacterTriggerCache，最小扩展）
+
+`series_tag TEXT|null` / `aliases TEXT` / `source TEXT`(manual|online|llm) / `resolved_at DATETIME|null`；
+database.py 增加 legacy 迁移（ALTER TABLE ADD COLUMN，保持 create_all 一致）。
+
+## cache priority / manual override
+
+- 完整缓存 > 在线补齐 > LLM fallback；`source=manual` 时自动联网**只补空字段**、绝不覆盖非空值；
+  用户显式「重新解析并替换」(force/confirm) 才覆盖。PromptWriter / policy 不改 NL 策略。
+
+## Prompt 中 series_tag 注入位置
+
+`policy.compile_positive_prompt` 的 **identification tag 区**（model_character）：
+`march 7th, honkai: star rail`——series 只进 tag 区，**不进自然语言句子**；series 为空时保持 canonical-only；
+Character Book 用户角色不强制加 series。SemanticFacts 未加任何字段（build 时从缓存读 series_tag_map）。
+
+## API
+
+- `POST /api/characters/resolve-online {name, candidate_index?}` → `resolved{result} / ambiguous{candidates} / not_found / offline`
+- `POST /api/prompt/resolve-trigger` 扩展：保存时写 series_tag + `source=manual`；GET 侧返回 series/source
+
+## 设置 / UI
+
+- 设置页新增「5. 角色联网解析」：自动联网查询开关 / 写缓存开关 / 多候选「询问我」（Material 3 风格，保持现有分区）。
+- Studio 角色卡片：每个 model_character 显示 角色 Tag / 作品 Tag / Caption Name（可编辑）+ 来源 + [重新解析]；
+  多候选时行内候选列表，点击选择并写缓存。解析后自动回填缓存值（fetchCachedEntityMeta）。
+
+## 确定性 backend tests（`test_online_resolver.py`，fake source，10/10）
+
+1. 缓存完整 → 不调用在线 2. 缺 series → 只补 series 3. 未知 → 结果写缓存 4. manual 不覆盖(仅补空；force 可覆盖)
+5. 在线失败不破坏 fallback 6. 歧义不自动选第一项 7. series 存在 → tag 区含 canonical+series 8. 空 series → canonical-only
+9. 角色书用户角色不强制在线 10. generic 主体(小狗/猫/车/book/girl1/猫娘)不进入在线解析
+
+## 回归 / 验证
+
+- backend tests：**63 passed**（53 + 10 新增）；`backend_test.py` 56/56；前端 build 通过。
+- 真实 API 冒烟（Safebooru + 本地 LLM，两轮稳定）：
+  - 三月七 → `march 7th / honkai: star rail`（resolved）
+  - 穗穗 → ambiguous，`suisui / wuthering waves` 排第一（拼音加权；用户选择）
+  - kasumi → ambiguous（kantai collection / pokemon）｜皮卡丘 → `pikachu / pokemon`｜不存在角色 → not_found（证据过低≤10 帖）
+- UI：设置页新区块渲染；Studio 卡片 3 输入框 + 重新解析（`.verify/r13_resolver_card.png`）。
+- 用户指示：不跑 90-case 回归（本轮为增量，Semantic Engine 零接触，pytest 全量已绿）。
+
+## 已知边界
+
+- CJK→英文 tag 转写依赖本地 LLM 质量（niche 名可能给出同音错误候选）；拼音精确命中加权缓解，歧义时交用户选择。
+- Safebooru 是 SFW booru；NSFW 角色数据可能稀疏。
+- 小帖数角色（<10 帖）会被判 not_found（证据过低，避免把 LLM 幻觉当结论）。
+

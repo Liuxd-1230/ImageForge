@@ -1,0 +1,1 @@
+"""Character metadata online resolution (V1): tag source + cache + orchestration."""

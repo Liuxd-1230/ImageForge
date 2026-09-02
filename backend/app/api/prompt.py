@@ -35,7 +35,22 @@ async def parse_prompt(
     """Extract semantic entities and statements from user input."""
     provider_type = req.provider or settings.ACTIVE_PROVIDER
     llm = get_llm_provider(provider_type)
-    pipeline = PromptPipeline(session=session, llm_provider=llm)
+    # 角色联网解析（V1）：仅当设置开启时接入；回填失败静默 → 既有 LLM fallback
+    online_resolver = None
+    if settings.ONLINE_RESOLVE_ENABLED:
+        try:
+            from app.services.character_meta.source import BooruTagSource
+            from app.services.character_meta.resolver import OnlineCharacterResolver
+            online_resolver = OnlineCharacterResolver(
+                session=session,
+                source=BooruTagSource(),
+                llm_provider=llm,
+                write_cache=settings.ONLINE_RESOLVE_CACHE_WRITE,
+                model=(target_model or settings.LM_STUDIO_MODEL or None) if provider_type == "lm_studio" else (settings.CLOUD_MODEL or None),
+            )
+        except Exception as e:
+            logger.warning(f"online resolver not wired: {e}")
+    pipeline = PromptPipeline(session=session, llm_provider=llm, online_resolver=online_resolver)
     
     instance_id = None
     target_model = req.model or (settings.LM_STUDIO_MODEL if provider_type == "lm_studio" else settings.CLOUD_MODEL)
@@ -73,22 +88,29 @@ def resolve_trigger(
     req: ResolveTriggerRequest,
     session: Session = Depends(get_session)
 ):
-    """Resolve character trigger for a model character and optionally persist user edit."""
+    """Resolve character trigger for a model character and optionally persist user edit.
+
+    用户手动保存 = source=manual（最高优先级：后续自动联网只补空字段，不覆盖）。"""
     name_clean = req.name.strip()
-    
+
     if req.save_to_cache and req.canonical_tag and req.caption_name:
         stmt = select(CharacterTriggerCache).where(CharacterTriggerCache.name == name_clean)
         existing = session.exec(stmt).first()
         if existing:
             existing.canonical_tag = req.canonical_tag
             existing.caption_name = req.caption_name
+            if req.series_tag is not None:
+                existing.series_tag = req.series_tag or None
+            existing.source = "manual"
             existing.updated_at = datetime.utcnow()
             session.add(existing)
         else:
             new_cache = CharacterTriggerCache(
                 name=name_clean,
                 canonical_tag=req.canonical_tag,
-                caption_name=req.caption_name
+                caption_name=req.caption_name,
+                series_tag=req.series_tag or None,
+                source="manual"
             )
             session.add(new_cache)
         session.commit()
@@ -96,15 +118,20 @@ def resolve_trigger(
             name=name_clean,
             canonical_tag=req.canonical_tag,
             caption_name=req.caption_name,
+            series_tag=req.series_tag or "",
+            source="manual",
             from_cache=True
         )
 
     resolver = CharacterResolver(session=session)
     tag, caption = resolver._lookup_trigger_cache(name_clean)
+    row = session.exec(select(CharacterTriggerCache).where(CharacterTriggerCache.name == name_clean)).first() if tag else None
     return ResolveTriggerResponse(
         name=name_clean,
         canonical_tag=tag or "",
         caption_name=caption or name_clean,
+        series_tag=(row.series_tag or "") if row else "",
+        source=(row.source or "") if row else "",
         from_cache=tag is not None
     )
 

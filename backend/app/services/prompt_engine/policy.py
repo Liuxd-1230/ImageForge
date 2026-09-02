@@ -88,7 +88,8 @@ class PromptPolicy:
         safety: SafetyLevel = "Safe",
         positive_prefix: Optional[str] = "",
         artist_tags: List[str] = None,
-        lora_items: List[LoraBuildItem] = None
+        lora_items: List[LoraBuildItem] = None,
+        series_tag_map: Optional[dict] = None
     ) -> str:
         # 1. Structured Tag Area (Prefix, Safety, Count, Canonical Characters, Artists, LoRA triggers)
         tag_parts: List[str] = []
@@ -110,7 +111,12 @@ class PromptPolicy:
                     char_tags.append(entity.custom_description)
             elif entity.source == "model_character":
                 if entity.canonical_tag and entity.canonical_tag not in ["1girl", "1boy"]:
-                    char_tags.append(self.format_character_tag(entity.canonical_tag))
+                    tag = self.format_character_tag(entity.canonical_tag)
+                    # series/copyright tag（存在时）：只进 identification tag 区，不进自然语言
+                    series = (series_tag_map or {}).get(entity.canonical_tag)
+                    if series and series.strip():
+                        tag = f"{tag}, {series.strip().replace('_', ' ')}"
+                    char_tags.append(tag)
 
         if char_tags:
             tag_parts.append(", ".join(char_tags))

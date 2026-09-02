@@ -45,12 +45,15 @@ class ResolveTriggerRequest(BaseModel):
     name: str
     canonical_tag: Optional[str] = None
     caption_name: Optional[str] = None
+    series_tag: Optional[str] = None
     save_to_cache: bool = False
 
 class ResolveTriggerResponse(BaseModel):
     name: str
     canonical_tag: str
     caption_name: str
+    series_tag: str = ""
+    source: str = ""
     from_cache: bool
 
 class LoraBuildItem(BaseModel):

@@ -1,11 +1,61 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-from typing import List
+from pydantic import BaseModel
+from typing import List, Optional, Any
 from datetime import datetime
 from app.database import get_session
+from app.config import settings
 from app.models.character import Character, CharacterCreate, CharacterUpdate, CharacterRead
+from app.services.character_meta.source import BooruTagSource
+from app.services.character_meta.resolver import OnlineCharacterResolver
+from app.services.llm.lm_studio import LMStudioProvider
 
 router = APIRouter(prefix="/characters", tags=["characters"])
+
+
+class ResolveOnlineRequest(BaseModel):
+    name: str
+    candidate_index: Optional[int] = None  # 多候选时用户选中的下标（确认后写缓存）
+    force: bool = False                    # True = “重新解析并替换”（可覆盖 manual）
+
+
+def _build_online_resolver(session: Session) -> OnlineCharacterResolver:
+    llm = None
+    try:
+        llm = LMStudioProvider(base_url=settings.LM_STUDIO_BASE_URL, api_key=settings.LM_STUDIO_API_KEY)
+    except Exception:
+        llm = None
+    return OnlineCharacterResolver(
+        session=session,
+        source=BooruTagSource(),
+        llm_provider=llm,
+        write_cache=settings.ONLINE_RESOLVE_CACHE_WRITE,
+        model=settings.LM_STUDIO_MODEL or None,
+    )
+
+
+@router.post("/resolve-online")
+async def resolve_online(req: ResolveOnlineRequest, session: Session = Depends(get_session)):
+    """Character metadata online lookup (V1).
+
+    status: resolved | ambiguous | not_found | offline
+    唯一结果 → 直接写缓存；多候选 → 返回 candidates，由前端让用户选择后
+    带 candidate_index 再次调用确认并写缓存。"""
+    name = (req.name or "").strip()
+    if not name:
+        return {"status": "offline", "reason": "empty name"}
+    resolver = _build_online_resolver(session)
+    try:
+        outcome = await resolver.resolve(name)
+    except Exception as e:
+        return {"status": "offline", "reason": f"{type(e).__name__}: {str(e)[:120]}"}
+
+    if outcome.get("status") == "ambiguous" and req.candidate_index is not None:
+        cands = outcome.get("candidates") or []
+        if 0 <= req.candidate_index < len(cands):
+            confirmed = await resolver.confirm(name, cands[req.candidate_index])
+            return confirmed
+    return outcome
 
 @router.get("", response_model=List[CharacterRead])
 def get_characters(session: Session = Depends(get_session)):

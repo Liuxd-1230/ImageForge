@@ -236,11 +236,12 @@
                       <span class="pd-source-badge">{{ sourceLabel(entity) }}</span>
                     </div>
 
-                    <!-- 只突出有问题的人物，给出手动填写入口 -->
-                    <div v-if="isEntityUnresolved(entity)" class="pd-trigger-fix">
-                      <p class="pd-trigger-hint">未能自动识别该角色的 Trigger，请手动填写：</p>
+                    <!-- 角色 Trigger / 作品 Tag / Caption（可查看/编辑/联网解析） -->
+                    <div v-if="entity.source === 'model_character'" :class="['pd-trigger-fix', { unresolved: isEntityUnresolved(entity) }]">
+                      <p v-if="isEntityUnresolved(entity)" class="pd-trigger-hint">未能自动识别该角色的 Trigger，请手动填写或联网解析：</p>
                       <div class="pd-trigger-fields">
-                        <input v-model="entity.canonical_tag" class="pd-trigger-input mono" placeholder="Canonical Tag（如: suisui）" />
+                        <input v-model="entity.canonical_tag" class="pd-trigger-input mono" placeholder="角色 Tag（如: suisui）" />
+                        <input v-model="seriesInput[entity.name]" class="pd-trigger-input mono" placeholder="作品 Tag（如: wuthering waves）" />
                         <input v-model="entity.caption_name" class="pd-trigger-input mono" placeholder="Caption Name（如: Suisui）" />
                         <button
                           type="button"
@@ -251,10 +252,29 @@
                           保存
                         </button>
                       </div>
+                      <div class="pd-trigger-ops">
+                        <span class="pd-source-badge">来源: {{ entitySourceLabel(entity.name) }}</span>
+                        <button type="button" class="mini-btn" :disabled="resolvingNames[entity.name]" @click="resolveOnline(entity)">
+                          {{ resolvingNames[entity.name] ? '解析中…' : '重新解析' }}
+                        </button>
+                      </div>
+                      <div v-if="onlineCands[entity.name]?.length" class="pd-cands">
+                        <div
+                          v-for="(c, i) in onlineCands[entity.name]"
+                          :key="i"
+                          class="pd-cand-row"
+                          @click="pickCandidate(entity, i, c)"
+                        >
+                          <span class="mono">{{ c.canonical_tag }}</span>
+                          <span v-if="c.series_tag" class="mono text-grey"> / {{ c.series_tag }}</span>
+                          <span v-if="c.caption_name" class="mono pd-cand-cap">{{ c.caption_name }}</span>
+                        </div>
+                        <div class="text-caption text-grey mt-1">多个候选：选择其一后写入缓存</div>
+                      </div>
+                      <div v-if="onlineMsg[entity.name]" class="pd-cand-msg text-caption">{{ onlineMsg[entity.name] }}</div>
                     </div>
-                    <div v-else-if="entity.source === 'model_character'" class="pd-entity-tags">
-                      <span class="pd-tag mono">Tag: <b>{{ entity.canonical_tag }}</b></span>
-                      <span class="pd-tag mono">Caption: <b>{{ entity.caption_name }}</b></span>
+                    <div v-else class="pd-entity-tags">
+                      <span class="pd-tag mono">角色书: <b>{{ entity.name }}</b></span>
                     </div>
                   </div>
                 </div>
@@ -740,7 +760,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useStudioStore, type ActiveLoraItem } from '../stores/studio'
 import { usePresetStore } from '../stores/presets'
 import { useSettingsStore } from '../stores/settings'
@@ -1028,6 +1048,11 @@ watch(hasUnresolvedTrigger, v => {
   if (v) parseOpen.value = true
 }, { immediate: true })
 
+// 解析完成后回填已缓存的角色元数据（角色/作品 Tag/Caption/来源）
+watch(() => studioStore.facts.entities.map(e => e.id).join(','), async () => {
+  await loadEntityMetas()
+})
+
 function sourceLabel(e: Entity) {
   return e.source === 'user_defined'
     ? '用户角色书'
@@ -1238,7 +1263,8 @@ function downloadImage(url: string) {
 
 async function saveEntityTrigger(entity: Entity) {
   try {
-    await studioStore.saveEntityTrigger(entity)
+    await studioStore.saveEntityTrigger(entity, seriesInput[entity.name] || '')
+    entitySource[entity.name] = 'manual'
     const remainingUnresolved = studioStore.facts.entities.filter(
       e => e.source === 'model_character' && !e.canonical_tag,
     )
@@ -1254,6 +1280,97 @@ async function saveEntityTrigger(entity: Entity) {
     snackbarText.value = `保存 Trigger 失败: ${err.response?.data?.detail || err.message || '网络请求异常'}`
     snackbarColor.value = 'error'
     snackbar.value = true
+  }
+}
+
+/* ── 角色联网解析（V1）UI 状态与动作 ── */
+const seriesInput = reactive<Record<string, string>>({})
+const onlineCands = reactive<Record<string, any[]>>({})
+const resolvingNames = reactive<Record<string, boolean>>({})
+const onlineMsg = reactive<Record<string, string>>({})
+const entitySource = reactive<Record<string, string>>({})
+
+function entitySourceLabel(name: string): string {
+  const s = entitySource[name]
+  if (s === 'manual') return 'manual（手工，联网不覆盖）'
+  if (s === 'online') return 'online'
+  if (s === 'llm') return 'llm'
+  if (!s) return '—'
+  return s
+}
+
+async function resolveOnline(entity: Entity) {
+  const name = entity.name || ''
+  resolvingNames[name] = true
+  onlineMsg[name] = ''
+  try {
+    const d = await studioStore.resolveOnlineCharacter(name)
+    if (d.status === 'resolved' && d.result) {
+      entity.canonical_tag = d.result.canonical_tag
+      entity.caption_name = d.result.caption_name || entity.caption_name
+      seriesInput[name] = d.result.series_tag || ''
+      entitySource[name] = 'online'
+      onlineCands[name] = []
+      snackbarText.value = `联网解析成功：${d.result.canonical_tag}${d.result.series_tag ? ' / ' + d.result.series_tag : ''}`
+      snackbarColor.value = 'success'
+      snackbar.value = true
+    } else if (d.status === 'ambiguous') {
+      onlineCands[name] = d.candidates || []
+      onlineMsg[name] = '发现多个候选，请选择其一'
+    } else if (d.status === 'not_found') {
+      onlineCands[name] = []
+      onlineMsg[name] = '未找到该角色的可靠 Tag 信息'
+    } else {
+      onlineCands[name] = []
+      onlineMsg[name] = '联网解析不可用（离线 / 数据源失败）'
+    }
+  } catch (err: any) {
+    onlineMsg[name] = `联网解析失败: ${err.response?.data?.detail || err.message || '网络请求异常'}`
+  } finally {
+    resolvingNames[name] = false
+  }
+}
+
+async function pickCandidate(entity: Entity, idx: number, cand: any) {
+  const name = entity.name || ''
+  try {
+    const d = await studioStore.resolveOnlineCharacter(name, idx)
+    if (d.status === 'resolved' && d.result) {
+      entity.canonical_tag = d.result.canonical_tag
+      entity.caption_name = d.result.caption_name || entity.caption_name
+      seriesInput[name] = d.result.series_tag || ''
+      entitySource[name] = 'online'
+    } else {
+      entity.canonical_tag = cand.canonical_tag
+      entity.caption_name = cand.caption_name || entity.caption_name
+      seriesInput[name] = cand.series_tag || ''
+    }
+    onlineCands[name] = []
+    onlineMsg[name] = '已选择并写入缓存'
+    snackbarText.value = `已选择角色【${name}】的 Tag 并写入缓存`
+    snackbarColor.value = 'success'
+    snackbar.value = true
+  } catch (err: any) {
+    onlineMsg[name] = `写入失败: ${err.response?.data?.detail || err.message || '网络请求异常'}`
+  }
+}
+
+/** 解析完成后回填已缓存的角色元数据（角色/作品 Tag/Caption/来源）。 */
+async function loadEntityMetas() {
+  for (const e of studioStore.facts.entities) {
+    if (e.source !== 'model_character') continue
+    const name = e.name || ''
+    if (seriesInput[name] !== undefined) continue // 已初始化过
+    const meta = await studioStore.fetchCachedEntityMeta(name)
+    if (meta && meta.from_cache) {
+      if (!e.canonical_tag) e.canonical_tag = meta.canonical_tag || ''
+      if (!e.caption_name) e.caption_name = meta.caption_name || ''
+      seriesInput[name] = meta.series_tag || ''
+      entitySource[name] = meta.source || ''
+    } else {
+      seriesInput[name] = ''
+      entitySource[name] = meta ? (meta.source || '') : ''
+    }
   }
 }
 
@@ -2168,6 +2285,41 @@ function clearDraftWorkbench() {
 .pd-trigger-save:disabled {
   opacity: 0.45;
   cursor: default;
+}
+.pd-trigger-ops {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pd-cands {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pd-cand-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.35);
+  border-radius: 9px;
+  background: rgba(var(--v-theme-primary), 0.06);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pd-cand-row:hover {
+  background: rgba(var(--v-theme-primary), 0.12);
+}
+.pd-cand-cap {
+  margin-left: auto;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+.pd-cand-msg {
+  margin-top: 7px;
+  color: rgb(var(--v-theme-on-surface-variant));
 }
 .pd-statement {
   display: flex;
