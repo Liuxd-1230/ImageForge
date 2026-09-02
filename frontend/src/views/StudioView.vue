@@ -431,6 +431,49 @@
                 </div>
               </div>
 
+              <!-- Seed 三态（A2）：每次随机 / 固定当前 / 使用上一张 -->
+              <div class="adv-field">
+                <div class="seed-head">
+                  <span class="param-label">Seed</span>
+                  <div class="seed-mode">
+                    <button
+                      type="button"
+                      :class="['seed-mode-btn', { on: seedMode === 'random' }]"
+                      @click="setSeedRandom"
+                    >每次随机</button>
+                    <button
+                      type="button"
+                      :class="['seed-mode-btn', { on: seedMode === 'fixed' }]"
+                      @click="seedMode = 'fixed'"
+                    >固定当前</button>
+                  </div>
+                </div>
+                <div class="seed-row">
+                  <input
+                    v-model="seedInput"
+                    type="number"
+                    class="size-input"
+                    min="0"
+                    :disabled="seedMode === 'random'"
+                    :placeholder="seedMode === 'random' ? '随机' : ''"
+                    @change="commitSeedInput"
+                  />
+                  <button type="button" class="size-icon-btn" title="随机一个新 seed 并固定" @click="rollSeed">
+                    <span class="mdi mdi-dice-5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="use-last-btn"
+                    :disabled="lastSnapshotSeed == null"
+                    title="使用上一张图片实际使用的 seed"
+                    @click="useLastSeed"
+                  >
+                    使用上一张{{ lastSnapshotSeed != null ? ` · ${lastSnapshotSeed}` : '' }}
+                  </button>
+                </div>
+                <p v-if="seedHint" class="seed-hint">{{ seedHint }}</p>
+              </div>
+
               <!-- Workflow -->
               <div class="adv-field">
                 <span class="param-label">Workflow</span>
@@ -493,6 +536,15 @@
           </button>
           <div v-if="studioStore.isGenerating" class="gen-status">
             {{ stageLabel }}
+            <div class="gen-actions">
+              <button type="button" class="gen-ghost-btn" @click="studioStore.stopWaiting()">停止等待</button>
+              <button
+                v-if="studioStore.generationIsRunning"
+                type="button"
+                class="gen-ghost-btn danger"
+                @click="askInterrupt"
+              >中断生成</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -510,19 +562,25 @@
               />
             </div>
             <div class="canvas-toolbar">
-              <span class="toolbar-meta mono">
-                {{ studioStore.width }} × {{ studioStore.height }} · Seed {{ displaySeed }} · {{ studioStore.steps }} Steps
-              </span>
+              <div class="toolbar-meta-group">
+                <span class="toolbar-meta mono">{{ canvasMeta }}</span>
+                <span v-if="studioStore.generationPersisted" class="archived-pill">已归档</span>
+              </div>
               <span class="toolbar-divider" />
-              <button type="button" class="toolbar-btn" @click="openImagePreview(studioStore.generatedImageUrl)">
-                <span class="mdi mdi-magnify-plus-outline" />放大
-              </button>
-              <button type="button" class="toolbar-btn" @click="downloadImage(studioStore.generatedImageUrl)">
-                <span class="mdi mdi-tray-arrow-down" />保存
-              </button>
-              <button type="button" class="toolbar-btn strong" :disabled="studioStore.isGenerating" @click="studioStore.generateImage()">
-                <span class="mdi mdi-refresh" />再生成
-              </button>
+              <div class="toolbar-actions">
+                <button type="button" class="toolbar-btn" @click="openImagePreview(studioStore.generatedImageUrl)">
+                  <span class="mdi mdi-magnify-plus-outline" />放大
+                </button>
+                <button type="button" class="toolbar-btn" @click="downloadImage(studioStore.generatedImageUrl)">
+                  <span class="mdi mdi-tray-arrow-down" />导出
+                </button>
+                <button v-if="lastSnapshotSeed != null" type="button" class="toolbar-btn" title="固定使用当前图片的 seed" @click="useLastSeed">
+                  <span class="mdi mdi-pin-outline" />使用此 Seed
+                </button>
+                <button type="button" class="toolbar-btn strong" :disabled="studioStore.isGenerating" @click="studioStore.generateImage()">
+                  <span class="mdi mdi-refresh" />再生成
+                </button>
+              </div>
             </div>
             <p v-if="errorMessage" class="canvas-error mono">{{ errorMessage }}</p>
           </template>
@@ -530,10 +588,27 @@
           <div v-else-if="studioStore.isGenerating" class="canvas-empty">
             <div class="canvas-progress">
               <div class="canvas-progress-track">
-                <div class="canvas-progress-fill indeterminate" />
+                <div
+                  class="canvas-progress-fill"
+                  :class="{ indeterminate: !realProgress }"
+                  :style="realProgress ? { width: progressPct + '%' } : {}"
+                />
               </div>
+              <span v-if="realProgress" class="canvas-progress-text mono">
+                {{ studioStore.generationProgressValue }} / {{ studioStore.generationProgressMax }}
+              </span>
             </div>
             <p class="canvas-empty-caption">{{ stageLabel }}</p>
+            <p class="canvas-gen-msg">{{ studioStore.generationMessage }}</p>
+            <div class="canvas-gen-actions">
+              <button type="button" class="gen-ghost-btn" @click="studioStore.stopWaiting()">停止等待</button>
+              <button
+                v-if="studioStore.generationIsRunning"
+                type="button"
+                class="gen-ghost-btn danger"
+                @click="askInterrupt"
+              >中断生成</button>
+            </div>
           </div>
 
           <div v-else class="canvas-empty">
@@ -541,7 +616,14 @@
               <span class="mdi mdi-image-outline" />
             </div>
             <p class="canvas-empty-caption">尚未生成</p>
-            <p v-if="errorMessage" class="canvas-error mono">{{ errorMessage }}</p>
+            <template v-if="studioStore.generationError">
+              <p class="canvas-error">{{ studioStore.generationError.summary }}</p>
+              <button type="button" class="err-detail-toggle" @click="errorDetailOpen = !errorDetailOpen">
+                {{ errorDetailOpen ? '收起详情' : '查看详情' }}
+              </button>
+              <pre v-if="errorDetailOpen" class="err-detail mono">{{ studioStore.generationError.detail }}</pre>
+            </template>
+            <p v-else-if="errorMessage" class="canvas-error mono">{{ errorMessage }}</p>
           </div>
         </div>
       </main>
@@ -632,6 +714,24 @@
       </div>
     </v-dialog>
 
+    <!-- ── 中断生成确认 Dialog（ComfyUI 0.34 仅全局 interrupt） ── -->
+    <v-dialog v-model="interruptDialog" max-width="440px">
+      <div class="interrupt-dialog">
+        <div class="dialog-head">
+          <span class="dialog-title">中断生成</span>
+        </div>
+        <p class="interrupt-text">
+          当前 ComfyUI 版本只提供「全局 interrupt」，将中断 ComfyUI 当前正在执行的任务
+          （当前运行的正是本次 ImageForge 任务）。若 ComfyUI 同时有其他任务在跑，也会被一并中断。
+          确认中断？
+        </p>
+        <div class="dialog-foot">
+          <button type="button" class="dialog-done ghost" @click="interruptDialog = false">取消</button>
+          <button type="button" class="dialog-done danger" @click="confirmInterrupt">确认中断</button>
+        </div>
+      </div>
+    </v-dialog>
+
     <!-- ── Snackbar ── -->
     <v-snackbar v-model="snackbar" :timeout="2500" :color="snackbarColor">
       {{ snackbarText }}
@@ -672,15 +772,63 @@ const heightInput = ref<number>(studioStore.height)
 const lockAspect = ref(false)
 let lockedRatio: number | null = null
 const sizePresets = [
+  { label: '人像 1024×1536', w: 1024, h: 1536 },
+  { label: '横版 1536×1024', w: 1536, h: 1024 },
+  { label: '方形 1152×1152', w: 1152, h: 1152 },
   { label: '812×1216', w: 812, h: 1216 },
   { label: '1152×1536', w: 1152, h: 1536 },
-  { label: '1536×1536', w: 1536, h: 1536 },
 ]
+
+/* ── Seed 三态（A2/A3）：随机 / 固定 / 使用上一张 ── */
+const seedInput = ref<number | ''>(studioStore.seed === -1 ? '' : studioStore.seed)
+watch(() => studioStore.seed, v => { seedInput.value = v === -1 ? '' : v })
+const seedMode = computed(() => (studioStore.seed === -1 ? 'random' : 'fixed'))
+const lastSnapshotSeed = computed(() => {
+  const s = studioStore.lastGenerationSnapshot
+  if (s && typeof s.seed === 'number' && s.seed >= 0) return s.seed
+  if (studioStore.lastGeneratedSeed != null && studioStore.lastGeneratedSeed >= 0) return studioStore.lastGeneratedSeed
+  return null
+})
+const seedHint = computed(() => {
+  if (seedMode.value === 'random') return '每次生成使用新的随机 seed（"再生成"也会换新）'
+  if (studioStore.lastGeneratedSeed != null) return `固定 seed：${studioStore.seed}。微调 Prompt/LoRA/参数后可复现比较。`
+  return '固定 seed：连续生成使用相同 seed，便于可控比较。'
+})
+function setSeedRandom() {
+  studioStore.seed = -1
+}
+function commitSeedInput() {
+  const v = Math.round(Number(seedInput.value) || 0)
+  const clamped = Math.max(0, Math.min(2147483647, v))
+  studioStore.seed = clamped
+  seedInput.value = clamped
+}
+function rollSeed() {
+  const s = Math.floor(Math.random() * 1000000000)
+  studioStore.seed = s
+  seedInput.value = s
+}
+function useLastSeed() {
+  const s = lastSnapshotSeed.value
+  if (s == null) return
+  studioStore.seed = s
+  seedInput.value = s
+}
 
 const snackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('primary')
 const workflowFileInput = ref<HTMLInputElement | null>(null)
+const interruptDialog = ref(false)
+const errorDetailOpen = ref(false)
+
+function askInterrupt() {
+  interruptDialog.value = true
+}
+async function confirmInterrupt() {
+  interruptDialog.value = false
+  await studioStore.interruptGeneration()
+}
 
 /* ── Safety segmented control ── */
 const safetyOptions: { label: string; value: SafetyLevel }[] = [
@@ -897,17 +1045,36 @@ function getEntityName(entityId: string | null | undefined): string {
 }
 
 /* ── Canvas helpers ── */
-const displaySeed = computed(() =>
-  studioStore.seed === -1 || !studioStore.seed ? '随机' : String(studioStore.seed),
-)
+/** 上一张已完成图片的真实 metadata（A1/A9：来自快照，不用当前 UI 参数）。 */
+const canvasMeta = computed(() => {
+  const s = studioStore.lastGenerationSnapshot
+  if (!s) return ''
+  return `${s.width} × ${s.height} · Seed ${s.seed >= 0 ? s.seed : '—'} · ${s.steps} Steps`
+})
 const stageLabel = computed(() => {
   const s = studioStore.generationStage
   if (s === 'preparing') return '准备工作流…'
-  if (s === 'submitted') return '已提交 · ComfyUI 生成中…'
+  if (s === 'queued') return '队列中…'
+  if (s === 'running') return '生成中…'
+  if (s === 'saving') return '保存到本地…'
   if (s === 'done') return '生成完成'
-  if (s === 'timeout') return '等待超时'
+  if (s === 'cancelled') return '已中断'
+  if (s === 'timeout') return '停止等待'
   if (s === 'error') return '生成失败'
   return studioStore.generationMessage || '生成中…'
+})
+/** 真实 KSampler 进度（拿不到就 indeterminate，绝不造假百分比）。 */
+const realProgress = computed(() =>
+  studioStore.generationStage === 'running'
+  && studioStore.generationProgressMax != null
+  && studioStore.generationProgressValue != null
+  && studioStore.generationProgressMax > 0,
+)
+const progressPct = computed(() => {
+  const m = studioStore.generationProgressMax
+  const v = studioStore.generationProgressValue
+  if (!m) return 0
+  return Math.min(100, Math.round(((v ?? 0) / m) * 100))
 })
 const errorMessage = computed(() => {
   const m = studioStore.generationMessage
@@ -2277,7 +2444,12 @@ function clearDraftWorkbench() {
   margin-bottom: 7px;
 }
 .size-head .param-label { margin-bottom: 0; }
-.size-presets { display: flex; gap: 6px; }
+.size-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
 .size-chip {
   padding: 5px 10px;
   border: 1px solid rgb(var(--v-theme-outline-variant));
@@ -2341,6 +2513,93 @@ function clearDraftWorkbench() {
   font-size: 12px;
   font-weight: 600;
   color: rgb(var(--v-theme-warning));
+}
+
+/* ── Seed 三态 ── */
+.seed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.seed-head .param-label { margin-bottom: 0; }
+.seed-mode {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgb(var(--v-theme-surface-container));
+}
+.seed-mode-btn {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface-variant));
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-emphasized),
+    color var(--motion-fast) var(--motion-emphasized);
+}
+.seed-mode-btn.on {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.seed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.use-last-btn {
+  flex-shrink: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 10px 14px;
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 10px;
+  background: rgb(var(--v-theme-surface-container-low));
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+}
+.use-last-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.seed-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+
+/* ── 中断确认 ── */
+.interrupt-dialog {
+  background: rgb(var(--v-theme-surface));
+  border-radius: 24px;
+  overflow: hidden;
+}
+.interrupt-text {
+  margin: 0;
+  padding: 0 24px 4px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+.dialog-done.ghost {
+  background: rgb(var(--v-theme-surface-container));
+  color: rgb(var(--v-theme-on-surface));
+}
+.dialog-done.danger {
+  background: rgb(var(--v-theme-error-container));
+  color: rgb(var(--v-theme-error));
 }
 .wf-import {
   margin-top: 10px;
@@ -2452,6 +2711,34 @@ function clearDraftWorkbench() {
   text-align: center;
   font-size: 12.5px;
   color: rgb(var(--v-theme-on-surface-variant));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.gen-actions {
+  display: flex;
+  gap: 8px;
+}
+.gen-ghost-btn {
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 999px;
+  background: rgb(var(--v-theme-surface-container));
+  color: rgb(var(--v-theme-on-surface-variant));
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-emphasized);
+}
+.gen-ghost-btn:hover {
+  background: rgb(var(--v-theme-surface-container-high));
+}
+.gen-ghost-btn.danger {
+  border-color: rgb(var(--v-theme-error-container));
+  background: rgb(var(--v-theme-error-container));
+  color: rgb(var(--v-theme-error));
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2540,6 +2827,47 @@ function clearDraftWorkbench() {
   font-weight: 700;
   color: rgb(var(--v-theme-primary));
 }
+.canvas-gen-msg {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+.canvas-gen-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.err-detail-toggle {
+  margin-top: 12px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.err-detail-toggle:hover {
+  background: rgb(var(--v-theme-primary-container));
+}
+.err-detail {
+  margin: 10px auto 0;
+  max-width: 640px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgb(var(--v-theme-surface-container));
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: left;
+  color: rgb(var(--v-theme-on-surface-variant));
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 
 .canvas-img-wrap {
   flex: 1;
@@ -2574,6 +2902,27 @@ function clearDraftWorkbench() {
   font-size: 12.5px;
   color: rgb(var(--v-theme-on-surface-variant));
   white-space: nowrap;
+}
+.toolbar-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.archived-pill {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(var(--v-theme-primary-container));
+  color: rgb(var(--v-theme-on-primary-container));
+  font-size: 11px;
+  font-weight: 650;
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
 }
 .toolbar-divider {
   width: 1px;

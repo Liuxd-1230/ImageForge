@@ -8,6 +8,23 @@ export interface ActiveLoraItem {
   isEnabled: boolean;
 }
 
+/** 一次生成提交时的参数快照（A9）：任务提交后改 Studio 参数不污染已完成图片的 metadata。 */
+export interface GenerationSnapshot {
+  prompt: string;
+  negativePrompt: string;
+  seed: number;
+  width: number;
+  height: number;
+  steps: number;
+  cfg: number;
+  sampler: string;
+  scheduler: string;
+  safety: SafetyLevel;
+  artists: Artist[];
+  loras: ActiveLoraItem[];
+  submittedAt: number;
+}
+
 export const useStudioStore = defineStore('studio', {
   state: () => ({
     isInitialized: false,
@@ -61,12 +78,22 @@ export const useStudioStore = defineStore('studio', {
     steps: 28,
     cfg: 4.5,
     seed: -1,
+    lastGeneratedSeed: null as number | null,
     generatedImageUrl: '' as string,
     generationComfyUrl: '' as string,
     generationPersisted: false,
     generationProgress: 0,
-    generationStage: 'idle' as 'idle' | 'preparing' | 'submitted' | 'done' | 'timeout' | 'error',
+    generationStage: 'idle' as 'idle' | 'preparing' | 'queued' | 'running' | 'saving' | 'done' | 'timeout' | 'error' | 'cancelled',
     generationMessage: '',
+    generationQueuePosition: null as number | null,
+    generationProgressValue: null as number | null,
+    generationProgressMax: null as number | null,
+    generationIsRunning: false,
+    generationError: null as { kind?: string; summary: string; detail: string } | null,
+    activePromptId: '' as string,
+    activeGenerationSnapshot: null as GenerationSnapshot | null,
+    lastGenerationSnapshot: null as GenerationSnapshot | null,
+    _generationAbort: false,
     
     // Loading Flags
     isParsing: false,
@@ -137,6 +164,28 @@ export const useStudioStore = defineStore('studio', {
           if (params.sampler_name) this.samplerName = params.sampler_name
           if (params.scheduler) this.scheduler = params.scheduler
           if (params.seed !== undefined) this.seed = params.seed
+
+          // A4：恢复该次生成真正使用的 seed（有具体值才是"固定"，-1 表示随机策略）
+          if (typeof params.seed === 'number' && params.seed >= 0) {
+            this.lastGeneratedSeed = params.seed
+          }
+
+          // A4：依据恢复的参数重建"上一张"快照，Canvas metadata 显示历史真实值
+          this.lastGenerationSnapshot = {
+            prompt: this.positivePrompt,
+            negativePrompt: this.negativePrompt,
+            seed: typeof params.seed === 'number' && params.seed >= 0 ? params.seed : -1,
+            width: params.width ?? this.width,
+            height: params.height ?? this.height,
+            steps: params.steps ?? this.steps,
+            cfg: params.cfg ?? this.cfg,
+            sampler: params.sampler_name ?? this.samplerName,
+            scheduler: params.scheduler ?? this.scheduler,
+            safety: (item.safety as SafetyLevel) || 'Safe',
+            artists: (() => { try { return JSON.parse(item.artists_json || '[]') } catch { return [] } })(),
+            loras: (() => { try { return JSON.parse(item.loras_json || '[]') } catch { return [] } })(),
+            submittedAt: Date.now(),
+          }
 
           if (params.studio) {
             if (params.studio.selectedPresetId !== undefined) this.selectedPresetId = params.studio.selectedPresetId
@@ -354,13 +403,35 @@ export const useStudioStore = defineStore('studio', {
         return
       }
 
+      // ── 生成快照（A9）：提交前定格本次真实参数，之后改 Studio 参数不污染已完成图片 ──
+      const actualSeed = this.seed === -1 ? Math.floor(Math.random() * 1000000000) : this.seed
+      const snapshot: GenerationSnapshot = {
+        prompt: this.positivePrompt,
+        negativePrompt: this.negativePrompt,
+        seed: actualSeed,
+        width: this.width,
+        height: this.height,
+        steps: this.steps,
+        cfg: this.cfg,
+        sampler: this.samplerName,
+        scheduler: this.scheduler,
+        safety: this.safety,
+        artists: this.selectedArtists.map(a => ({ ...a })),
+        loras: this.activeLoras.filter(i => i.isEnabled).map(i => ({ lora: { ...i.lora }, strength: i.strength, isEnabled: true })),
+        submittedAt: Date.now(),
+      }
+      this.activeGenerationSnapshot = snapshot
+      this.generationError = null
+      this.generationQueuePosition = null
+      this.generationProgressValue = null
+      this.generationProgressMax = null
+      this.generationIsRunning = false
+      this.generationPersisted = false
+      this._generationAbort = false
       this.isGenerating = true
       this.generationProgress = 10
       this.generationStage = 'preparing'
       this.generationMessage = '正在组装工作流并提交 ComfyUI…'
-      this.generationPersisted = false
-
-      const actualSeed = this.seed === -1 ? Math.floor(Math.random() * 1000000000) : this.seed
 
       try {
         const loraItems = this.activeLoras
@@ -398,94 +469,180 @@ export const useStudioStore = defineStore('studio', {
         })
 
         const promptId = resp.data.prompt_id
-        this.generationProgress = 30
-        this.generationStage = 'submitted'
-        this.generationMessage = '已提交，ComfyUI 正在生成…'
+        this.activePromptId = promptId
+        this.generationStage = 'queued'
+        this.generationMessage = '已提交，等待队列…'
 
         // 可配置超时（默认 300s），前端停止等待≠任务已取消
         const timeoutMs = (this.generateTimeoutSeconds || 300) * 1000
         const startedAt = Date.now()
-        let done = false
-        while (!done && Date.now() - startedAt < timeoutMs) {
-          await new Promise(r => setTimeout(r, 1500))
-          if (Date.now() - startedAt >= timeoutMs) break
+        let terminal = false
+        while (!terminal && !this._generationAbort && Date.now() - startedAt < timeoutMs) {
+          await new Promise(r => setTimeout(r, 1000))
+          if (this._generationAbort) break
+          let st: any = null
           try {
-            const histResp = await axios.get(`/api/comfyui/history/${promptId}`)
-            const histData = histResp.data[promptId]
-            if (histData && histData.outputs) {
-              for (const nodeId in histData.outputs) {
-                const nodeOut = histData.outputs[nodeId]
-                if (nodeOut.images && nodeOut.images.length > 0) {
-                  const img = nodeOut.images[0]
-                  done = true
-                  this.generationStage = 'done'
-                  // 保存到 ImageForge 自己的 data/generated；失败不伪装成完整成功
-                  try {
-                    this.generationMessage = '生成完成，正在保存到本地…'
-                    const persist = await axios.post('/api/comfyui/persist-image', {
-                      filename: img.filename,
-                      subfolder: img.subfolder,
-                      type: img.type,
-                    })
-                    this.generatedImageUrl = persist.data.image_path
-                    this.generationComfyUrl = persist.data.comfy_view_url
-                    this.generationPersisted = true
-                    this.generationMessage = '生成完成！'
-                  } catch {
-                    this.generatedImageUrl = `/api/comfyui/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`
-                    this.generationComfyUrl = this.generatedImageUrl
-                    this.generationPersisted = false
-                    this.generationMessage = '图片已生成，但本地历史归档失败——历史记录当前依赖 ComfyUI output（清理 ComfyUI output 后历史图片可能失效）。'
-                  }
-                  this.generationProgress = 100
-                  await this.saveHistory(promptId, actualSeed)
-                  break
-                }
-              }
+            st = (await axios.get(`/api/comfyui/status/${promptId}`)).data
+          } catch {
+            continue
+          }
+
+          if (st.stage === 'queued') {
+            this.generationStage = 'queued'
+            this.generationIsRunning = false
+            this.generationQueuePosition = st.queue_position
+            this.generationMessage = st.queue_position != null && st.queue_position > 0
+              ? `队列中 · 前方 ${st.queue_position} 个任务`
+              : '队列中…'
+          } else if (st.stage === 'running') {
+            this.generationStage = 'running'
+            this.generationIsRunning = !!st.is_running
+            this.generationProgressValue = st.progress_value
+            this.generationProgressMax = st.progress_max
+            this.generationMessage = st.progress_max
+              ? `生成中 ${st.progress_value ?? 0} / ${st.progress_max}`
+              : '生成中…'
+          } else if (st.stage === 'done') {
+            this.generationStage = 'saving'
+            this.generationIsRunning = false
+            this.generationMessage = '生成完成，正在保存到本地…'
+            if (await this.finishGeneration(promptId, actualSeed, snapshot)) {
+              terminal = true
+              break
             }
-          } catch (e) {
-            console.warn('Waiting for ComfyUI task...', e)
+            // history 尚未就绪（done 消息先于 history 落库）——继续轮询
+            this.generationStage = 'running'
+          } else if (st.stage === 'error') {
+            this.generationStage = 'error'
+            this.generationIsRunning = false
+            this.generationMessage = st.error_summary || '生成失败'
+            this.generationError = {
+              kind: st.error_type,
+              summary: st.error_summary || '生成失败',
+              detail: st.error_detail || '',
+            }
+            terminal = true
+          } else if (st.stage === 'cancelled') {
+            this.generationStage = 'cancelled'
+            this.generationMessage = '已中断'
+            terminal = true
           }
         }
 
-        if (!done) {
+        if (!terminal) {
           this.generationProgress = 0
           this.generationStage = 'timeout'
-          const waited = Math.round(timeoutMs / 1000)
-          this.generationMessage = `已等待 ${waited} 秒未收到结果。前端已停止等待，但这不代表 ComfyUI 任务已取消——任务可能仍在后台生成。请先到 ComfyUI 队列确认，再决定是否重试，避免重复提交。`
+          if (this._generationAbort) {
+            this.generationMessage = '已停止等待。ComfyUI 任务可能仍在后台运行（停止等待 ≠ 取消任务），请到 ComfyUI 队列确认后再决定是否重试。'
+          } else {
+            const waited = Math.round(timeoutMs / 1000)
+            this.generationMessage = `已等待 ${waited} 秒未收到结果。前端已停止等待，但这不代表 ComfyUI 任务已取消——任务可能仍在后台生成。请先到 ComfyUI 队列确认，再决定是否重试，避免重复提交。`
+          }
         }
       } catch (err: any) {
         console.error('Image generation error:', err)
-        const msg = err.response?.data?.detail || err.message || '生图失败，请检查 ComfyUI 连接与模型设置。'
         this.generationProgress = 0
         this.generationStage = 'error'
-        this.generationMessage = `生图失败: ${msg}`
+        const det = err.response?.data?.detail
+        if (det && typeof det === 'object') {
+          this.generationMessage = det.summary || '生图失败'
+          this.generationError = {
+            kind: det.kind,
+            summary: det.summary || '生图失败',
+            detail: det.detail || JSON.stringify(det),
+          }
+        } else {
+          this.generationMessage = `生图失败: ${det || err.message || '请检查 ComfyUI 连接与模型设置'}`
+        }
       } finally {
         this.isGenerating = false
+        this.activePromptId = ''
       }
     },
 
-    async saveHistory(promptId: string, actualSeed: number) {
+    /** 从 ComfyUI history 取图 → 本地持久化 → 记录 history → 定格快照。返回是否真正完成。 */
+    async finishGeneration(promptId: string, actualSeed: number, snapshot: GenerationSnapshot): Promise<boolean> {
+      let histData: any = null
+      try {
+        histData = (await axios.get(`/api/comfyui/history/${promptId}`)).data[promptId]
+      } catch {
+        return false
+      }
+      if (!histData || !histData.outputs) return false
+      let img: any = null
+      for (const nodeId in histData.outputs) {
+        const nodeOut = histData.outputs[nodeId]
+        if (nodeOut.images && nodeOut.images.length > 0) {
+          img = nodeOut.images[0]
+          break
+        }
+      }
+      if (!img) return false
+
+      this.generationStage = 'saving'
+      this.generationMessage = '生成完成，正在保存到本地…'
+      try {
+        const persist = await axios.post('/api/comfyui/persist-image', {
+          filename: img.filename,
+          subfolder: img.subfolder,
+          type: img.type,
+        })
+        this.generatedImageUrl = persist.data.image_path
+        this.generationComfyUrl = persist.data.comfy_view_url
+        this.generationPersisted = true
+        this.generationMessage = '生成完成！'
+      } catch {
+        this.generatedImageUrl = `/api/comfyui/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`
+        this.generationComfyUrl = this.generatedImageUrl
+        this.generationPersisted = false
+        this.generationMessage = '图片已生成，但本地历史归档失败——历史记录当前依赖 ComfyUI output（清理 ComfyUI output 后历史图片可能失效）。'
+      }
+      this.generationProgress = 100
+      this.generationStage = 'done'
+      this.lastGeneratedSeed = actualSeed
+      this.lastGenerationSnapshot = snapshot
+      await this.saveHistory(promptId, snapshot)
+      return true
+    },
+
+    /** 停止等待：只停止前端轮询，不取消 ComfyUI 任务（准确语义）。 */
+    stopWaiting() {
+      this._generationAbort = true
+    },
+
+    /** 中断当前任务。ComfyUI 0.34.2 无 task-scoped cancel（DELETE /queue/{id}=405），
+     *  只能全局 POST /interrupt——因此前端仅当本任务确实是 ComfyUI 当前运行任务时
+     *  才允许调用（is_running 门控），并向用户明示这是对当前执行任务的全局中断。 */
+    async interruptGeneration() {
+      try {
+        await axios.post('/api/comfyui/interrupt')
+        this.generationMessage = '已请求中断（全局 interrupt），等待确认…'
+      } catch (err: any) {
+        this.generationMessage = `中断失败: ${err.response?.data?.detail?.summary || err.message || '未知错误'}`
+      }
+    },
+
+    async saveHistory(promptId: string, snapshot: GenerationSnapshot) {
       try {
         await axios.post('/api/history', {
           raw_input: this.rawInput,
           parsed_facts_json: JSON.stringify(this.facts),
-          prompt: this.positivePrompt,
-          negative_prompt: this.negativePrompt,
-          safety: this.safety,
-          artists_json: JSON.stringify(this.selectedArtists),
-          loras_json: JSON.stringify(this.activeLoras.filter(i => i.isEnabled)),
+          prompt: snapshot.prompt,
+          negative_prompt: snapshot.negativePrompt,
+          safety: snapshot.safety,
+          artists_json: JSON.stringify(snapshot.artists),
+          loras_json: JSON.stringify(snapshot.loras),
           comfy_params_json: JSON.stringify({
             unet_name: this.unetName,
             clip_name: this.clipName,
             vae_name: this.vaeName,
-            width: this.width,
-            height: this.height,
-            steps: this.steps,
-            cfg: this.cfg,
-            sampler_name: this.samplerName,
-            scheduler: this.scheduler,
-            seed: actualSeed,
+            width: snapshot.width,
+            height: snapshot.height,
+            steps: snapshot.steps,
+            cfg: snapshot.cfg,
+            sampler_name: snapshot.sampler,
+            scheduler: snapshot.scheduler,
+            seed: snapshot.seed,
             comfy_prompt_id: promptId,
             comfy_image_url: this.generationComfyUrl || undefined,
             persisted: this.generationPersisted,
@@ -533,6 +690,8 @@ export const useStudioStore = defineStore('studio', {
           steps: this.steps,
           cfg: this.cfg,
           seed: this.seed,
+          lastGeneratedSeed: this.lastGeneratedSeed,
+          lastGenerationSnapshot: this.lastGenerationSnapshot,
           provider: this.provider,
           model: this.model,
           reasoningEffort: this.reasoningEffort,
@@ -579,6 +738,10 @@ export const useStudioStore = defineStore('studio', {
         if (typeof d.steps === 'number') this.steps = d.steps
         if (typeof d.cfg === 'number') this.cfg = d.cfg
         if (typeof d.seed === 'number') this.seed = d.seed
+        if (typeof d.lastGeneratedSeed === 'number' && d.lastGeneratedSeed >= 0) this.lastGeneratedSeed = d.lastGeneratedSeed
+        if (d.lastGenerationSnapshot && typeof d.lastGenerationSnapshot === 'object') {
+          this.lastGenerationSnapshot = d.lastGenerationSnapshot
+        }
         if (d.provider === 'lm_studio' || d.provider === 'cloud') this.provider = d.provider
         if (typeof d.model === 'string') this.model = d.model
         if (d.reasoningEffort) {
@@ -660,12 +823,20 @@ export const useStudioStore = defineStore('studio', {
       // 语义状态彻底清空，防止旧场景残留
       this.facts = { entities: [], statements: [] }
       // 生成 stale 状态清空
+      this.seed = -1
+      this.lastGeneratedSeed = null
+      this.activeGenerationSnapshot = null
+      this.lastGenerationSnapshot = null
       this.generatedImageUrl = ''
       this.generationComfyUrl = ''
       this.generationPersisted = false
       this.generationProgress = 0
       this.generationStage = 'idle'
       this.generationMessage = ''
+      this.generationError = null
+      this.generationQueuePosition = null
+      this.generationProgressValue = null
+      this.generationProgressMax = null
       this.draftRestored = false
     },
   }

@@ -1,0 +1,2511 @@
+{
+  "timestamp": "20260902_102015",
+  "model": "qwen3.6-35b-a3b-uncensored-genesis-hermes-v6",
+  "reasoning_effort": "off",
+  "total": 25,
+  "passed": 23,
+  "failed": 2,
+  "fail_by_stage": {
+    "prompt_assembly": {
+      "count": 2,
+      "cases": [
+        "action_b_to_a_08",
+        "complex_long_25"
+      ]
+    }
+  },
+  "results": [
+    {
+      "id": "single_simple_01",
+      "category": "1_单人物简单描述",
+      "input": "穗穗穿着白色泳装站在沙滩上。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing on the beach",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing on the beach",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is wearing a white swimsuit and standing on the beach.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is wearing a white swimsuit and standing on the beach.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "single_multi_attr_02",
+      "category": "2_单人物多属性",
+      "input": "穗穗把金色长发扎成双马尾，戴着红色发带，穿着黑色水手服。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "golden long hair tied into twin tails",
+              "facet": "hairstyle",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a red hairband",
+              "facet": "accessory",
+              "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a black sailor uniform",
+              "facet": "outfit",
+              "effect": "replace"
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "golden long hair tied into twin tails",
+              "facet": "hairstyle",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a red hairband",
+              "facet": "accessory",
+              "effect": "add"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a black sailor uniform",
+              "facet": "outfit",
+              "effect": "replace"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui golden long hair tied into twin tails and wearing a red hairband and wearing a black sailor uniform.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui golden long hair tied into twin tails and wearing a red hairband and wearing a black sailor uniform.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "rolebook_char_03",
+      "category": "3_用户角色书人物",
+      "input": "小雨坐在公园长椅上吃冰淇淋。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "小雨",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting on a park bench",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "eating ice cream",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "小雨",
+              "source": "user_defined",
+              "canonical_tag": null,
+              "caption_name": "the young woman with brown hair",
+              "custom_description": "young adult, girl, long twintails brown hair, wearing 绿色背带裙"
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "小雨",
+              "source": "user_defined",
+              "canonical_tag": null,
+              "caption_name": "the young woman with brown hair",
+              "custom_description": "young adult, girl, long twintails brown hair, wearing 绿色背带裙"
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting on a park bench",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "eating ice cream",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, 1girl, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the young woman with brown hair is sitting on a park bench and eating ice cream.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, 1girl, young adult, girl, long twintails brown hair, wearing 绿色背带裙. the young woman with brown hair is sitting on a park bench and eating ice cream.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "native_char_04",
+      "category": "4_Anima native character",
+      "input": "穗穗一个人站在樱花树下。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing under a cherry blossom tree",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing under a cherry blossom tree",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is standing under a cherry blossom tree.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is standing under a cherry blossom tree.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "two_clothing_05",
+      "category": "5_两人物不同服装",
+      "input": "穗穗穿白色泳装，秧秧穿蓝色水手服，两人在海边。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing a blue sailor uniform",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "at the seaside",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "wearing a blue sailor uniform",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "at the seaside",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white swimsuit. Yangyang is wearing a blue sailor uniform. at the seaside.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white swimsuit. Yangyang is wearing a blue sailor uniform. at the seaside.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "two_hair_06",
+      "category": "6_两人物不同发色/发型",
+      "input": "穗穗是金色双马尾，秧秧是黑色长发。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "golden twin-tails",
+              "facet": "hairstyle",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "black long hair",
+              "facet": "hairstyle",
+              "effect": "replace"
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "golden twin-tails",
+              "facet": "hairstyle",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "black long hair",
+              "facet": "hairstyle",
+              "effect": "replace"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui golden twin-tails. Yangyang black long hair.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui golden twin-tails. Yangyang black long hair.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "action_a_to_b_07",
+      "category": "7_A对B做动作",
+      "input": "穗穗轻轻拥抱秧秧。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "gently hugging",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "gently hugging",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui gently hugging Yangyang.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui gently hugging Yangyang.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "action_b_to_a_08",
+      "category": "8_B对A做动作",
+      "input": "秧秧追上穗穗并拉住她的手腕。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "catching up with c2",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "holding c2's wrist",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "catching up with c2",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "relation",
+              "subject": "c1",
+              "target": "c2",
+              "text": "holding c2's wrist",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, yangyang, suisui. Yangyang is catching up with c2 and holding c2's wrist Suisui.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [
+        {
+          "stage": "prompt_assembly",
+          "message": "实体占位符（c1/c2）泄漏进最终 Prompt"
+        }
+      ],
+      "failed": [
+        {
+          "stage": "prompt_assembly",
+          "message": "实体占位符（c1/c2）泄漏进最终 Prompt"
+        }
+      ],
+      "final_prompt": "safe, yangyang, suisui. Yangyang is catching up with c2 and holding c2's wrist Suisui.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "shared_scene_09",
+      "category": "9_两人共享场景属性",
+      "input": "穗穗和秧秧都撑着伞站在雨中。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding an umbrella",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing in the rain",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "holding an umbrella",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "standing in the rain",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding an umbrella",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing in the rain",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "holding an umbrella",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "standing in the rain",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is holding an umbrella and standing in the rain. Yangyang is holding an umbrella and standing in the rain.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, yangyang. Suisui is holding an umbrella and standing in the rain. Yangyang is holding an umbrella and standing in the rain.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "three_people_10",
+      "category": "10_三人物",
+      "input": "穗穗、秧秧和小夏一起围坐在篝火旁。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c3",
+              "name": "小夏",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting around the campfire",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "sitting around the campfire",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c3",
+              "target": null,
+              "text": "sitting around the campfire",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            },
+            {
+              "id": "c3",
+              "name": "小夏",
+              "source": "model_character",
+              "canonical_tag": "xiaoxia",
+              "caption_name": "Xiaoxia",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            },
+            {
+              "id": "c3",
+              "name": "小夏",
+              "source": "model_character",
+              "canonical_tag": "xiaoxia",
+              "caption_name": "Xiaoxia",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting around the campfire",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "sitting around the campfire",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c3",
+              "target": null,
+              "text": "sitting around the campfire",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang, xiaoxia. Suisui is sitting around the campfire. Yangyang is sitting around the campfire. Xiaoxia is sitting around the campfire.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, yangyang, xiaoxia. Suisui is sitting around the campfire. Yangyang is sitting around the campfire. Xiaoxia is sitting around the campfire.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "subject_background_11",
+      "category": "11_主体+背景",
+      "input": "穗穗站在开满樱花的山丘上，远处是富士山。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing on a hill covered with blooming cherry blossoms",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "Mount Fuji in the distance",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing on a hill covered with blooming cherry blossoms",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "Mount Fuji in the distance",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is standing on a hill covered with blooming cherry blossoms. Mount Fuji in the distance.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is standing on a hill covered with blooming cherry blossoms. Mount Fuji in the distance.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "camera_12",
+      "category": "12_镜头/构图",
+      "input": "穗穗的特写镜头，从侧面拍摄。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "close-up shot",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "shot from the side",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "close-up shot",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "shot from the side",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui close-up shot and shot from the side.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui close-up shot and shot from the side.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "lighting_13",
+      "category": "13_光照",
+      "input": "穗穗站在夕阳的逆光里，轮廓泛着金色的光。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing in the backlight of the sunset",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "silhouette glowing with golden light",
+              "facet": "appearance",
+              "effect": "modify"
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing in the backlight of the sunset",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "silhouette glowing with golden light",
+              "facet": "appearance",
+              "effect": "modify"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is standing in the backlight of the sunset and silhouette glowing with golden light.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is standing in the backlight of the sunset and silhouette glowing with golden light.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "expression_14",
+      "category": "14_表情",
+      "input": "穗穗开心地眯起眼睛笑着。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "smiling with eyes narrowed happily",
+              "facet": "expression",
+              "effect": "replace"
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "smiling with eyes narrowed happily",
+              "facet": "expression",
+              "effect": "replace"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is smiling with eyes narrowed happily.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is smiling with eyes narrowed happily.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "artist_15",
+      "category": "15_Artist",
+      "input": "穗穗穿着华丽礼服站在星空下。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a gorgeous dress",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing under the starry sky",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a gorgeous dress",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing under the starry sky",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, @mika pikazo. Suisui is wearing a gorgeous dress and standing under the starry sky.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, @mika pikazo. Suisui is wearing a gorgeous dress and standing under the starry sky.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "multi_artist_16",
+      "category": "16_多Artist",
+      "input": "穗穗穿着白色连衣裙站在海边。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white dress",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing by the sea",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white dress",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "standing by the sea",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, @wlop, @ask. Suisui is wearing a white dress and standing by the sea.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, @wlop, @ask. Suisui is wearing a white dress and standing by the sea.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "lora_trigger_17",
+      "category": "17_LoRA trigger",
+      "input": "穗穗穿着流动水纹的裙子。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a skirt with flowing water patterns",
+              "facet": "outfit",
+              "effect": "replace"
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a skirt with flowing water patterns",
+              "facet": "outfit",
+              "effect": "replace"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, aesthetic_boost. Suisui is wearing a skirt with flowing water patterns.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui, aesthetic_boost. Suisui is wearing a skirt with flowing water patterns.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "lora_no_trigger_18",
+      "category": "18_LoRA 无 trigger",
+      "input": "穗穗坐在窗边看雨。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting by the window",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "watching the rain",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting by the window",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "watching the rain",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is sitting by the window and watching the rain.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is sitting by the window and watching the rain.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "safety_safe_19",
+      "category": "19_Safety Safe",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is wearing pajamas and sitting in the room.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is wearing pajamas and sitting in the room.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "safety_sensitive_20",
+      "category": "20_Safety Sensitive",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "Sensitive",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "sensitive, suisui. Suisui is wearing pajamas and sitting in the room.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "sensitive, suisui. Suisui is wearing pajamas and sitting in the room.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "safety_nsfw_21",
+      "category": "21_Safety NSFW",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "NSFW",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "nsfw, suisui. Suisui is wearing pajamas and sitting in the room.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "nsfw, suisui. Suisui is wearing pajamas and sitting in the room.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "safety_explicit_22",
+      "category": "22_Safety Explicit",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "Explicit",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing pajamas",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "sitting in the room",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "explicit, suisui. Suisui is wearing pajamas and sitting in the room.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "explicit, suisui. Suisui is wearing pajamas and sitting in the room.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "override_rolebook_23",
+      "category": "23_用户输入覆盖角色书默认属性",
+      "input": "小雨今天穿着红色夹克。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "小雨",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a red jacket",
+              "facet": "outfit",
+              "effect": "replace"
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "小雨",
+              "source": "user_defined",
+              "canonical_tag": null,
+              "caption_name": "the young woman with brown hair",
+              "custom_description": "young adult, girl, long twintails brown hair"
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "小雨",
+              "source": "user_defined",
+              "canonical_tag": null,
+              "caption_name": "the young woman with brown hair",
+              "custom_description": "young adult, girl, long twintails brown hair"
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a red jacket",
+              "facet": "outfit",
+              "effect": "replace"
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, 1girl, young adult, girl, long twintails brown hair. the young woman with brown hair is wearing a red jacket.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, 1girl, young adult, girl, long twintails brown hair. the young woman with brown hair is wearing a red jacket.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "no_brain_fill_24",
+      "category": "24_未指定属性不能脑补",
+      "input": "穗穗在教室里写作业。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "writing homework in the classroom",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "writing homework in the classroom",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui. Suisui is writing homework in the classroom.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [],
+      "failed": [],
+      "final_prompt": "safe, suisui. Suisui is writing homework in the classroom.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    },
+    {
+      "id": "complex_long_25",
+      "category": "25_中文复杂长句",
+      "input": "在黄昏的海边，穗穗穿着白色泳装和秧秧手牵手，海风吹起她的头发，两人都笑着看向远方的夕阳。",
+      "safety": "Safe",
+      "stages": {
+        "1_extraction": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": null,
+              "canonical_tag": null,
+              "caption_name": null,
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "at the seaside at dusk",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding hands with c2",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "hair blowing in the sea breeze",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "smiling",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "smiling",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "looking at the distant sunset",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "looking at the distant sunset",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "2_character_resolution": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ]
+        },
+        "3_final_facts": {
+          "entities": [
+            {
+              "id": "c1",
+              "name": "穗穗",
+              "source": "model_character",
+              "canonical_tag": "suisui",
+              "caption_name": "Suisui",
+              "custom_description": null
+            },
+            {
+              "id": "c2",
+              "name": "秧秧",
+              "source": "model_character",
+              "canonical_tag": "yangyang",
+              "caption_name": "Yangyang",
+              "custom_description": null
+            }
+          ],
+          "statements": [
+            {
+              "kind": "scene",
+              "subject": null,
+              "target": null,
+              "text": "at the seaside at dusk",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "wearing a white swimsuit",
+              "facet": "outfit",
+              "effect": "replace"
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "holding hands with c2",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "hair blowing in the sea breeze",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "smiling",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "smiling",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c1",
+              "target": null,
+              "text": "looking at the distant sunset",
+              "facet": null,
+              "effect": null
+            },
+            {
+              "kind": "attribute",
+              "subject": "c2",
+              "target": null,
+              "text": "looking at the distant sunset",
+              "facet": null,
+              "effect": null
+            }
+          ]
+        },
+        "4_prompt_assembly": {
+          "positive": "safe, suisui, yangyang. Suisui is wearing a white swimsuit and holding hands with c2 and hair blowing in the sea breeze and smiling and looking at the distant sunset. Yangyang is smiling and looking at the distant sunset. at the seaside at dusk.",
+          "negative": "lowres, bad anatomy, bad hands, text"
+        }
+      },
+      "checks": [
+        {
+          "stage": "prompt_assembly",
+          "message": "实体占位符（c1/c2）泄漏进最终 Prompt"
+        }
+      ],
+      "failed": [
+        {
+          "stage": "prompt_assembly",
+          "message": "实体占位符（c1/c2）泄漏进最终 Prompt"
+        }
+      ],
+      "final_prompt": "safe, suisui, yangyang. Suisui is wearing a white swimsuit and holding hands with c2 and hair blowing in the sea breeze and smiling and looking at the distant sunset. Yangyang is smiling and looking at the distant sunset. at the seaside at dusk.",
+      "negative_prompt": "lowres, bad anatomy, bad hands, text"
+    }
+  ]
+}

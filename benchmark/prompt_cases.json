@@ -1,0 +1,428 @@
+{
+  "version": 1,
+  "description": "ImageForge Prompt Engine 基准测试集（Baseline A）。输入为真实中文创作描述；expect 记录预期语义（实体/属性/关系/禁止绑定），供确定性规则自动检查 + 人工复核。",
+  "cases": [
+    {
+      "id": "single_simple_01",
+      "category": "1_单人物简单描述",
+      "input": "穗穗穿着白色泳装站在沙滩上。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["swimsuit"], "label_zh": "白色泳装" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "single_multi_attr_02",
+      "category": "2_单人物多属性",
+      "input": "穗穗把金色长发扎成双马尾，戴着红色发带，穿着黑色水手服。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["blonde", "golden", "twin", "sailor"], "label_zh": "金发+双马尾+水手服" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "rolebook_char_03",
+      "category": "3_用户角色书人物",
+      "input": "小雨坐在公园长椅上吃冰淇淋。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "小雨", "must_have_en": ["ice cream"], "label_zh": "吃冰淇淋", "rolebook_keywords": ["twintails", "brown"] }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "native_char_04",
+      "category": "4_Anima native character",
+      "input": "穗穗一个人站在樱花树下。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["sakura", "cherry blossom"], "label_zh": "樱花树下", "source": "model_character" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "two_clothing_05",
+      "category": "5_两人物不同服装",
+      "input": "穗穗穿白色泳装，秧秧穿蓝色水手服，两人在海边。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["swimsuit"], "label_zh": "白色泳装" },
+          { "name": "秧秧", "must_have_en": ["sailor"], "label_zh": "蓝色水手服" }
+        ],
+        "relations": [],
+        "must_not_bind": [
+          { "keyword_en": "sailor", "other": "穗穗", "label_zh": "蓝色水手服不得绑定到穗穗" },
+          { "keyword_en": "swimsuit", "other": "秧秧", "label_zh": "白色泳装不得绑定到秧秧" }
+        ]
+      }
+    },
+    {
+      "id": "two_hair_06",
+      "category": "6_两人物不同发色/发型",
+      "input": "穗穗是金色双马尾，秧秧是黑色长发。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["blonde", "golden", "twin"], "label_zh": "金发双马尾" },
+          { "name": "秧秧", "must_have_en": ["black", "long"], "label_zh": "黑色长发" }
+        ],
+        "relations": [],
+        "must_not_bind": [
+          { "keyword_en": "black", "other": "穗穗", "label_zh": "黑发不得绑定到穗穗" },
+          { "keyword_en": "blonde", "other": "秧秧", "label_zh": "金发不得绑定到秧秧" }
+        ]
+      }
+    },
+    {
+      "id": "action_a_to_b_07",
+      "category": "7_A对B做动作",
+      "input": "穗穗轻轻拥抱秧秧。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 2,
+        "entities": [],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["hug"], "label_zh": "穗穗拥抱秧秧" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "action_b_to_a_08",
+      "category": "8_B对A做动作",
+      "input": "秧秧追上穗穗并拉住她的手腕。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 2,
+        "entities": [],
+        "relations": [
+          { "from": "秧秧", "to": "穗穗", "must_have_en": ["grab", "pull", "catch"], "label_zh": "秧秧追上并拉住穗穗" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "shared_scene_09",
+      "category": "9_两人共享场景属性",
+      "input": "穗穗和秧秧都撑着伞站在雨中。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["umbrella", "rain"], "label_zh": "撑伞+雨中" },
+          { "name": "秧秧", "must_have_en": ["umbrella", "rain"], "label_zh": "撑伞+雨中" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "three_people_10",
+      "category": "10_三人物",
+      "input": "穗穗、秧秧和小夏一起围坐在篝火旁。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["campfire"], "label_zh": "篝火旁" },
+          { "name": "秧秧", "must_have_en": ["campfire"], "label_zh": "篝火旁" },
+          { "name": "小夏", "must_have_en": ["campfire"], "label_zh": "篝火旁" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "subject_background_11",
+      "category": "11_主体+背景",
+      "input": "穗穗站在开满樱花的山丘上，远处是富士山。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["sakura", "cherry blossom", "mountain", "fuji"], "label_zh": "樱花山丘+富士山背景" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "camera_12",
+      "category": "12_镜头/构图",
+      "input": "穗穗的特写镜头，从侧面拍摄。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["close-up", "side"], "label_zh": "特写+侧面" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "lighting_13",
+      "category": "13_光照",
+      "input": "穗穗站在夕阳的逆光里，轮廓泛着金色的光。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["backlight", "rim light", "golden"], "label_zh": "逆光+金色轮廓" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "expression_14",
+      "category": "14_表情",
+      "input": "穗穗开心地眯起眼睛笑着。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["smil", "squint", "happy"], "label_zh": "眯眼笑" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "artist_15",
+      "category": "15_Artist",
+      "input": "穗穗穿着华丽礼服站在星空下。",
+      "safety": "Safe",
+      "artist_tags": ["@mika_pikazo"],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["dress", "starry"], "label_zh": "礼服+星空" }
+        ],
+        "relations": [],
+        "must_not_bind": [],
+        "artist_tag_present": ["@mika_pikazo"]
+      }
+    },
+    {
+      "id": "multi_artist_16",
+      "category": "16_多Artist",
+      "input": "穗穗穿着白色连衣裙站在海边。",
+      "safety": "Safe",
+      "artist_tags": ["@wlop", "@ask"],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["dress"], "label_zh": "白色连衣裙" }
+        ],
+        "relations": [],
+        "must_not_bind": [],
+        "artist_tag_present": ["@wlop", "@ask"]
+      }
+    },
+    {
+      "id": "lora_trigger_17",
+      "category": "17_LoRA trigger",
+      "input": "穗穗穿着流动水纹的裙子。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [
+        { "filename": "anima/anima-highres-aesthetic-boost.safetensors", "trigger_words": "aesthetic_boost", "strength": 0.8, "is_enabled": true }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["water", "pattern"], "label_zh": "水纹裙" }
+        ],
+        "relations": [],
+        "must_not_bind": [],
+        "lora_trigger_present": ["aesthetic_boost"]
+      }
+    },
+    {
+      "id": "lora_no_trigger_18",
+      "category": "18_LoRA 无 trigger",
+      "input": "穗穗坐在窗边看雨。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [
+        { "filename": "anima/anima-bokeh.safetensors", "trigger_words": "", "strength": 0.6, "is_enabled": true }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["window", "rain"], "label_zh": "窗边看雨" }
+        ],
+        "relations": [],
+        "must_not_bind": [],
+        "lora_no_trigger": ["bokeh"]
+      }
+    },
+    {
+      "id": "safety_safe_19",
+      "category": "19_Safety Safe",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["pajama", "room"], "label_zh": "睡衣+房间" }
+        ],
+        "relations": [],
+        "must_not_bind": [],
+        "safety_tag": "safe"
+      }
+    },
+    {
+      "id": "safety_sensitive_20",
+      "category": "20_Safety Sensitive",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "Sensitive",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [],
+        "relations": [],
+        "must_not_bind": [],
+        "safety_tag": "sensitive"
+      }
+    },
+    {
+      "id": "safety_nsfw_21",
+      "category": "21_Safety NSFW",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "NSFW",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [],
+        "relations": [],
+        "must_not_bind": [],
+        "safety_tag": "nsfw"
+      }
+    },
+    {
+      "id": "safety_explicit_22",
+      "category": "22_Safety Explicit",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "safety": "Explicit",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [],
+        "relations": [],
+        "must_not_bind": [],
+        "safety_tag": "explicit"
+      }
+    },
+    {
+      "id": "override_rolebook_23",
+      "category": "23_用户输入覆盖角色书默认属性",
+      "input": "小雨今天穿着红色夹克。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "小雨", "must_have_en": ["red", "jacket"], "label_zh": "红色夹克", "must_not_have_en": ["green", "overall", "背带裙"], "label_not_zh": "不得残留角色书默认的绿色背带裙" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "no_brain_fill_24",
+      "category": "24_未指定属性不能脑补",
+      "input": "穗穗在教室里写作业。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["classroom", "homework"], "label_zh": "教室+写作业", "must_not_have_en": ["hair", "dress", "swimsuit", "outfit", "skirt"], "label_not_zh": "不得脑补发色/服装" }
+        ],
+        "relations": [],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "complex_long_25",
+      "category": "25_中文复杂长句",
+      "input": "在黄昏的海边，穗穗穿着白色泳装和秧秧手牵手，海风吹起她的头发，两人都笑着看向远方的夕阳。",
+      "safety": "Safe",
+      "artist_tags": [],
+      "lora_items": [],
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["swimsuit", "holding"], "label_zh": "泳装+牵手" },
+          { "name": "秧秧", "must_have_en": [], "label_zh": "（共享牵手/夕阳场景）" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["holding", "hand in hand"], "label_zh": "穗穗和秧秧牵手" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "swimsuit", "other": "秧秧", "label_zh": "泳装不得绑定到秧秧" }
+        ]
+      }
+    }
+  ]
+}

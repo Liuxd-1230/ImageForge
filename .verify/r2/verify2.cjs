@@ -142,7 +142,7 @@ async function api(method, path, body) {
     await page.evaluate(() => document.querySelectorAll('.acc-head')[1].click());
     await page.waitForTimeout(300);
     const sizeInputs = await page.$$('.size-input');
-    check('尺寸自由输入框存在(2个)', sizeInputs.length === 2);
+    check('尺寸自由输入框存在(≥2：宽高+seed)', sizeInputs.length >= 2, `n=${sizeInputs.length}`);
     await sizeInputs[0].fill('100');
     await sizeInputs[1].fill('9000');
     await sizeInputs[1].evaluate(el => el.blur());

@@ -178,3 +178,53 @@ http://127.0.0.1:5173/（Vite dev server，cwd=frontend），模拟点击 + 几�
 后端 `backend_test.py` 56/56；`verify2.cjs` / `verify3.cjs` 前端回归 ALL PASS；前端无代码改动。
 本 commit 后按用户要求停止 correctness/structure audit。
 
+---
+
+# 第五轮：真实生成体验 + Prompt Benchmark 基线
+
+## Milestone A 生成体验（`.verify/r4/verifyA.cjs` 20/20 ALL PASS，真实 ComfyUI 生成）
+
+先核实 ComfyUI 0.34.2 真实 API（`.verify/r4/comfy_probe.py`）：
+- WS `progress {value,max,node}` 提供**真实 KSampler step 进度**；`/queue` 项为 `[number,prompt_id,inputs]`；
+- 坏模型提交即 400，body 带 `node_errors`；
+- **`DELETE /queue/{prompt_id}` → 405（无 task-scoped cancel）**；`POST /interrupt` 为**全局**中断（`execution_interrupted`）。
+
+实现：
+- 后端 `services/comfyui/monitor.py`：持 WS（client_id 与提交一致）收集 per-prompt 状态
+  （queued/running/saving/done/error/cancelled + 真实进度）；`/api/comfyui/queue`、
+  `/status/{prompt_id}`（含 queue_position/is_running）、`/interrupt`；提交期错误分类
+  （连接/Workflow 校验/找不到模型/LoRA——解析 node_errors）。
+- Store：`lastGeneratedSeed` + `GenerationSnapshot`（active/last，A9 提交即定格）；
+  `seed` 三态（-1 随机 / 固定 / 使用上一张）；生成流程改 monitor 轮询（真实进度 /
+  队列位置 / 停止等待 / 中断门控）；persist 失败不伪装；saveHistory 用快照值。
+- StudioView：Canvas metadata 显示真实 seed（`384 × 384 · Seed 523941558 · 8 Steps`）；
+  工具栏「使用此 Seed / 再生成 / 导出」+「已归档」标记；Seed 三态控件；错误摘要 + 查看详情；
+  尺寸预设 人像/横版/方形（带实际尺寸）。
+
+验证（20 项全过）：真实 seed 显示、使用此 Seed 固定复现、固定 seed 再生成相同、
+History 恢复 seed/尺寸、双击仅 1 次提交、生成中改参数不污染 metadata、
+ComfyUI 断开错误清晰、执行错误摘要+详情、真实 step 进度、真实中断→cancelled。
+
+A12 默认参数：web_search 不可用（key 失效），仓库内来源为
+`docs/BENCHMARK_PLAN.md` 固定 Euler + sgm_uniform + 28 步 + CFG 4.5，
+**无外部证据，未改动默认值**（遵守"不凭模型常识改参数"）。
+
+## Milestone B Prompt Benchmark（`benchmark/`，Baseline A）
+
+- `benchmark/prompt_cases.json`：25 例真实中文描述，覆盖 B1 全部 25 类；
+  每例记录预期语义（实体 must_have / 关系 / must_not_bind / 覆盖 / 不脑补）。
+- `benchmark/run_benchmark.py`：分阶段保存
+  INPUT → FACT EXTRACTION → CHARACTER RESOLUTION → FINAL FACTS → PROMPT ASSEMBLY；
+  确定性规则检查（实体数/属性绑定/禁止绑定/关系主客体/未解析 trigger/来源/
+  Artist/LoRA/Safety/占位符泄漏），不用 LLM 自评。
+- 结果：`benchmark/results/20260902_102015.json` + `.md`
+
+**Baseline A = 23/25**。唯一失败类别（2 例）：
+- `action_b_to_a_08`、`complex_long_25` — **实体占位符（c1/c2）泄漏进最终 Prompt**
+  （"Yangyang is ... holding c2's wrist" / "holding hands with c2"），
+  即含他人引用的关系/属性文本未把实体 id 替换成角色名。
+- 其余 23 例（含双人服装/发色绑定、动作主客体、角色书、覆盖角色书默认、不脑补、
+  Artist 双 Artist、LoRA 有/无 trigger、Safety 四档、三人物、复杂长句）全部确定性通过。
+
+**本轮未改 Prompt Engine**（按用户要求：先报告，等确认后再进入针对性修复）。
+

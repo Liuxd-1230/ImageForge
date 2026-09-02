@@ -75,13 +75,19 @@ class ComfyUIClient:
             return []
 
     async def queue_prompt(self, workflow_prompt: Dict[str, Any], client_id: str) -> Dict[str, Any]:
-        """Submit generation workflow to ComfyUI queue."""
+        """Submit generation workflow to ComfyUI queue.
+
+        Raises ComfyUIValidationError on 400 (missing model/lora/validation),
+        with the parsed node_errors for readable categorization (A8).
+        """
         payload = {
             "prompt": workflow_prompt,
             "client_id": client_id
         }
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(f"{self.base_url}/prompt", json=payload)
+            if resp.status_code == 400:
+                raise ComfyUIValidationError(resp.text)
             resp.raise_for_status()
             return resp.json()
 
@@ -91,3 +97,30 @@ class ComfyUIClient:
             resp = await client.get(f"{self.base_url}/history/{prompt_id}")
             resp.raise_for_status()
             return resp.json()
+
+    async def get_queue(self) -> Dict[str, Any]:
+        """Return {queue_running, queue_pending} (items are [number, prompt_id, inputs])."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{self.base_url}/queue")
+            resp.raise_for_status()
+            data = resp.json()
+            return {
+                "queue_running": data.get("queue_running", []),
+                "queue_pending": data.get("queue_pending", []),
+            }
+
+    async def interrupt(self) -> None:
+        """POST /interrupt — GLOBAL interrupt of ComfyUI's currently running task.
+        NOT task-scoped (ComfyUI 0.34.2 has no task-scoped cancel; DELETE
+        /queue/{prompt_id} returns 405)."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(f"{self.base_url}/interrupt")
+            resp.raise_for_status()
+
+
+class ComfyUIValidationError(Exception):
+    """ComfyUI rejected the workflow at submit time (400). Carries raw body."""
+
+    def __init__(self, body: str):
+        super().__init__(body)
+        self.body = body

@@ -29,3 +29,6 @@ yarn-error.log*
 *.swp
 *.swo
 .DS_Store
+
+# Runtime data (persisted generated images)
+data/
