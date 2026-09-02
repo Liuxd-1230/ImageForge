@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.config import settings
 from app.services.comfyui.client import ComfyUIClient, ComfyUIValidationError
-from app.services.comfyui.workflow import build_anima_29b_workflow
+from app.services.comfyui.workflow import build_anima_29b_workflow, resolve_submitted_lora_name
 from app.services.comfyui.monitor import get_monitor, CLIENT_ID
 from app.models.prompt_engine import LoraBuildItem
 
@@ -64,6 +64,46 @@ async def comfyui_loras():
 @router.post("/generate")
 async def comfyui_generate(req: GenerateRequest):
     client = ComfyUIClient()
+
+    # —— LoRA 名称提交前权威解析 ——
+    # 库内 filename 是规范化名（正斜杠 / 来源相对路径），而 ComfyUI 的 lora_name
+    # 在 Windows 上是反斜杠、且需相对其 models/loras 根目录。直接用 DB filename 提交
+    # 会触发 ComfyUI `not in list` → “找不到 LoRA”。这里以 ComfyUI 实时列表为准做映射；
+    # 解析不到就提前返回可操作错误，不提交注定失败的 workflow。
+    if any(l.is_enabled for l in req.loras):
+        comfy_loras: List[str] = []
+        try:
+            comfy_loras = await client.get_loras()
+        except Exception:
+            comfy_loras = []
+        if comfy_loras:
+            resolved: List[LoraBuildItem] = []
+            missing: List[str] = []
+            for item in req.loras:
+                if not item.is_enabled:
+                    resolved.append(item)
+                    continue
+                exact = resolve_submitted_lora_name(item.filename, comfy_loras)
+                if exact is None:
+                    missing.append(item.filename or "(未填文件名)")
+                else:
+                    resolved.append(item.model_copy(update={"filename": exact}))
+            if missing:
+                raise HTTPException(status_code=400, detail={
+                    "kind": "workflow_validation",
+                    "summary": f"找不到 LoRA：{missing[0]}",
+                    "detail": (
+                        f"LoRA「{missing[0]}」不在 ComfyUI 当前的 LoRA 列表中。\n"
+                        "可能原因与处理：\n"
+                        "① 权重文件不在 ComfyUI 的 models/loras 目录（或其子目录）下 —— "
+                        "请把文件放入后用「LoRA 库 → 仅看收藏旁的同步」或扫描来源重新导入；\n"
+                        "② 文件确实在，但与其他 LoRA 同名（不同子目录）—— 请在 LoRA 编辑里把"
+                        "「文件名」改成 ComfyUI 列表中的确切名称（含子目录前缀）。"
+                    ),
+                    "missing": missing,
+                })
+            req.loras = resolved
+
     workflow = build_anima_29b_workflow(
         positive_prompt=req.positive_prompt,
         negative_prompt=req.negative_prompt,

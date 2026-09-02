@@ -31,6 +31,42 @@ def _load_default_template() -> Dict[str, Any]:
             f"请确认 backend/workflows/{DEFAULT_TEMPLATE_FILE} 存在。"
         )
 
+def resolve_submitted_lora_name(requested: Optional[str], comfy_loras: List[str]) -> Optional[str]:
+    """把应用侧 LoRA filename 映射为 ComfyUI 实时列表中的**原始 lora_name**。
+
+    应用库内存储的是规范化名（正斜杠，如 `anima/foo.safetensors`），而 Windows 上
+    ComfyUI 报告的 lora_name 是反斜杠分隔（如 `anima\\foo.safetensors`），还有来源子目录
+    前缀差异（导入时 rel 相对来源根）。直接用 DB filename 提交会触发 ComfyUI 的
+    `not in list` → “找不到 LoRA”。此函数做提交前权威解析：
+
+    - 规范化（\\→/、大小写不敏感）后精确匹配
+    - 唯一 basename 兜底；同名多个无法判断 → 返回 None（交由上层报错）
+
+    返回 ComfyUI **原始字符串**（含反斜杠），保证通过 ComfyUI 的 in-list 校验。
+    """
+    if not requested or not comfy_loras:
+        return None
+    req_norm = requested.replace("\\", "/").strip().strip("/")
+    if not req_norm:
+        return None
+    req_low = req_norm.lower()
+    norm_pairs = [
+        (orig, orig.replace("\\", "/").strip().strip("/").lower())
+        for orig in comfy_loras
+    ]
+
+    # 1) 规范化精确匹配（子目录前缀一致；本 bug 场景：DB 正斜杠 ↔ ComfyUI 反斜杠）
+    for orig, n in norm_pairs:
+        if n == req_low:
+            return orig
+    # 2) 唯一 basename 兜底（大小写不敏感）；0 或 >1 个同名 → 无法判定，返回 None
+    base = req_norm.split("/")[-1].lower()
+    hits = [orig for orig, n in norm_pairs if n.split("/")[-1].lower() == base]
+    if len(hits) == 1:
+        return hits[0]
+    return None
+
+
 def _attach_lora_chain(
     prompt_nodes: Dict[str, Any],
     initial_model: List[Any],
