@@ -165,9 +165,9 @@
       "expect": {
         "entity_count": 3,
         "entities": [
-          { "name": "穗穗", "must_have_en": ["campfire"], "label_zh": "篝火旁" },
-          { "name": "秧秧", "must_have_en": ["campfire"], "label_zh": "篝火旁" },
-          { "name": "小夏", "must_have_en": ["campfire"], "label_zh": "篝火旁" }
+          { "name": "穗穗", "must_have_en": ["campfire", "bonfire"], "label_zh": "篝火旁" },
+          { "name": "秧秧", "must_have_en": ["campfire", "bonfire"], "label_zh": "篝火旁" },
+          { "name": "小夏", "must_have_en": ["campfire", "bonfire"], "label_zh": "篝火旁" }
         ],
         "relations": [],
         "must_not_bind": []

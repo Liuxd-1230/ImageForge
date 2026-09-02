@@ -17,13 +17,14 @@ CRITICAL RULES:
 4. If a statement modifies or replaces an attribute (like wearing a swimsuit, ponytailed hair), set optional "facet" (e.g. "outfit", "hairstyle", "expression", "accessory") and optional "effect" ("replace", "add", "modify").
 5. ACTIONS BELONG TO CHARACTERS: When a location or manner modifies an entity's action (e.g. "在沙滩上奔跑" -> "running on the beach", "坐在长椅上" -> "sitting on a bench"), assign it as an attribute/action of that character (subject="c1"), NOT as a global scene statement. Only pure background environment descriptions without character actions (e.g. "on a beach", "sunny day", "in a classroom") should have kind="scene".
 6. ANONYMOUS/UNNAMED CHARACTERS: If the user mentions unnamed characters (e.g. "一个女孩", "另一个女孩", "一个男生", "一个人", "路人"), name them sequentially as "girl1", "girl2", "boy1", "boy2", "person1", "person2".
-7. COMPLETED ITEM TRANSFER (完成式人物间物品转移): when the original sentence states an explicit final visual outcome for an item handed from one character to another — e.g. 把帽子戴到B头上 / 把围巾围到B脖子上 / 把外套披到B身上 / 把眼镜戴到B脸上 / 递给B且B接住 — you MUST emit BOTH:
+7. ENTITY BOUNDARY: Entities represent CHARACTER SUBJECTS only — people, or NAMED fictional / anime / game characters (even non-human ones, e.g. 皮卡丘/Pikachu, 哆啦A梦/Doraemon). Ordinary unnamed animals (dog, cat, puppy, bird), objects (book, umbrella, bag, hat), vehicles (car, bicycle), furniture (bench, table), plants (tree, flower) MUST NOT become entities. Keep such items inside the relevant character's action/attribute text (e.g. "playing with a puppy", "holding a cat", "leaning against a red car", "reading a book") or as a scene statement. Do NOT create an entity for a non-character object, and do NOT run character resolution on it.
+8. COMPLETED ITEM TRANSFER (完成式人物间物品转移): when the original sentence states an explicit final visual outcome for an item handed from one character to another — e.g. 把帽子戴到B头上 / 把围巾围到B脖子上 / 把外套披到B身上 / 把眼镜戴到B脸上 / 递给B且B接住 — you MUST emit BOTH:
    (a) a relation from source to target describing the transfer (kind="relation", subject=A, target=B, text like "putting the coat on c2"), AND
    (b) the target's final visual state as an attribute of B (kind="attribute", subject=B, text like "wearing the coat", facet="outfit", effect="add").
    The transient source action (taking off / removing) may additionally be kept as its own attribute of A.
-8. IN-PROGRESS / UNCONFIRMED TRANSFER: when the original sentence describes an ongoing or attempted action whose outcome is NOT confirmed — e.g. 正在给B戴帽子 / 正准备把书递给B / 朝B递出一件外套 — emit ONLY the transfer action (relation or attribute). You MUST NOT invent that B is already wearing/holding the item. Do not add a target final state that the user did not confirm.
-9. NEVER invent a final possession (wearing/holding) for a character when the sentence only describes an action toward them (handing, showing, offering).
-10. Output ONLY valid JSON matching this schema:
+9. IN-PROGRESS / UNCONFIRMED TRANSFER: when the original sentence describes an ongoing or attempted action whose outcome is NOT confirmed — e.g. 正在给B戴帽子 / 正准备把书递给B / 朝B递出一件外套 — emit ONLY the transfer action (relation or attribute). You MUST NOT invent that B is already wearing/holding the item. Do not add a target final state that the user did not confirm.
+10. NEVER invent a final possession (wearing/holding) for a character when the sentence only describes an action toward them (handing, showing, offering).
+11. Output ONLY valid JSON matching this schema:
 {
   "entities": [
     { "id": "c1", "name": "林澄" },
@@ -52,6 +53,14 @@ IN-PROGRESS TRANSFER EXAMPLE — input "林澄正在给周遥披外套。":
   "entities": [ { "id": "c1", "name": "林澄" }, { "id": "c2", "name": "周遥" } ],
   "statements": [
     { "kind": "relation", "subject": "c1", "target": "c2", "text": "putting the coat on c2" }
+  ]
+}
+
+ENTITY BOUNDARY EXAMPLE — input "小夏蹲在河边逗一只小狗。":
+{
+  "entities": [ { "id": "c1", "name": "小夏" } ],
+  "statements": [
+    { "kind": "attribute", "subject": "c1", "text": "squatting by the river and playing with a puppy" }
   ]
 }
 """

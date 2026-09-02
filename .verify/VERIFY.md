@@ -436,6 +436,39 @@ MD 报告同步改。加确定性测试 `test_benchmark_aggregation.py`（3 例�
 
 commit message 澄清：上一轮实际 50 测试（非 58），本轮 53。
 
+---
+
+# 第十一轮：Candidate E — Character Entity Boundary
+
+目标：普通未具名动物/物件/车辆/家具/植物不再进入 CharacterResolver；具名虚构非人角色仍允许为 Entity。不扩 schema。
+
+## 实现（`extractor.py` EXTRACTION_SYSTEM_PROMPT 规则 7 + few-shot，唯一产品改动）
+
+- ENTITY BOUNDARY：Entity 只表示角色主体——人物或**具名**虚构/anime/game 角色（即使非人类，如皮卡丘）。
+  普通未具名动物（dog/cat/puppy/bird）、物件（book/umbrella/bag）、车辆（car）、家具（bench/table）、
+  植物（tree/flower）**不得成为 Entity**，保留在相关角色 statement text 或 scene 中。
+- few-shot：`小夏蹲在河边逗一只小狗。` → 仅 c1=小夏 一个 entity，`squatting by the river and playing with a puppy`。
+
+## 新增 6 案例（`E_puppy_57` / `E_cat_58` / `E_car_59` / `E_book_60` / `E_pikachu_61` / `E_catgirl_62`）
+带 `e_contract` 元数据（expected_entity_count）。`entity_boundary_stability.py` ×4 稳定性。
+
+## 结果
+
+| 项 | 结果 |
+|----|------|
+| 实体边界稳定性 ×4（`entity_boundary_20260902_181603`） | **6/6**：puppy/cat/car/book 不成 entity（ec=1/2 全对）；皮卡丘+小智 **ec=2**（非人类角色不被过滤）；猫娘 vs 猫 ec=1（不混淆） |
+| 全量回归（`stress_20260902_185748`，90 例） | **88/90**（baseline 25/25，stress 63/65） |
+| complex_long_34 | **PASS**（小狗不再成 entity，留在小夏 action） |
+| D-final 回归 | **0 regression**（原 81 PASS 全保）；无 intermittent/unstable |
+| 剩余失败 | 仅 shared_two_18 / negation_hat_20（已声明 NEGATION CAPABILITY GAP，E 范围外） |
+
+## 附带修复（benchmark tooling / 数据，非产品）
+
+- `three_people_10` 关键词补 bonfire（LLM 措辞 campfire vs bonfire——facts/渲染本就正确）。
+- `must_not_bind` 检查器跳过否定持有语句（`without X` / `not wearing X` 不算绑定）——
+  修复 ownership_hat_reverse_04 的 LLM 措辞变体（秧秧 "without hat"）；不触碰已声明的否定 gap 案例。
+- 上述两案例修复后各 ×4 全过。
+
 ## 附带修复（benchmark 数据）
 
 `action_b_to_a_08` 关系关键词补 chase/hold（LLM 措辞 chase vs catch up 变体）——非产品回归。

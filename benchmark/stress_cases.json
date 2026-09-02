@@ -875,6 +875,89 @@
         "must_not_bind": [],
         "prompt_has_en": ["book"]
       }
+    },
+    {
+      "id": "E_puppy_57",
+      "category": "E_实体边界_动物",
+      "input": "小夏蹲在河边逗一只小狗。",
+      "e_contract": { "mode": "animal", "expected_entity_count": 1 },
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "小夏", "must_have_en": ["puppy", "dog", "river", "squat"], "label_zh": "小狗保留在小夏动作里(不成 entity)" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["puppy"]
+      }
+    },
+    {
+      "id": "E_cat_58",
+      "category": "E_实体边界_猫",
+      "input": "一个女孩抱着一只猫。",
+      "e_contract": { "mode": "animal", "expected_entity_count": 1 },
+      "expect": {
+        "entity_count": 1,
+        "entities": [],
+        "any_has_en": ["cat"],
+        "must_not_bind": [],
+        "prompt_has_en": ["cat"]
+      }
+    },
+    {
+      "id": "E_car_59",
+      "category": "E_实体边界_车辆",
+      "input": "一个男生靠在一辆红色汽车旁。",
+      "e_contract": { "mode": "vehicle", "expected_entity_count": 1 },
+      "expect": {
+        "entity_count": 1,
+        "entities": [],
+        "any_has_en": ["red", "car"],
+        "must_not_bind": [],
+        "prompt_has_en": ["car"]
+      }
+    },
+    {
+      "id": "E_book_60",
+      "category": "E_实体边界_物件",
+      "input": "穗穗把一本书递给秧秧。",
+      "e_contract": { "mode": "object", "expected_entity_count": 2 },
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_not_have_en": ["holding"], "label_not_zh": "递书未确认秧秧已拿到，不得脑补 holding" }
+        ],
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["hand", "give", "pass"], "label_zh": "递书动作保留" }
+        ],
+        "must_not_bind": [],
+        "prompt_has_en": ["book"]
+      }
+    },
+    {
+      "id": "E_pikachu_61",
+      "category": "E_实体边界_具名非人角色",
+      "input": "皮卡丘站在小智肩上。",
+      "e_contract": { "mode": "named_nonhuman", "expected_entity_count": 2 },
+      "expect": {
+        "entity_count": 2,
+        "entities": [],
+        "any_has_en": ["shoulder", "stand"],
+        "must_not_bind": [],
+        "prompt_has_en": ["shoulder"]
+      }
+    },
+    {
+      "id": "E_catgirl_62",
+      "category": "E_实体边界_猫娘vs猫",
+      "input": "一个猫娘抱着一只猫。",
+      "e_contract": { "mode": "catgirl", "expected_entity_count": 1 },
+      "expect": {
+        "entity_count": 1,
+        "entities": [],
+        "any_has_en": ["cat"],
+        "must_not_bind": [],
+        "prompt_has_en": ["cat"]
+      }
     }
   ]
 }

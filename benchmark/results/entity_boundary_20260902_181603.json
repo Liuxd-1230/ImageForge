@@ -1,0 +1,169 @@
+{
+  "timestamp": "20260902_181603",
+  "rows": [
+    {
+      "id": "E_puppy_57",
+      "mode": "animal",
+      "input": "小夏蹲在河边逗一只小狗。",
+      "expected_entity_count": 1,
+      "passed": 4,
+      "runs": 4,
+      "entity_count_dist": {
+        "1": 4
+      },
+      "entity_names": [
+        [
+          "小夏"
+        ],
+        [
+          "小夏"
+        ],
+        [
+          "小夏"
+        ],
+        [
+          "小夏"
+        ]
+      ],
+      "contract_held": true
+    },
+    {
+      "id": "E_cat_58",
+      "mode": "animal",
+      "input": "一个女孩抱着一只猫。",
+      "expected_entity_count": 1,
+      "passed": 4,
+      "runs": 4,
+      "entity_count_dist": {
+        "1": 4
+      },
+      "entity_names": [
+        [
+          "girl1"
+        ],
+        [
+          "girl1"
+        ],
+        [
+          "girl1"
+        ],
+        [
+          "girl1"
+        ]
+      ],
+      "contract_held": true
+    },
+    {
+      "id": "E_car_59",
+      "mode": "vehicle",
+      "input": "一个男生靠在一辆红色汽车旁。",
+      "expected_entity_count": 1,
+      "passed": 4,
+      "runs": 4,
+      "entity_count_dist": {
+        "1": 4
+      },
+      "entity_names": [
+        [
+          "boy1"
+        ],
+        [
+          "boy1"
+        ],
+        [
+          "boy1"
+        ],
+        [
+          "boy1"
+        ]
+      ],
+      "contract_held": true
+    },
+    {
+      "id": "E_book_60",
+      "mode": "object",
+      "input": "穗穗把一本书递给秧秧。",
+      "expected_entity_count": 2,
+      "passed": 4,
+      "runs": 4,
+      "entity_count_dist": {
+        "2": 4
+      },
+      "entity_names": [
+        [
+          "穗穗",
+          "秧秧"
+        ],
+        [
+          "穗穗",
+          "秧秧"
+        ],
+        [
+          "穗穗",
+          "秧秧"
+        ],
+        [
+          "穗穗",
+          "秧秧"
+        ]
+      ],
+      "contract_held": true
+    },
+    {
+      "id": "E_pikachu_61",
+      "mode": "named_nonhuman",
+      "input": "皮卡丘站在小智肩上。",
+      "expected_entity_count": 2,
+      "passed": 4,
+      "runs": 4,
+      "entity_count_dist": {
+        "2": 4
+      },
+      "entity_names": [
+        [
+          "皮卡丘",
+          "小智"
+        ],
+        [
+          "皮卡丘",
+          "小智"
+        ],
+        [
+          "皮卡丘",
+          "小智"
+        ],
+        [
+          "皮卡丘",
+          "小智"
+        ]
+      ],
+      "contract_held": true
+    },
+    {
+      "id": "E_catgirl_62",
+      "mode": "catgirl",
+      "input": "一个猫娘抱着一只猫。",
+      "expected_entity_count": 1,
+      "passed": 4,
+      "runs": 4,
+      "entity_count_dist": {
+        "1": 4
+      },
+      "entity_names": [
+        [
+          "猫娘"
+        ],
+        [
+          "猫娘"
+        ],
+        [
+          "猫娘"
+        ],
+        [
+          "猫娘"
+        ]
+      ],
+      "contract_held": true
+    }
+  ]
+}

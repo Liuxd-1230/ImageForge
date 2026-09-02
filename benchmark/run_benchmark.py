@@ -93,6 +93,14 @@ def matches_kw(text: str, kw: str) -> bool:
     return False
 
 
+def _is_negated_possession(text: str) -> bool:
+    """判定 statement 是否表达否定持有（without X / not wearing/holding/having X），
+    用于 must_not_bind 跳过——否定态不算该实体「拥有」此物。"""
+    t = (text or "").lower()
+    return bool(re.search(r"\bwithout\b", t) or
+                re.search(r"\bnot\s+(?:wearing|holding|having|carrying|wearing|wearing)\b", t))
+
+
 def run_checks(case, final_facts, final_prompt, negative_prompt, variant_meta=None):
     """确定性规则检查。返回 [(stage, message)]。"""
     issues = []
@@ -149,12 +157,13 @@ def run_checks(case, final_facts, final_prompt, negative_prompt, variant_meta=No
                            f"unresolved internal entity reference {e.id} in final prompt"))
             break
 
-    # ── must_not_bind ──
+    # ── must_not_bind（跳过否定持有语句：'without X'/'not wearing X' 表示该实体没有 X，不算绑定）──
     for mb in exp.get("must_not_bind", []):
         ent = entities_by_name.get(mb["other"])
         if not ent:
             continue
-        if any(matches_kw(s.text or "", mb["keyword_en"]) and s.subject == ent.id for s in statements):
+        if any(not _is_negated_possession(s.text or "")
+               and matches_kw(s.text or "", mb["keyword_en"]) and s.subject == ent.id for s in statements):
             issues.append(("extraction", f"错误绑定：{mb['keyword_en']} 出现在【{mb['other']}】上（{mb.get('label_zh') or ''}）"))
 
     # ── relations ──
