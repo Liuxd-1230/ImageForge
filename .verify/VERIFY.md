@@ -263,3 +263,48 @@ Prompt，且 relation 的 target 检查基于未解析文本 → `holding c2's w
 附：`test_golden_cases.py::test_case_21` 更新为匹配 closure 轮既定语义
 （sync-comfyui = validate-only，不自动导入、不覆盖用户编辑）；全部 38 个后端测试通过。
 
+---
+
+# 第七轮：Semantic Stress Benchmark（只建压力测试+跑+分析+报告，未改产品代码）
+
+新增 `benchmark/stress_cases.json`（47 例，覆盖 38 个压力类别）+ runner 扩展
+（双数据集、variants、ambiguity_expected、capability_gap、失败重跑 3 次稳定性分类）。
+**未修改任何产品代码**（仅 benchmark/）。
+
+## 结果（`benchmark/results/stress_20260902_124320.json/.md`）
+
+- 总 72 例：**68 PASS**（baseline 25/25，stress 43/47）；4 个失败全部 **deterministic**（4/4 复现）。
+- 失败按阶段：全部 extraction（4 例）。
+- 失败按类别：所有权帽子转移(1)、共享属性(1)、否定(1)、复杂长句(1)。
+
+## Confirmed deterministic failures（2 个真实问题）
+
+1. **ownership_hat_transfer_03** — 帽子转移被逐字渲染：
+   `Suisui is taking off hat and putting hat on Yangyang. Yangyang is wearing hat.`
+   hat 同时出现在原属主（穗穗）与最终穿戴者（秧秧）身上，静态图像会呈现转移中间态。
+   （对照：body_ownership_05 的 `c2's wrist→Suisui's wrist`、`c1's hair→Yangyang's hair`
+   已正确——Candidate B 的属格引用修复在真实管线中生效。）
+2. **complex_long_34** — 非人实体「小狗」被当成第 4 个角色实体：
+   `safe, ..., inu. Xiaoxia ... playing with Dog.`（entity_count 4 vs 3，
+   并新增 canonical trigger `inu`）。
+
+## Capability gaps（2 个，已声明、未扩 schema）
+
+- **shared_two_18 / negation_hat_20** — 否定句以字面 `not wearing a raincoat/hat`
+  statement 表示（schema 无独立 negative fact 类型）。抽取**未误转 positive**（正确），
+  但渲染为 `Xiaoxia not wearing a raincoat`，与图像语义（不出现该物品）有表达差距。
+
+## 稳定性 / 歧义
+
+- 无 intermittent / unstable；4 个失败全部 deterministic。
+- 歧义案例 pronoun_ambiguous_06 **通过**（未新增第三人、红伞保留、无脑补）。
+- temporal_overwrite_23 声明的能力缺口**未触发**（引擎恰好输出最终态白裙）。
+- 标点变体（分号/而/然后/同时）全部通过——无明显标点不稳定。
+- partial_shared_19 案例输入曾为匿名三女孩（期望误写具名），已修正为具名后通过。
+
+## 推荐下一步（等待确认，不自动进入 Candidate C）
+
+只修 **ownership_hat_transfer_03** 一类：动作转移（摘下/戴上/递给）的最终视觉状态归属。
+候选：assembly 阶段对 `take off / put on / hand to` 类动作做「最终穿戴者优先」归并，
+把转移动作简化为最终状态（`Yangyang is wearing a hat`），同时不引入新 schema。
+

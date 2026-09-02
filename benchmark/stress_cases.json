@@ -1,0 +1,683 @@
+{
+  "version": 1,
+  "description": "Semantic Stress Benchmark —— 故意构造「普通用户真会这样写、但对实体绑定/指代/所有权/覆盖/多人物关系明显更困难」的真实中文描述。只检查语义正确性，不要求唯一 Prompt。",
+  "cases": [
+    {
+      "id": "chain_relation_01",
+      "category": "1_多人物关系链",
+      "input": "穗穗看着秧秧，秧秧则看着小夏。",
+      "expect": {
+        "entity_count": 3,
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["look", "watch", "gaze"], "label_zh": "穗穗→秧秧" },
+          { "from": "秧秧", "to": "小夏", "must_have_en": ["look", "watch", "gaze"], "label_zh": "秧秧→小夏" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "look", "other": "小夏", "label_zh": "穗穗的视线不得直接指向小夏" }
+        ]
+      }
+    },
+    {
+      "id": "bidirectional_02",
+      "category": "2_双向关系",
+      "input": "穗穗牵着秧秧的手，秧秧另一只手拉着小夏。",
+      "expect": {
+        "entity_count": 3,
+        "relations": [
+          { "from": "穗穗", "to": "秧秧", "must_have_en": ["holding", "hand"], "label_zh": "穗穗牵秧秧" },
+          { "from": "秧秧", "to": "小夏", "must_have_en": ["holding", "pull"], "label_zh": "秧秧拉小夏" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "hand", "other": "小夏", "label_zh": "牵手不串到小夏" }
+        ]
+      }
+    },
+    {
+      "id": "ownership_hat_transfer_03",
+      "category": "3_所有权_帽子转移",
+      "input": "穗穗把自己的帽子摘下来戴到秧秧头上。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "秧秧", "must_have_en": ["hat"], "label_zh": "帽子最终戴在秧秧头上" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "hat", "other": "穗穗", "label_zh": "帽子不得仍算在穗穗身上" }
+        ]
+      }
+    },
+    {
+      "id": "ownership_hat_reverse_04",
+      "category": "3_所有权_反向",
+      "input": "穗穗拿起秧秧的帽子戴在自己头上。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["hat"], "label_zh": "帽子戴在穗穗头上" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "hat", "other": "秧秧", "label_zh": "帽子不得绑到秧秧" }
+        ]
+      }
+    },
+    {
+      "id": "body_ownership_05",
+      "category": "4_身体部位所有权",
+      "input": "秧秧抓住穗穗的手腕，小夏摸着秧秧的头发。",
+      "expect": {
+        "entity_count": 3,
+        "relations": [
+          { "from": "秧秧", "to": "穗穗", "must_have_en": ["wrist", "grab", "catch"], "label_zh": "秧秧抓穗穗手腕" },
+          { "from": "小夏", "to": "秧秧", "must_have_en": ["hair", "touch", "stroke"], "label_zh": "小夏摸秧秧头发" }
+        ]
+      }
+    },
+    {
+      "id": "pronoun_ambiguous_06",
+      "category": "5_代词_歧义",
+      "input": "穗穗站在秧秧旁边，她拿着一把红伞。",
+      "ambiguity_expected": true,
+      "expect": {
+        "entity_count": 2,
+        "entities": [],
+        "any_has_en": ["red", "umbrella"],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "pronoun_unambiguous_07",
+      "category": "5_代词_无歧义",
+      "input": "穗穗站在秧秧旁边，穗穗手里拿着一把红伞。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["red", "umbrella"], "label_zh": "红伞在穗穗手里" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "umbrella", "other": "秧秧", "label_zh": "红伞不得绑到秧秧" }
+        ]
+      }
+    },
+    {
+      "id": "former_latter_08",
+      "category": "6_前者后者",
+      "input": "穗穗和秧秧站在门口，前者穿白裙，后者穿蓝裙。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress"], "label_zh": "前者白裙" },
+          { "name": "秧秧", "must_have_en": ["blue", "dress"], "label_zh": "后者蓝裙" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "white", "other": "秧秧", "label_zh": "白裙不得绑到秧秧" },
+          { "keyword_en": "blue", "other": "穗穗", "label_zh": "蓝裙不得绑到穗穗" }
+        ]
+      }
+    },
+    {
+      "id": "ordinal_09",
+      "category": "7_第一第二最后一个",
+      "input": "三个女孩站成一排，第一个戴红帽，第二个拿着书，最后一个撑着伞。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [],
+        "any_has_en": ["red", "hat", "book", "umbrella"],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "anon_two_10",
+      "category": "8_匿名人物",
+      "input": "一个金发女孩和另一个黑发女孩坐在桌边，前者喝咖啡，后者看书。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [],
+        "any_has_en": ["coffee", "book"],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "anon_native_11",
+      "category": "9_匿名+原生角色",
+      "input": "穗穗旁边站着一个黑发女孩，女孩手里拿着相机。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_not_have_en": ["camera"], "label_not_zh": "相机不得绑给穗穗" }
+        ],
+        "any_has_en": ["camera"],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "rolebook_native_12",
+      "category": "10_角色书+原生角色",
+      "input": "小雨和穗穗一起坐在海边，小雨今天穿红色夹克，穗穗穿白色泳装。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "小雨", "must_have_en": ["red", "jacket"], "label_zh": "覆盖角色书默认(红夹克)", "rolebook_keywords": ["twintails", "brown"], "must_not_have_en": ["green", "overall"], "label_not_zh": "不得残留绿色背带裙" },
+          { "name": "穗穗", "must_have_en": ["white", "swimsuit"], "label_zh": "白色泳装", "source": "model_character" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "swimsuit", "other": "小雨", "label_zh": "泳装不得绑到小雨" },
+          { "keyword_en": "jacket", "other": "穗穗", "label_zh": "夹克不得绑到穗穗" }
+        ]
+      }
+    },
+    {
+      "id": "mixed_three_13",
+      "category": "11_三类实体混合",
+      "input": "小雨、穗穗和一个金发女孩在公园，小雨撑着伞，穗穗在看手机，金发女孩在拍照。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "小雨", "must_have_en": ["umbrella"], "label_zh": "小雨撑伞" },
+          { "name": "穗穗", "must_have_en": ["phone"], "label_zh": "穗穗看手机" }
+        ],
+        "any_has_en": ["camera", "photo"],
+        "must_not_bind": [
+          { "keyword_en": "umbrella", "other": "穗穗", "label_zh": "伞不得绑到穗穗" },
+          { "keyword_en": "phone", "other": "小雨", "label_zh": "手机不得绑到小雨" }
+        ]
+      }
+    },
+    {
+      "id": "mixed_three_14",
+      "category": "11_三类实体混合_2",
+      "input": "一个蓝发女孩和秧秧还有小雨在舞台边，蓝发女孩在跳舞，秧秧在鼓掌，小雨在调音。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "秧秧", "must_have_en": ["clap", "applaud"], "label_zh": "秧秧鼓掌" },
+          { "name": "小雨", "must_have_en": ["music", "tune", "adjust"], "label_zh": "小雨调音" }
+        ],
+        "any_has_en": ["dance"],
+        "must_not_bind": [
+          { "keyword_en": "clap", "other": "蓝发女孩", "label_zh": "鼓掌不得绑到蓝发女孩" }
+        ]
+      }
+    },
+    {
+      "id": "cross_attrs_15",
+      "category": "12_三人物交叉属性",
+      "input": "穗穗穿白裙，秧秧穿蓝裙，小夏穿红裙；穗穗拿相机，小夏拿伞。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "camera"], "label_zh": "白裙+相机" },
+          { "name": "秧秧", "must_have_en": ["blue", "dress"], "label_zh": "蓝裙" },
+          { "name": "小夏", "must_have_en": ["red", "dress", "umbrella"], "label_zh": "红裙+伞" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "camera", "other": "秧秧", "label_zh": "相机不得绑到秧秧" },
+          { "keyword_en": "umbrella", "other": "秧秧", "label_zh": "伞不得绑到秧秧" },
+          { "keyword_en": "blue", "other": "穗穗", "label_zh": "蓝裙不得绑到穗穗" }
+        ]
+      }
+    },
+    {
+      "id": "four_people_16",
+      "category": "13_四人物",
+      "input": "穗穗、秧秧、小夏和另一个金发女孩排成一排，四人都笑着挥手。",
+      "expect": {
+        "entity_count": 4,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["smile", "wave"], "label_zh": "笑+挥手" },
+          { "name": "秧秧", "must_have_en": ["smile", "wave"], "label_zh": "笑+挥手" },
+          { "name": "小夏", "must_have_en": ["smile", "wave"], "label_zh": "笑+挥手" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "four_people_17",
+      "category": "13_四人物_2",
+      "input": "穗穗、秧秧、小夏和另一个女孩围坐在桌边，穗穗在倒茶，秧秧在递饼干，小夏在喝咖啡，另一个女孩在发呆。",
+      "expect": {
+        "entity_count": 4,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["tea", "pour"], "label_zh": "倒茶" },
+          { "name": "秧秧", "must_have_en": ["cookie", "biscuit", "hand"], "label_zh": "递饼干" },
+          { "name": "小夏", "must_have_en": ["coffee"], "label_zh": "喝咖啡" }
+        ],
+        "any_has_en": ["daze", "space", "star", "zone", "blank"],
+        "must_not_bind": [
+          { "keyword_en": "tea", "other": "秧秧", "label_zh": "倒茶不得绑到秧秧" },
+          { "keyword_en": "cookie", "other": "小夏", "label_zh": "饼干不得绑到小夏" }
+        ]
+      }
+    },
+    {
+      "id": "shared_two_18",
+      "category": "14_共享属性",
+      "input": "穗穗和秧秧都穿雨衣，小夏没有穿雨衣。",
+      "capability_gap": "否定句：'没有穿雨衣' 被表示为字面 'not wearing a raincoat' statement（schema 无独立 negative fact 类型）。抽取未误转成 positive（正确），但渲染为 'Xiaoxia not wearing a raincoat'，与图像语义（不出现该物品）存在表达差距。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["raincoat"], "label_zh": "雨衣" },
+          { "name": "秧秧", "must_have_en": ["raincoat"], "label_zh": "雨衣" },
+          { "name": "小夏", "must_not_have_en": ["raincoat"], "label_not_zh": "小夏无雨衣" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "partial_shared_19",
+      "category": "15_部分共享",
+      "input": "穗穗、秧秧和小夏都在笑，但只有秧秧闭着眼睛。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["smil", "laugh"], "label_zh": "笑" },
+          { "name": "秧秧", "must_have_en": ["smil", "laugh", "closed", "squint"], "label_zh": "笑+闭眼" },
+          { "name": "小夏", "must_have_en": ["smil", "laugh"], "label_zh": "笑" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "negation_hat_20",
+      "category": "16_否定",
+      "input": "穗穗没有戴帽子，秧秧戴着红帽。",
+      "capability_gap": "否定句：'没有戴帽子' 被表示为字面 'not wearing a hat' statement（schema 无独立 negative fact 类型）。抽取未误转成 positive（正确），但渲染为 'Suisui not wearing a hat'，与图像语义（不出现该物品）存在表达差距。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_not_have_en": ["hat"], "label_not_zh": "不得把'没有戴帽子'变成 wearing a hat" },
+          { "name": "秧秧", "must_have_en": ["red", "hat"], "label_zh": "红帽" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "except_scoped_21",
+      "category": "17_排除式描述",
+      "input": "除了小夏之外，穗穗和秧秧都撑着伞。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["umbrella"], "label_zh": "撑伞" },
+          { "name": "秧秧", "must_have_en": ["umbrella"], "label_zh": "撑伞" },
+          { "name": "小夏", "must_not_have_en": ["umbrella"], "label_not_zh": "小夏无伞" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "override_rolebook_strict_22",
+      "category": "18_覆盖角色书默认outfit",
+      "input": "小雨今天穿红色夹克。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "小雨", "must_have_en": ["red", "jacket"], "label_zh": "红夹克", "rolebook_keywords": ["twintails", "brown"], "must_not_have_en": ["green", "overall", "背带裙"], "label_not_zh": "绿色背带裙必须被覆盖，不得同时存在" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "temporal_overwrite_23",
+      "category": "19_多次覆盖_时间",
+      "input": "穗穗先穿着蓝色外套，后来换成白色连衣裙。",
+      "capability_gap": "temporal_state：'先…后来…'需要时间状态表达；当前 schema 无此能力。若输出最终态白裙则通过，若蓝外套与白裙并存则计为能力缺口。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress"], "label_zh": "最终态=白裙" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "modify_not_replace_24",
+      "category": "20_修改而非替换",
+      "input": "穗穗把原来的白裙系上一条红腰带。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "belt"], "label_zh": "白裙保留+红腰带" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "multi_accessory_25",
+      "category": "21_多配饰",
+      "input": "穗穗戴着红色发带、金色耳环和珍珠项链。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["hairband", "earring", "necklace"], "label_zh": "发带+耳环+项链三个配饰都保留" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "spatial_left_behind_26",
+      "category": "22_空间关系",
+      "input": "穗穗站在秧秧左边，小夏站在穗穗后面。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["left"], "label_zh": "穗穗在左" },
+          { "name": "小夏", "must_have_en": ["behind"], "label_zh": "小夏在穗穗后面" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "left", "other": "小夏", "label_zh": "左边不得绑到小夏" }
+        ]
+      }
+    },
+    {
+      "id": "spatial_chain_27",
+      "category": "23_相对位置链",
+      "input": "穗穗站在秧秧左边，秧秧站在小夏左边。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["left"], "label_zh": "穗穗在秧秧左边" },
+          { "name": "秧秧", "must_have_en": ["left"], "label_zh": "秧秧在小夏左边" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "immediately", "other": "小夏", "label_zh": "不得脑补'紧挨着小夏'" }
+        ]
+      }
+    },
+    {
+      "id": "subject_background_28",
+      "category": "24_主体与背景",
+      "input": "穗穗坐在窗边，窗外下着雪。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["window", "sit"], "label_zh": "坐在窗边属于穗穗" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "location_in_action_29",
+      "category": "25_动作里的地点",
+      "input": "穗穗在沙滩上奔跑。",
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["run", "beach"], "label_zh": "running on beach 保持一体" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "camera_scope_30",
+      "category": "26_镜头只作用于指定角色",
+      "input": "画面左边是穗穗的面部特写，远处能看到秧秧的全身。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["close-up", "face"], "label_zh": "面部特写属于穗穗" },
+          { "name": "秧秧", "must_have_en": ["full", "body", "far"], "label_zh": "全身远景属于秧秧" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "close-up", "other": "秧秧", "label_zh": "特写不得绑到秧秧" }
+        ]
+      }
+    },
+    {
+      "id": "multi_camera_31",
+      "category": "27_多镜头描述",
+      "input": "以前景的穗穗为主体，背景中的秧秧略微虚化。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["foreground", "focus"], "label_zh": "前景主体=穗穗" },
+          { "name": "秧秧", "must_have_en": ["blur", "background"], "label_zh": "背景虚化=秧秧" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "expression_diff_32",
+      "category": "28_表情差异",
+      "input": "穗穗笑着，秧秧皱着眉，小夏面无表情。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["smile", "laugh"], "label_zh": "笑" },
+          { "name": "秧秧", "must_have_en": ["frown", "scowl"], "label_zh": "皱眉" },
+          { "name": "小夏", "must_have_en": ["expressionless", "blank", "neutral"], "label_zh": "面无表情" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "smile", "other": "秧秧", "label_zh": "笑不得绑到秧秧" }
+        ]
+      }
+    },
+    {
+      "id": "action_expr_outfit_mix_33",
+      "category": "29_动作+表情+outfit混合",
+      "input": "穗穗笑着挥手，穿着白色连衣裙；秧秧皱眉沉思，穿着蓝色衬衫。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["smile", "wave", "white", "dress"], "label_zh": "笑+挥手+白裙" },
+          { "name": "秧秧", "must_have_en": ["frown", "think", "blue", "shirt"], "label_zh": "皱眉+沉思+蓝衬衫" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "white", "other": "秧秧", "label_zh": "白裙不得绑到秧秧" },
+          { "keyword_en": "blue", "other": "穗穗", "label_zh": "蓝衬衫不得绑到穗穗" }
+        ]
+      }
+    },
+    {
+      "id": "complex_long_34",
+      "category": "30_复杂长句",
+      "input": "黄昏的河堤上，穗穗穿着白色连衣裙坐在长椅上，秧秧站在她身后为她撑伞，小夏则蹲在河边逗一只小狗，三个人都笑着。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "bench", "sit"], "label_zh": "白裙+长椅" },
+          { "name": "秧秧", "must_have_en": ["umbrella", "behind"], "label_zh": "身后撑伞" },
+          { "name": "小夏", "must_have_en": ["puppy", "dog", "river", "squat"], "label_zh": "河边逗狗" }
+        ],
+        "relations": [
+          { "from": "秧秧", "to": "穗穗", "must_have_en": ["umbrella", "hold"], "label_zh": "秧秧为穗穗撑伞" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "umbrella", "other": "小夏", "label_zh": "伞不得绑到小夏" }
+        ]
+      }
+    },
+    {
+      "id": "complex_long_35",
+      "category": "30_复杂长句_2",
+      "input": "穗穗和秧秧并肩走在雨后的街道上，穗穗左手打着伞右手拎着购物袋，秧秧把围巾借给了冷得发抖的小夏，小夏感激地笑着。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["umbrella", "shopping"], "label_zh": "打伞+购物袋" },
+          { "name": "秧秧", "must_have_en": ["scarf"], "label_zh": "围巾" },
+          { "name": "小夏", "must_have_en": ["scarf", "grateful", "smile"], "label_zh": "围巾+感激地笑" }
+        ],
+        "relations": [
+          { "from": "秧秧", "to": "小夏", "must_have_en": ["scarf", "lend", "give"], "label_zh": "秧秧借围巾给小夏" }
+        ],
+        "must_not_bind": [
+          { "keyword_en": "scarf", "other": "穗穗", "label_zh": "围巾最终在小夏，不绑穗穗" }
+        ]
+      }
+    },
+    {
+      "id": "complex_long_36",
+      "category": "30_复杂长句_3",
+      "input": "在清晨的教室里，穗穗站在黑板前讲解，秧秧托着腮认真听讲，小夏趴在桌上睡着了，窗外的阳光斜斜地照进来。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["blackboard", "explain", "teach"], "label_zh": "黑板前讲解" },
+          { "name": "秧秧", "must_have_en": ["listen", "chin", "hand"], "label_zh": "托腮听讲" },
+          { "name": "小夏", "must_have_en": ["sleep", "desk"], "label_zh": "趴桌睡着" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "punct_semicolon_37b",
+      "category": "31_标点_分号",
+      "input": "穗穗穿着白裙在花园里看书；秧秧在旁边画画。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "book", "read"], "label_zh": "白裙+看书" },
+          { "name": "秧秧", "must_have_en": ["draw", "paint"], "label_zh": "画画" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "punct_er_37c",
+      "category": "31_标点_而",
+      "input": "穗穗穿着白裙在花园里看书，而秧秧在旁边画画。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "book", "read"], "label_zh": "白裙+看书" },
+          { "name": "秧秧", "must_have_en": ["draw", "paint"], "label_zh": "画画" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "punct_then_37d",
+      "category": "31_标点_然后",
+      "input": "穗穗穿着白裙在花园里看书，然后秧秧走过来在旁边画画。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "book", "read"], "label_zh": "白裙+看书" },
+          { "name": "秧秧", "must_have_en": ["draw", "paint"], "label_zh": "画画" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "punct_tongshi_37e",
+      "category": "31_标点_同时",
+      "input": "穗穗穿着白裙在花园里看书，同时秧秧在旁边画画。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "book", "read"], "label_zh": "白裙+看书" },
+          { "name": "秧秧", "must_have_en": ["draw", "paint"], "label_zh": "画画" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "similar_name_38",
+      "category": "32_同名近似名",
+      "input": "穗穗和小穗穗都站在门口。",
+      "expect": {
+        "entity_count": 2,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["door", "stand"], "label_zh": "穗穗站门口" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "scene_general_multi_ref_39",
+      "category": "34_scene/general多实体引用",
+      "input": "镜头先对准穗穗，再转向秧秧，最后落在小夏身上。",
+      "expect": {
+        "entity_count": 3,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["camera", "focus"], "label_zh": "镜头对准穗穗" },
+          { "name": "秧秧", "must_have_en": ["camera", "focus"], "label_zh": "镜头转向秧秧" },
+          { "name": "小夏", "must_have_en": ["camera", "focus"], "label_zh": "镜头落在小夏" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "artist_neutral_40",
+      "category": "35_Artist不改变人物事实",
+      "input": "穗穗穿着白色连衣裙站在海边，手里拿着一本书。",
+      "variants": [
+        { "name": "no_artist", "artist_tags": [], "expect_artist": [] },
+        { "name": "one_artist", "artist_tags": ["@mika_pikazo"], "expect_artist": ["@mika_pikazo"] },
+        { "name": "two_artists", "artist_tags": ["@wlop", "@ask"], "expect_artist": ["@wlop", "@ask"] }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["white", "dress", "book"], "label_zh": "白裙+书" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "lora_neutral_41",
+      "category": "36_LoRA不改变人物事实",
+      "input": "穗穗穿着流动水纹的裙子坐在窗边。",
+      "variants": [
+        { "name": "no_lora", "lora_items": [], "expect_lora": [] },
+        { "name": "with_lora", "lora_items": [{ "filename": "anima/anima-highres-aesthetic-boost.safetensors", "trigger_words": "aesthetic_boost", "strength": 0.8, "is_enabled": true }], "expect_lora": ["aesthetic_boost"] }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["water", "pattern", "window", "sit"], "label_zh": "水纹裙+窗边" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "artist_lora_42",
+      "category": "37_Artist+LoRA同时",
+      "input": "穗穗穿着华丽礼服站在星空下。",
+      "variants": [
+        { "name": "both", "artist_tags": ["@mika_pikazo"], "lora_items": [{ "filename": "anima/anima-highres-aesthetic-boost.safetensors", "trigger_words": "aesthetic_boost", "strength": 0.8, "is_enabled": true }], "expect_artist": ["@mika_pikazo"], "expect_lora": ["aesthetic_boost"] }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["dress", "starry", "night"], "label_zh": "礼服+星空" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "artist_lora_safety_43",
+      "category": "37_Artist+LoRA+Safety",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "variants": [
+        { "name": "combo_safe", "safety": "Safe", "artist_tags": ["@mika_pikazo"], "lora_items": [{ "filename": "anima/anima-highres-aesthetic-boost.safetensors", "trigger_words": "aesthetic_boost", "strength": 0.8, "is_enabled": true }], "expect_safety": "safe", "expect_artist": ["@mika_pikazo"], "expect_lora": ["aesthetic_boost"] }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["pajama", "room"], "label_zh": "睡衣+房间" }
+        ],
+        "must_not_bind": []
+      }
+    },
+    {
+      "id": "safety_neutral_44",
+      "category": "38_Safety不改变语义facts",
+      "input": "穗穗穿着睡衣坐在房间里。",
+      "variants": [
+        { "name": "safe", "safety": "Safe", "expect_safety": "safe" },
+        { "name": "sensitive", "safety": "Sensitive", "expect_safety": "sensitive" },
+        { "name": "nsfw", "safety": "NSFW", "expect_safety": "nsfw" },
+        { "name": "explicit", "safety": "Explicit", "expect_safety": "explicit" }
+      ],
+      "expect": {
+        "entity_count": 1,
+        "entities": [
+          { "name": "穗穗", "must_have_en": ["pajama", "room"], "label_zh": "睡衣+房间" }
+        ],
+        "must_not_bind": []
+      }
+    }
+  ]
+}
