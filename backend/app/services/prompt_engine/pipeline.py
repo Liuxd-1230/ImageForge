@@ -16,12 +16,10 @@ from app.services.prompt_engine.validator import SemanticValidator
 from app.services.prompt_engine.policy import PromptPolicy, SAFETY_TAG_MAP
 from app.services.llm.base import BaseLLMProvider
 
-# 匿名/描述性主体（Candidate E：不进入角色解析与在线解析）
+# 匿名占位符（Candidate E / 显式标记之后：只保留非常确定的 anonymous placeholder）
 _GENERIC_ANON_RE = re.compile(r"^(girl|boy|person|woman|man|male|female)\d*$", re.I)
-_GENERIC_CN_MARKERS = (
-    "女孩", "女生", "男孩", "男人", "女人", "少女", "路人", "猫娘",
-    "小狗", "狗", "猫", "犬", "鸟", "车", "汽车", "书", "包", "花", "树", "桌子", "椅子",
-)
+# 危险的中文 substring 判断已删除（“猫” in “猫又” 这类逻辑会让 <猫又> 被误拦）。
+# 普通动物/物件是否成 Entity 由 Candidate E（extractor 契约）负责，不在这里做 substring 拦截。
 
 
 class PromptPipeline:
@@ -42,9 +40,9 @@ class PromptPipeline:
             return True
         if _GENERIC_ANON_RE.match(n):
             return True
-        return any(m in n.lower() for m in _GENERIC_CN_MARKERS)
+        return False
 
-    async def _online_backfill(self, entities) -> None:
+    async def _online_backfill(self, entities, explicit_names: Optional[List[str]] = None) -> None:
         """Online Resolver 预回填（best-effort，失败静默 → 既有 LLM fallback 兜底）。
 
         解析链：角色书命中 → 跳过；缓存 canonical+series 完整 → 跳过；
@@ -54,9 +52,11 @@ class PromptPipeline:
             return
         from app.services.character_meta.resolver import run_with_timeout
         from app.models.character import Character
+        explicit = set(explicit_names or [])
         for e in entities:
             name = (e.name or "").strip()
-            if not name or self._is_generic_subject(name):
+            # 显式标记 <角色名> 是最高可信的人为标记 → 跳过 generic 判断
+            if not name or (name not in explicit and self._is_generic_subject(name)):
                 continue
             # Character Book 命中（用户自定义角色）→ 不联网
             if self.session.exec(select(Character).where(Character.name == name)).first():
@@ -80,7 +80,8 @@ class PromptPipeline:
         raw_text: str,
         rule_ids: Optional[List[int]] = None,
         model: Optional[str] = None,
-        reasoning_effort: Optional[str] = "instruct"
+        reasoning_effort: Optional[str] = "instruct",
+        explicit_names: Optional[List[str]] = None
     ) -> SemanticFacts:
         rule_context = ""
         # Only inject rules if specifically selected by user (rule_ids is non-empty list)
@@ -99,7 +100,7 @@ class PromptPipeline:
         )
 
         # 2. Online Resolver 预回填（可选；角色书/缓存完整则不联网）
-        await self._online_backfill(raw_facts.entities)
+        await self._online_backfill(raw_facts.entities, explicit_names=explicit_names)
 
         # 3. Batch Character Resolution (Character Book -> Cache -> LLM)
         resolved_entities = await self.resolver.resolve_entities_async(

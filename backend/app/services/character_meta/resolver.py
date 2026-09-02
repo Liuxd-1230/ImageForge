@@ -228,8 +228,11 @@ class OnlineCharacterResolver:
             self._write(name, top)
         return {"status": "resolved", "result": self._encode(top)}
 
-    async def confirm(self, name: str, candidate: Dict[str, Any]) -> Dict[str, Any]:
-        """User picked one candidate → write cache → return resolved."""
+    async def confirm(self, name: str, candidate: Dict[str, Any], force: bool = False) -> Dict[str, Any]:
+        """User picked one candidate → write cache → return resolved.
+
+        force=False（默认，普通候选选择）：manual 非空字段不覆盖，只补空字段；
+        force=True（“重新解析并替换”）才允许覆盖 manual 非空值。"""
         meta = CharacterMetadata(
             canonical_tag=candidate.get("canonical_tag", ""),
             series_tag=candidate.get("series_tag", "") or None,
@@ -237,7 +240,7 @@ class OnlineCharacterResolver:
             aliases=candidate.get("aliases") or [],
         )
         if self.write_cache:
-            self._write(name, meta, force=True)
+            self._write(name, meta, force=force)
         return {"status": "resolved", "result": self._encode(meta)}
 
     # ── pipeline helpers (backfill) ─────────────────────────────────────────

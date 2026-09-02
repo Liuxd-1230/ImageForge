@@ -6,6 +6,7 @@ from datetime import datetime
 from app.database import get_session
 from app.config import settings
 from app.models.character import Character, CharacterCreate, CharacterUpdate, CharacterRead
+from app.models.trigger_cache import CharacterTriggerCache
 from app.services.character_meta.source import BooruTagSource
 from app.services.character_meta.resolver import OnlineCharacterResolver
 from app.services.llm.lm_studio import LMStudioProvider
@@ -17,6 +18,14 @@ class ResolveOnlineRequest(BaseModel):
     name: str
     candidate_index: Optional[int] = None  # 多候选时用户选中的下标（确认后写缓存）
     force: bool = False                    # True = “重新解析并替换”（可覆盖 manual）
+
+
+class CacheUpdateRequest(BaseModel):
+    canonical_tag: Optional[str] = None
+    series_tag: Optional[str] = None
+    caption_name: Optional[str] = None
+    aliases: Optional[str] = None
+    notes: Optional[str] = None
 
 
 def _build_online_resolver(session: Session) -> OnlineCharacterResolver:
@@ -53,7 +62,7 @@ async def resolve_online(req: ResolveOnlineRequest, session: Session = Depends(g
     if outcome.get("status") == "ambiguous" and req.candidate_index is not None:
         cands = outcome.get("candidates") or []
         if 0 <= req.candidate_index < len(cands):
-            confirmed = await resolver.confirm(name, cands[req.candidate_index])
+            confirmed = await resolver.confirm(name, cands[req.candidate_index], force=req.force)
             return confirmed
     return outcome
 
@@ -61,6 +70,57 @@ async def resolve_online(req: ResolveOnlineRequest, session: Session = Depends(g
 def get_characters(session: Session = Depends(get_session)):
     stmt = select(Character).order_by(Character.updated_at.desc())
     return session.exec(stmt).all()
+
+
+# ── 已解析角色（Trigger Cache）管理 ─────────────────────────────────────────
+@router.get("/cache")
+def list_trigger_cache(session: Session = Depends(get_session)):
+    stmt = select(CharacterTriggerCache).order_by(CharacterTriggerCache.updated_at.desc())
+    rows = session.exec(stmt).all()
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "canonical_tag": r.canonical_tag,
+            "series_tag": r.series_tag or "",
+            "caption_name": r.caption_name,
+            "aliases": (r.aliases or ""),
+            "source": r.source or "",
+            "resolved_at": r.resolved_at.isoformat() if r.resolved_at else None,
+            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+        }
+        for r in rows
+    ]
+
+
+@router.put("/cache/{cache_id}")
+def update_trigger_cache(cache_id: int, req: CacheUpdateRequest, session: Session = Depends(get_session)):
+    """编辑已解析角色 metadata —— 用户编辑 = manual（最高优先级，自动联网只补空字段）。"""
+    row = session.get(CharacterTriggerCache, cache_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Cache record not found")
+    data = req.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        if k == "series_tag":
+            v = v or None
+        setattr(row, k, v)
+    row.source = "manual"
+    row.updated_at = datetime.utcnow()
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return {"status": "ok", "id": row.id}
+
+
+@router.delete("/cache/{cache_id}")
+def delete_trigger_cache(cache_id: int, session: Session = Depends(get_session)):
+    """只删除 Trigger Cache 记录，不影响本地模型/图片等任何其他资源。"""
+    row = session.get(CharacterTriggerCache, cache_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Cache record not found")
+    session.delete(row)
+    session.commit()
+    return {"status": "ok"}
 
 @router.get("/{char_id}", response_model=CharacterRead)
 def get_character(char_id: int, session: Session = Depends(get_session)):

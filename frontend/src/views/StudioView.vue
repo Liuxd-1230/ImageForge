@@ -255,7 +255,7 @@
                       <div class="pd-trigger-ops">
                         <span class="pd-source-badge">来源: {{ entitySourceLabel(entity.name) }}</span>
                         <button type="button" class="mini-btn" :disabled="resolvingNames[entity.name]" @click="resolveOnline(entity)">
-                          {{ resolvingNames[entity.name] ? '解析中…' : '重新解析' }}
+                          {{ resolvingNames[entity.name] ? '刷新中…' : '联网刷新' }}
                         </button>
                       </div>
                       <div v-if="onlineCands[entity.name]?.length" class="pd-cands">
@@ -1292,11 +1292,10 @@ const entitySource = reactive<Record<string, string>>({})
 
 function entitySourceLabel(name: string): string {
   const s = entitySource[name]
-  if (s === 'manual') return 'manual（手工，联网不覆盖）'
+  if (s === 'manual') return 'manual（手工）'
   if (s === 'online') return 'online'
   if (s === 'llm') return 'llm'
-  if (!s) return '—'
-  return s
+  return '本地缓存'
 }
 
 async function resolveOnline(entity: Entity) {

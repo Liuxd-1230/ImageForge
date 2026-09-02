@@ -142,7 +142,7 @@ async def test_4_manual_never_overwritten(session):
     src2 = FakeSource(results={"suisui": [meta("suisui", "wuthering waves", "Suisui")]})
     online2 = make_online(session, src2, llm=llm)
     await online2.confirm("穗穗", {"canonical_tag": "suisui", "series_tag": "ww2",
-                                   "caption_name": "Suisui", "aliases": []})
+                                   "caption_name": "Suisui", "aliases": []}, force=True)
     row = session.exec(__import__("sqlmodel").select(CharacterTriggerCache).where(
         CharacterTriggerCache.name == "穗穗")).first()
     assert row.canonical_tag == "suisui"            # force 覆盖
@@ -226,13 +226,17 @@ async def test_10_generic_subjects_never_enter_online(session):
     src = FakeSource()
     online = make_online(session, src)
     pipe = PromptPipeline(session=session, online_resolver=online)
-    # Candidate E：generic 主体（小狗/女孩1/猫娘等）即使出现也不得进入在线解析
+    # 联网层只保留非常确定的 anonymous placeholder（girl1/boy1/person1…）
     await pipe._online_backfill([
         Entity(id="c1", name="girl1"),
-        Entity(id="c2", name="金发女孩"),
-        Entity(id="c3", name="小猫"),
-        Entity(id="c4", name="红色汽车"),
+        Entity(id="c2", name="boy1"),
+        Entity(id="c3", name="person2"),
     ])
     assert src.calls == []
-    assert PromptPipeline._is_generic_subject("小狗") is True
-    assert PromptPipeline._is_generic_subject("穗穗") is False
+    # 中文 substring 判断已删除：<猫又> 这类名字绝不能被 generic 误拦
+    assert PromptPipeline._is_generic_subject("猫又") is False
+    assert PromptPipeline._is_generic_subject("花火") is False
+    assert PromptPipeline._is_generic_subject("小鸟游六花") is False
+    assert PromptPipeline._is_generic_subject("金发女孩") is False  # 交给 Candidate E 上游
+    # 普通小狗不成为 Entity 由 extractor 负责（markers/E 契约），匿名占位符仍被拦截
+    assert PromptPipeline._is_generic_subject("girl2") is True

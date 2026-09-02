@@ -35,6 +35,12 @@ async def parse_prompt(
     """Extract semantic entities and statements from user input."""
     provider_type = req.provider or settings.ACTIVE_PROVIDER
     llm = get_llm_provider(provider_type)
+    target_model = req.model or (settings.LM_STUDIO_MODEL if provider_type == "lm_studio" else settings.CLOUD_MODEL)
+
+    # 显式角色标记 <角色名>：确定性 pre-parser → 剥离尖括号 + 记录显式角色名
+    from app.services.prompt_engine.markers import parse_explicit_markers
+    clean_text, explicit_names = parse_explicit_markers(req.text)
+
     # 角色联网解析（V1）：仅当设置开启时接入；回填失败静默 → 既有 LLM fallback
     online_resolver = None
     if settings.ONLINE_RESOLVE_ENABLED:
@@ -46,14 +52,13 @@ async def parse_prompt(
                 source=BooruTagSource(),
                 llm_provider=llm,
                 write_cache=settings.ONLINE_RESOLVE_CACHE_WRITE,
-                model=(target_model or settings.LM_STUDIO_MODEL or None) if provider_type == "lm_studio" else (settings.CLOUD_MODEL or None),
+                model=target_model,
             )
         except Exception as e:
             logger.warning(f"online resolver not wired: {e}")
     pipeline = PromptPipeline(session=session, llm_provider=llm, online_resolver=online_resolver)
     
     instance_id = None
-    target_model = req.model or (settings.LM_STUDIO_MODEL if provider_type == "lm_studio" else settings.CLOUD_MODEL)
 
     # 1. Auto load if enabled
     if provider_type == "lm_studio" and settings.LM_STUDIO_AUTO_LOAD and target_model:
@@ -65,10 +70,11 @@ async def parse_prompt(
 
     try:
         facts = await pipeline.parse_and_extract(
-            raw_text=req.text,
+            raw_text=clean_text,
             rule_ids=req.rule_ids,
             model=target_model,
-            reasoning_effort=req.reasoning_effort or "instruct"
+            reasoning_effort=req.reasoning_effort or "instruct",
+            explicit_names=explicit_names
         )
         return facts
     except RuntimeError as re:
