@@ -37,7 +37,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="ruleStore.rules.length === 0" class="text-center py-16 text-grey border rounded-lg bg-surface">
+    <div v-if="ruleStore.rules.length === 0" class="rules-empty text-center py-16 text-grey">
       <v-icon size="48" class="mb-2 opacity-50">mdi-file-document-outline</v-icon>
       <div class="text-body-2 font-weight-medium">暂无规则文件</div>
       <div class="text-caption mt-1">点击右上角“导入说明文件”或“新建规则”添加 Prompt 参考规范。</div>
@@ -51,7 +51,7 @@
         cols="12"
         md="6"
       >
-        <v-card variant="outlined" class="h-100 d-flex flex-column pa-3 bg-surface rounded-lg rule-card">
+        <v-card variant="flat" class="rule-card h-100 d-flex flex-column pa-3">
           <!-- Card Header -->
           <div class="d-flex justify-space-between align-center mb-2 pb-2 border-b">
             <div class="d-flex align-center gap-2">
@@ -80,7 +80,7 @@
           </div>
 
           <!-- Content Code Box -->
-          <div class="prompt-editor-card flex-grow-1 bg-surface-variant">
+          <div class="prompt-editor-card flex-grow-1 rule-content-box">
             <v-textarea
               :model-value="rule.content"
               rows="6"
@@ -271,11 +271,25 @@ async function confirmDelete() {
 <style scoped>
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
+
+/* ── 规则卡片：tonal 分层替代重描边；hover 用浮起而非变色描边 ── */
 .rule-card {
-  transition: border-color 0.15s ease;
+  background: rgb(var(--v-theme-surface-container)) !important;
+  border-radius: 20px !important;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 .rule-card:hover {
-  border-color: #4F46E5 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+.rule-content-box {
+  background: rgb(var(--v-theme-surface));
+  border-radius: 14px;
+  overflow: hidden;
+}
+.rules-empty {
+  border-radius: 20px;
+  background: rgb(var(--v-theme-surface-container));
 }
 .row-check {
   display: inline-flex;

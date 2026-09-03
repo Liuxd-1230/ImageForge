@@ -10,10 +10,12 @@
         <span class="status-pill" :title="`${providerLabel} 状态: ${currentProviderStatus}`">
           <span :class="['status-indicator', providerStatusClass]" />
           {{ providerLabel }}
+          <span class="status-pill-state">{{ providerStatusText }}</span>
         </span>
         <span class="status-pill" title="ComfyUI 状态">
           <span :class="['status-indicator', comfyStatusClass]" />
           ComfyUI
+          <span class="status-pill-state">{{ comfyStatusText }}</span>
         </span>
       </div>
     </header>
@@ -659,10 +661,12 @@
           </div>
 
           <div v-else class="canvas-empty">
-            <div class="canvas-empty-icon">
+            <div class="canvas-frame">
               <span class="mdi mdi-image-outline" />
+              <span class="canvas-frame-ratio">3 : 4</span>
             </div>
-            <p class="canvas-empty-caption">尚未生成</p>
+            <p class="canvas-empty-title">画布已就绪</p>
+            <p class="canvas-empty-caption">在左侧描述画面，点击「生成图片」开始创作</p>
             <template v-if="studioStore.generationError">
               <p class="canvas-error">{{ studioStore.generationError.summary }}</p>
               <button type="button" class="err-detail-toggle" @click="errorDetailOpen = !errorDetailOpen">
@@ -671,6 +675,26 @@
               <pre v-if="errorDetailOpen" class="err-detail mono">{{ studioStore.generationError.detail }}</pre>
             </template>
             <p v-else-if="errorMessage" class="canvas-error mono">{{ errorMessage }}</p>
+            <div v-else-if="recentHistory.length" class="canvas-recent">
+              <div class="canvas-recent-head">
+                <span class="canvas-recent-label">最近生成</span>
+                <button type="button" class="canvas-recent-more" @click="goHistory">
+                  全部<span class="mdi mdi-chevron-right" />
+                </button>
+              </div>
+              <div class="canvas-recent-strip">
+                <button
+                  v-for="h in recentHistory"
+                  :key="h.id"
+                  type="button"
+                  class="recent-thumb"
+                  :title="h.title || '查看大图'"
+                  @click="openImagePreview(h.url)"
+                >
+                  <img :src="h.url" loading="lazy" alt="" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -788,12 +812,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { useStudioStore, type ActiveLoraItem } from '../stores/studio'
 import { usePresetStore } from '../stores/presets'
 import { useSettingsStore } from '../stores/settings'
 import { useArtistStore } from '../stores/artist'
 import { useLoraStore } from '../stores/lora'
 import { useRuleStore } from '../stores/rules'
+import { useHistoryStore } from '../stores/history'
 import type { Artist, Entity, SafetyLevel, ReasoningEffort } from '../types'
 
 const studioStore = useStudioStore()
@@ -802,6 +828,8 @@ const settingsStore = useSettingsStore()
 const artistStore = useArtistStore()
 const loraStore = useLoraStore()
 const ruleStore = useRuleStore()
+const historyStore = useHistoryStore()
+const router = useRouter()
 
 /* ── UI state ── */
 const rulesDialog = ref(false)
@@ -1013,6 +1041,20 @@ const currentProviderStatus = computed(() =>
   studioStore.provider === 'lm_studio' ? settingsStore.lmStudioStatus : settingsStore.cloudStatus,
 )
 const providerLabel = computed(() => (studioStore.provider === 'lm_studio' ? 'LM Studio' : 'Cloud'))
+const _statusText = (s: string) => (s === 'connected' ? '已连接' : s === 'error' ? '异常' : '未连接')
+const providerStatusText = computed(() => _statusText(currentProviderStatus.value))
+const comfyStatusText = computed(() => _statusText(settingsStore.comfyStatus))
+
+/* ── 画布空状态：最近生成缩略（复用 history store，点击看大图） ── */
+const recentHistory = computed(() =>
+  historyStore.history
+    .filter(h => h.image_path)
+    .slice(0, 4)
+    .map(h => ({ id: h.id, url: h.image_path as string, title: h.raw_input })),
+)
+function goHistory() {
+  router.push('/history')
+}
 const providerStatusClass = computed(() => {
   const s = currentProviderStatus.value
   return s === 'connected' ? 'online' : s === 'error' ? 'error' : 'offline'
@@ -1409,6 +1451,7 @@ onMounted(async () => {
     loraStore.fetchLoras(),
     ruleStore.fetchRules(),
   ])
+  historyStore.fetchHistory()  // 画布空状态「最近生成」；不阻塞主流程
 
   studioStore.initStudioSettings(settingsStore.settings)
 
@@ -1530,6 +1573,11 @@ function clearDraftWorkbench() {
   font-weight: 600;
   color: rgb(var(--v-theme-on-surface-variant));
 }
+.status-pill-state {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.72;
+}
 
 .studio-body {
   flex: 1;
@@ -1602,23 +1650,32 @@ function clearDraftWorkbench() {
   padding: 22px 26px 28px;
 }
 
+/* ── 左栏分区：tonal 卡片容器（与 LoRA 编辑弹窗同一语言），层级靠明度不靠描边 ── */
 .studio-section {
-  margin-bottom: 30px;
+  margin-bottom: 16px;
   min-width: 0;
+}
+.studio-section:not(.accordion) {
+  padding: 16px 18px 18px;
+  border-radius: var(--if-radius-card, 20px);
+  background: rgb(var(--v-theme-surface-container-low));
+}
+.studio-section.accordion {
+  margin-bottom: 16px;
 }
 .section-title {
   margin: 0 0 12px;
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  color: rgb(var(--v-theme-on-surface));
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgb(var(--v-theme-on-surface-variant));
 }
 
-/* ── 画面描述 ── */
+/* ── 画面描述（控件在 tonal 卡片上用最浅一级面） ── */
 .scene-input-wrap {
-  border: 1px solid rgb(var(--v-theme-outline));
+  border: 1px solid rgb(var(--v-theme-outline-variant));
   border-radius: 16px;
-  background: rgb(var(--v-theme-surface-container-low));
+  background: rgb(var(--v-theme-surface));
   transition: border-color var(--motion-base) var(--motion-emphasized),
     box-shadow var(--motion-base) var(--motion-emphasized);
 }
@@ -1690,7 +1747,7 @@ function clearDraftWorkbench() {
   padding: 7px 10px 7px 12px;
   border: 1px solid rgb(var(--v-theme-outline-variant));
   border-radius: 12px;
-  background: rgb(var(--v-theme-surface-container-low));
+  background: rgb(var(--v-theme-surface));
   cursor: pointer;
   font-family: var(--font-sans);
   transition: border-color var(--motion-fast) var(--motion-emphasized),
@@ -1771,7 +1828,7 @@ function clearDraftWorkbench() {
   gap: 4px;
   padding: 4px;
   border-radius: 14px;
-  background: rgb(var(--v-theme-surface-container));
+  background: rgb(var(--v-theme-surface));
 }
 .safety-indicator {
   position: absolute;
@@ -1814,7 +1871,7 @@ function clearDraftWorkbench() {
   padding: 12px 38px 12px 14px;
   border: 1px solid rgb(var(--v-theme-outline-variant));
   border-radius: 14px;
-  background: rgb(var(--v-theme-surface-container-low));
+  background: rgb(var(--v-theme-surface));
   font-family: var(--font-sans);
   font-size: 14.5px;
   color: rgb(var(--v-theme-on-surface));
@@ -1919,7 +1976,7 @@ function clearDraftWorkbench() {
   transition: background-color var(--motion-fast) var(--motion-emphasized);
 }
 .lora-row:hover {
-  background: rgb(var(--v-theme-surface-container-low));
+  background: rgb(var(--v-theme-surface-container));
 }
 .lora-line1 {
   display: flex;
@@ -2044,9 +2101,9 @@ function clearDraftWorkbench() {
 }
 
 .prompt-editor {
-  border: 1px solid rgb(var(--v-theme-outline));
+  border: 1px solid rgb(var(--v-theme-outline-variant));
   border-radius: 16px;
-  background: rgb(var(--v-theme-surface-container-low));
+  background: rgb(var(--v-theme-surface));
   overflow: hidden;
   transition: border-color var(--motion-base) var(--motion-emphasized),
     box-shadow var(--motion-base) var(--motion-emphasized);
@@ -2170,7 +2227,7 @@ function clearDraftWorkbench() {
 
 /* ── 折叠面板（解析详情 / 高级设置） ── */
 .accordion {
-  border-radius: 16px;
+  border-radius: var(--if-radius-card, 20px);
   background: rgb(var(--v-theme-surface-container-low));
   overflow: hidden;
   transition: background-color var(--motion-base) var(--motion-emphasized);
@@ -2834,7 +2891,7 @@ function clearDraftWorkbench() {
   width: 100%;
   height: 56px;
   border: none;
-  border-radius: 24px;
+  border-radius: 28px;
   background: rgb(var(--v-theme-primary));
   color: rgb(var(--v-theme-on-primary));
   font-family: var(--font-sans);
@@ -2846,17 +2903,25 @@ function clearDraftWorkbench() {
   box-shadow: 0 6px 18px rgba(var(--v-theme-primary), 0.3);
   transition: background-color var(--motion-base) var(--motion-emphasized),
     border-radius var(--motion-base) var(--motion-emphasized),
-    box-shadow var(--motion-base) var(--motion-emphasized);
+    box-shadow var(--motion-base) var(--motion-emphasized),
+    transform var(--motion-base) var(--motion-emphasized);
 }
 .generate-btn:hover {
   background: rgb(var(--v-theme-primary-darken-1));
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(var(--v-theme-primary), 0.38);
+}
+.generate-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.26);
 }
 .generate-btn:disabled {
   opacity: 0.85;
   cursor: default;
+  transform: none;
 }
 .generate-btn.generating {
-  border-radius: 22px;
+  border-radius: 24px;
   box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.22);
 }
 .gen-fill {
@@ -2943,25 +3008,113 @@ function clearDraftWorkbench() {
   position: relative;
 }
 .canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   max-width: 100%;
+  padding: 12px 0;
 }
-.canvas-empty-icon {
+/* 画幅比例占位框：空状态的核心视觉锚点（Anima 默认 3:4 竖幅） */
+.canvas-frame {
+  width: 152px;
+  aspect-ratio: 3 / 4;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 74px;
-  height: 74px;
-  margin: 0 auto 18px;
-  border-radius: 24px;
-  background: rgb(var(--v-theme-surface-container));
+  gap: 8px;
+  border: 2px dashed rgb(var(--v-theme-outline-variant));
+  border-radius: 22px;
+  background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-on-surface-variant));
-  font-size: 34px;
+}
+.canvas-frame .mdi {
+  font-size: 30px;
+  opacity: 0.55;
+}
+.canvas-frame-ratio {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  opacity: 0.5;
+}
+.canvas-empty-title {
+  margin: 20px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgb(var(--v-theme-on-surface));
 }
 .canvas-empty-caption {
-  margin: 0;
-  font-size: 14px;
+  margin: 6px 0 0;
+  font-size: 13px;
   color: rgb(var(--v-theme-on-surface-variant));
+}
+/* 最近生成：空画布的第一条起跑线 */
+.canvas-recent {
+  margin-top: 30px;
+  width: min(400px, 100%);
+}
+.canvas-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.canvas-recent-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+.canvas-recent-more {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  padding: 3px 6px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-primary));
+  cursor: pointer;
+}
+.canvas-recent-more:hover {
+  background: rgb(var(--v-theme-primary-container));
+}
+.canvas-recent-more .mdi {
+  font-size: 15px;
+}
+.canvas-recent-strip {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.recent-thumb {
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgb(var(--v-theme-surface));
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-emphasized),
+    box-shadow var(--motion-fast) var(--motion-emphasized),
+    border-color var(--motion-fast) var(--motion-emphasized);
+}
+.recent-thumb:hover {
+  transform: translateY(-2px);
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+.recent-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .canvas-error {
   margin: 14px auto 0;

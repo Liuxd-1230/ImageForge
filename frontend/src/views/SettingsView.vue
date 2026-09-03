@@ -22,7 +22,7 @@
     <v-row dense>
       <!-- Section 1: 全局偏好 -->
       <v-col cols="12">
-        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3">
+        <v-card variant="flat" class="settings-card pa-3 mb-3">
           <div class="section-label mb-2 text-primary">1. 全局创作偏好</div>
           <v-row dense>
             <v-col cols="12" md="6">
@@ -58,7 +58,7 @@
 
       <!-- Section 2: 本地 LM Studio -->
       <v-col cols="12" md="6">
-        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3 h-100 d-flex flex-column">
+        <v-card variant="flat" class="settings-card pa-3 mb-3 h-100 d-flex flex-column">
           <div class="d-flex justify-space-between align-center mb-2 pb-1 border-b">
             <div class="section-label text-primary">2. 本地 LM Studio 设置</div>
             <div class="d-flex align-center gap-1 text-caption">
@@ -131,7 +131,7 @@
 
       <!-- Section 3: 云端 API -->
       <v-col cols="12" md="6">
-        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3 h-100 d-flex flex-column">
+        <v-card variant="flat" class="settings-card pa-3 mb-3 h-100 d-flex flex-column">
           <div class="d-flex justify-space-between align-center mb-2 pb-1 border-b">
             <div class="section-label text-secondary">3. 云端 API 设置 (OpenAI 兼容)</div>
             <div class="d-flex align-center gap-1 text-caption">
@@ -195,7 +195,7 @@
 
       <!-- Section 4: ComfyUI -->
       <v-col cols="12">
-        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3">
+        <v-card variant="flat" class="settings-card pa-3 mb-3">
           <div class="d-flex justify-space-between align-center mb-2 pb-1 border-b">
             <div class="section-label text-success">4. ComfyUI 生图服务设置</div>
             <div class="d-flex align-center gap-1 text-caption">
@@ -244,7 +244,7 @@
 
       <!-- Section 5: 角色联网解析（Online Resolver V1） -->
       <v-col cols="12">
-        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3">
+        <v-card variant="flat" class="settings-card pa-3 mb-3">
           <div class="section-label mb-2">5. 角色联网解析</div>
           <div class="d-flex align-center justify-space-between py-1">
             <div class="text-caption">未知角色自动联网查询（Tag 数据源 + 本地 LLM 转写；失败时回退既有 LLM 解析，不中断）</div>
@@ -280,7 +280,7 @@
 
       <!-- Section 6: Civitai Metadata（LoRA Metadata V1） -->
       <v-col cols="12">
-        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3">
+        <v-card variant="flat" class="settings-card pa-3 mb-3">
           <div class="section-label mb-2 text-tertiary">6. Civitai 元数据（LoRA Metadata V1）</div>
           <div class="d-flex gap-2 align-center py-1">
             <v-select
@@ -383,4 +383,10 @@ async function saveAllSettings() {
 <style scoped>
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
+
+/* ── 分区卡片：tonal 填充分层，去掉 wireframe 感重描边 ── */
+.settings-card {
+  background: rgb(var(--v-theme-surface-container)) !important;
+  border-radius: 20px !important;
+}
 </style>
