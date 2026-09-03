@@ -74,12 +74,14 @@
     <!-- Image-First Grid -->
     <v-row v-else dense>
       <v-col
-        v-for="art in filteredArtists"
+        v-for="(art, i) in filteredArtists"
         :key="art.id"
         cols="12"
         sm="6"
         md="4"
         lg="3"
+        class="if-enter"
+        :style="{ '--i': i }"
       >
         <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden artist-item-card">
           <!-- Image Preview Area (Hero) -->

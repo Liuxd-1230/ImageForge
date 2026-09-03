@@ -196,20 +196,24 @@
                 <span v-if="studioStore.isNegativePromptDirty" class="dirty-hint-inline"><span class="dirty-dot" />Modified</span>
                 <span class="neg-copy" @click.stop="copyToClipboard(studioStore.negativePrompt)">复制</span>
               </button>
-              <div v-show="negOpen" class="neg-body">
-                <textarea
-                  v-model="studioStore.negativePrompt"
-                  class="prompt-textarea neg"
-                  rows="3"
-                  spellcheck="false"
-                  @input="studioStore.isNegativePromptDirty = true"
-                />
-                <input
-                  v-model="studioStore.extraNegative"
-                  class="extra-neg-input"
-                  placeholder="本次追加 Negative（如: text, lowres）"
-                  @input="studioStore.buildPrompt()"
-                />
+              <div class="if-collapse" :class="{ open: negOpen }">
+                <div class="if-collapse-inner">
+                  <div class="neg-body">
+                    <textarea
+                      v-model="studioStore.negativePrompt"
+                      class="prompt-textarea neg"
+                      rows="3"
+                      spellcheck="false"
+                      @input="studioStore.isNegativePromptDirty = true"
+                    />
+                    <input
+                      v-model="studioStore.extraNegative"
+                      class="extra-neg-input"
+                      placeholder="本次追加 Negative（如: text, lowres）"
+                      @input="studioStore.buildPrompt()"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -221,7 +225,9 @@
               <span class="acc-title">解析详情</span>
               <span v-if="hasUnresolvedTrigger" class="acc-warn-dot" title="存在未解析的 Trigger" />
             </button>
-            <div v-show="parseOpen" class="acc-body">
+            <div class="if-collapse" :class="{ open: parseOpen }">
+              <div class="if-collapse-inner">
+                <div class="acc-body">
               <template v-if="studioStore.facts.entities.length === 0 && studioStore.facts.statements.length === 0">
                 <p class="pd-empty">输入描述并解析后，此处将呈现结构化的人物与动作关系。</p>
               </template>
@@ -298,6 +304,8 @@
                   </div>
                 </div>
               </template>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -307,7 +315,9 @@
               <span class="mdi acc-caret" :class="advOpen ? 'mdi-chevron-down' : 'mdi-chevron-right'" />
               <span class="acc-title">高级设置</span>
             </button>
-            <div v-show="advOpen" class="acc-body">
+            <div class="if-collapse" :class="{ open: advOpen }">
+              <div class="if-collapse-inner">
+                <div class="acc-body">
               <!-- Provider -->
               <div class="adv-field">
                 <span class="param-label">Provider</span>
@@ -537,6 +547,8 @@
                   />
                 </div>
               </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -575,7 +587,7 @@
       <main class="canvas-pane">
         <div class="canvas-box">
           <template v-if="studioStore.generatedImageUrl">
-            <div class="canvas-img-wrap">
+            <div class="canvas-img-wrap if-canvas-in" :key="studioStore.generatedImageUrl">
               <img
                 :src="studioStore.generatedImageUrl"
                 class="canvas-img"

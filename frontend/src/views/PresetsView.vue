@@ -29,10 +29,12 @@
     <!-- Presets Grid -->
     <v-row v-else dense>
       <v-col
-        v-for="preset in presetStore.presets"
+        v-for="(preset, i) in presetStore.presets"
         :key="preset.id"
         cols="12"
         md="6"
+        class="if-enter"
+        :style="{ '--i': i }"
       >
         <v-card variant="outlined" class="h-100 d-flex flex-column pa-3 bg-surface rounded-lg preset-card">
           <!-- Card Header -->

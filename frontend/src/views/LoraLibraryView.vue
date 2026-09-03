@@ -92,11 +92,13 @@
     </div>
 
     <!-- ══════════ CARD VIEW（浏览模式，有封面；绝不显示本地绝对路径） ══════════ -->
-    <div v-else-if="viewMode === 'card'" class="lora-cards">
+    <Transition name="page" mode="out-in">
+    <div v-if="viewMode === 'card'" key="card" class="lora-cards">
       <div
-        v-for="lora in filteredLoras"
+        v-for="(lora, i) in filteredLoras"
         :key="lora.id"
-        :class="['lora-card', { selected: bulkSel.isSelected(lora.id) }]"
+        :class="['lora-card', 'if-enter', { selected: bulkSel.isSelected(lora.id) }]"
+        :style="{ '--i': i }"
       >
         <!-- Cover region -->
         <div v-if="!lora.cover_hidden" class="card-cover">
@@ -190,7 +192,7 @@
     </div>
 
     <!-- ══════════ LIST VIEW（管理模式，无封面；无本地绝对路径/文件名大列） ══════════ -->
-    <div v-else class="lora-list">
+    <div v-else key="list" class="lora-list">
       <div class="lora-head">
         <span class="cell col-check">
           <label class="head-check">
@@ -206,7 +208,7 @@
         <span class="cell col-status">ComfyUI</span>
         <span class="cell col-ops">操作</span>
       </div>
-      <div v-for="lora in filteredLoras" :key="lora.id" class="lora-row">
+      <div v-for="(lora, i) in filteredLoras" :key="lora.id" class="lora-row if-enter" :style="{ '--i': i }">
         <div class="cell col-check">
           <label class="head-check">
             <input type="checkbox" :checked="bulkSel.isSelected(lora.id)" @change="bulkSel.toggleOne(lora.id)" />
@@ -287,6 +289,7 @@
         </div>
       </div>
     </div>
+    </Transition>
 
     <!-- ══════════ 来源管理 Dialog（唯一展示目录地址的地方，spec §52） ══════════ -->
     <v-dialog v-model="sourceDialog" max-width="640px">

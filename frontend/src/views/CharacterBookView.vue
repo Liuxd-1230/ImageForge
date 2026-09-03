@@ -62,9 +62,10 @@
 
       <div v-else class="d-flex flex-column gap-2">
         <div
-          v-for="row in cacheStore.filtered"
+          v-for="(row, i) in cacheStore.filtered"
           :key="row.id"
-          :class="['resolved-row', { selected: cacheSel.isSelected(row.id) }]"
+          :class="['resolved-row', 'if-enter', { selected: cacheSel.isSelected(row.id) }]"
+          :style="{ '--i': i }"
         >
           <label class="row-check">
             <input type="checkbox" :checked="cacheSel.isSelected(row.id)" @change="cacheSel.toggleOne(row.id)" />
@@ -133,12 +134,14 @@
 
     <v-row v-else dense>
       <v-col
-        v-for="char in filteredCharacters"
+        v-for="(char, i) in filteredCharacters"
         :key="char.id"
         cols="12"
         sm="6"
         md="4"
         lg="3"
+        class="if-enter"
+        :style="{ '--i': i }"
       >
         <v-card variant="outlined" class="h-100 d-flex flex-column pa-3 bg-surface rounded-lg character-card">
           <!-- Card Header: Avatar Initial, Name, Actions -->

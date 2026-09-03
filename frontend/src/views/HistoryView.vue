@@ -27,12 +27,14 @@
     <!-- Image-First History Grid -->
     <v-row v-else dense>
       <v-col
-        v-for="item in historyStore.history"
+        v-for="(item, i) in historyStore.history"
         :key="item.id"
         cols="12"
         sm="6"
         md="4"
         lg="3"
+        class="if-enter"
+        :style="{ '--i': i }"
       >
         <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden history-card">
           <!-- Thumbnail Image (Visual Hero) -->

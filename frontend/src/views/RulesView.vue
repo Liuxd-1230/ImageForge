@@ -46,10 +46,12 @@
     <!-- Rules Grid -->
     <v-row v-else dense>
       <v-col
-        v-for="rule in ruleStore.rules"
+        v-for="(rule, i) in ruleStore.rules"
         :key="rule.id"
         cols="12"
         md="6"
+        class="if-enter"
+        :style="{ '--i': i }"
       >
         <v-card variant="flat" class="rule-card h-100 d-flex flex-column pa-3">
           <!-- Card Header -->

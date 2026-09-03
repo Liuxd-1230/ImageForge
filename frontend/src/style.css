@@ -193,6 +193,87 @@ body {
   border-radius: var(--if-radius-dialog) !important;
 }
 
+/* ============================================================
+   全局流动感（motion layer）
+   ─ 路由页过渡：fade + 轻微上浮（out-in，不叠页）
+   ─ 列表/卡片入场：rise + 索引 stagger（--i，封顶 14 项）
+   ─ 画布出图：scale/opacity 落定
+   ─ 尊重 prefers-reduced-motion：全部关闭
+   ============================================================ */
+
+/* ─ 路由页过渡 ─ */
+.page-enter-active {
+  transition: opacity var(--motion-base) var(--motion-emphasized),
+    transform var(--motion-base) var(--motion-emphasized);
+}
+.page-leave-active {
+  transition: opacity var(--motion-fast) var(--motion-emphasized);
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ─ 卡片/行入场：fade + rise，按 --i 阶梯延迟 ─ */
+@keyframes if-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.if-enter {
+  animation: if-rise 260ms var(--motion-emphasized) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 18ms);
+}
+
+/* ─ 画布出图落定 ─ */
+@keyframes if-canvas-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.if-canvas-in {
+  animation: if-canvas-in 340ms var(--motion-emphasized) both;
+}
+
+/* ─ 折叠面板（grid 0fr→1fr，无需固定高度） ─ */
+.if-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--motion-base) var(--motion-emphasized);
+}
+.if-collapse.open {
+  grid-template-rows: 1fr;
+}
+.if-collapse > .if-collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ─ 减少动态偏好：全部动效关闭 ─ */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active,
+  .if-enter,
+  .if-canvas-in,
+  .if-collapse {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 /* Accessibility: shut down ALL decorative motion for reduced-motion users */
 @media (prefers-reduced-motion: reduce) {
   *,
