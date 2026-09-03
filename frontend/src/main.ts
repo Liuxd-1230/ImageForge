@@ -7,7 +7,11 @@ import './style.css'
 
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
+if ((import.meta as any).env?.DEV) {
+  ;(window as any).$pinia = pinia
+}
 app.use(router)
 app.use(vuetify)
 

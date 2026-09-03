@@ -19,6 +19,8 @@ const routes = [
   { path: '/settings', name: 'Settings', component: SettingsView },
   // 《一句话的旅程》— 沉浸式主题体验页（无侧边栏的独立布局）
   { path: '/intro', name: 'Intro', component: () => import('../views/intro/IntroView.vue'), meta: { plain: true } },
+  // 旧版 3600 行创作台备份（用于比对与兼容）
+  { path: '/legacy-studio', name: 'LegacyStudio', component: () => import('../views/LegacyStudioView.vue') },
 ]
 
 export const router = createRouter({
