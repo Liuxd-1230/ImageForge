@@ -274,6 +274,12 @@ body {
   }
 }
 
+/* ─ Gemini 族：更强的药丸几何（Neural Expressive 的全圆角输入语言） ─ */
+.v-theme--geminiLight,
+.v-theme--geminiDark {
+  --if-radius-field: 22px;
+}
+
 /* Accessibility: shut down ALL decorative motion for reduced-motion users */
 @media (prefers-reduced-motion: reduce) {
   *,
