@@ -48,7 +48,7 @@
           </div>
         </div>
 
-        <!-- 3. Reasoning Effort -->
+        <!-- 3. Reasoning Effort：m3e-slider（离散档位；MAX 仅 slider 局部 neon treatment） -->
         <div class="adv-section">
           <div class="d-flex align-center justify-space-between mb-1">
             <span class="adv-sec-title">思考强度 (Reasoning Effort)</span>
@@ -56,17 +56,24 @@
               {{ currentRsLabel }}
             </span>
           </div>
-          <div class="d-flex gap-1 flex-wrap">
-            <button
-              v-for="opt in reasoningOptions"
+          <m3e-slider
+            labelled
+            min="0"
+            :max="reasoningOptions.length - 1"
+            step="1"
+            class="reasoning-slider"
+            :class="{ 'max-active': isMaxReasoning }"
+            aria-label="思考强度"
+            @input="onReasoningSlide"
+          >
+            <m3e-slider-thumb :value="reasoningIndex" />
+          </m3e-slider>
+          <div class="reasoning-ticks mono" aria-hidden="true">
+            <span
+              v-for="(opt, i) in reasoningOptions"
               :key="opt.value"
-              type="button"
-              :class="['m3-chip-btn', { active: studioStore.reasoningEffort === opt.value }]"
-              @click="studioStore.reasoningEffort = opt.value"
-            >
-              <span v-if="opt.max" class="if-max-gradient font-weight-bold">MAX</span>
-              <span v-else>{{ opt.label }}</span>
-            </button>
+              :class="['rs-tick', { on: i === reasoningIndex, max: opt.max }]"
+            >{{ opt.max ? 'MAX' : opt.label }}</span>
           </div>
         </div>
 
@@ -256,6 +263,10 @@ function switchProvider(p: 'lm_studio' | 'cloud') {
   studioStore.model = p === 'lm_studio'
     ? (settingsStore.settings.LM_STUDIO_MODEL || '')
     : (settingsStore.settings.CLOUD_MODEL || '')
+  // LM Studio 绝不发送 xhigh/max：切回本地时强制收束到 high
+  if (p === 'lm_studio' && (studioStore.reasoningEffort === 'xhigh' || studioStore.reasoningEffort === 'max')) {
+    studioStore.reasoningEffort = 'high'
+  }
 }
 
 const reasoningOptions = computed<{ value: ReasoningEffort; label: string; max?: boolean }[]>(() => {
@@ -273,6 +284,7 @@ const reasoningOptions = computed<{ value: ReasoningEffort; label: string; max?:
       { value: 'low', label: '低' },
       { value: 'medium', label: '中' },
       { value: 'high', label: '高' },
+      { value: 'xhigh', label: '极高' },
       { value: 'max', label: 'MAX', max: true },
     ]
   }
@@ -283,6 +295,18 @@ const currentRsLabel = computed(() => {
   const opt = reasoningOptions.value.find(o => o.value === studioStore.reasoningEffort)
   return opt ? opt.label : studioStore.reasoningEffort
 })
+
+/** 档位索引 ↔ ReasoningEffort（slider 只搬数字，语义映射在这里） */
+const reasoningIndex = computed(() => {
+  const i = reasoningOptions.value.findIndex(o => o.value === studioStore.reasoningEffort)
+  return i >= 0 ? i : 0
+})
+
+function onReasoningSlide(e: Event) {
+  const i = Math.round(Number((e.target as unknown as { value?: number | null }).value))
+  const opt = reasoningOptions.value[i]
+  if (opt) studioStore.reasoningEffort = opt.value
+}
 
 function triggerUpload() {
   fileInput.value?.click()
@@ -353,20 +377,42 @@ function handleWorkflowUpload(e: Event) {
   border-color: rgb(var(--v-theme-primary));
 }
 
-.m3-chip-btn {
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgb(var(--v-theme-outline-variant));
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface-variant));
-  cursor: pointer;
+/* Reasoning m3e-slider + 档位列（MAX 霓虹只许出现在 slider 相关元素内） */
+.reasoning-slider {
+  width: 100%;
+  margin-top: 4px;
 }
-.m3-chip-btn.active {
-  background: rgb(var(--v-theme-primary-container));
-  border-color: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-on-primary-container));
+.reasoning-slider.max-active {
+  --m3e-slider-active-track-color: transparent;
+}
+.reasoning-slider.max-active::part(track-active) {
+  background: var(--max-gradient);
+  background-size: var(--max-gradient-size);
+  animation: if-max-flow 7s linear infinite;
+}
+.reasoning-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  padding: 0 2px;
+}
+.rs-tick {
+  font-size: 10px;
+  color: rgb(var(--v-theme-on-surface-variant));
+  opacity: 0.75;
+}
+.rs-tick.on {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+  opacity: 1;
+}
+.rs-tick.max.on {
+  background: var(--max-gradient);
+  background-size: var(--max-gradient-size);
+  animation: if-max-flow 7s linear infinite;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 .size-preset-chip {

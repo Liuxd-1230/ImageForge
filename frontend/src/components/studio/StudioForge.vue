@@ -68,7 +68,8 @@
               :disabled="!studioStore.rawInput.trim() || studioStore.isParsing"
               @click="studioStore.parsePrompt()"
             >
-              <span class="mdi mdi-creation-outline mr-1" />
+              <m3e-loading-indicator v-if="studioStore.isParsing" class="btn-loading" aria-label="解析中" />
+              <span v-else class="mdi mdi-creation-outline mr-1" />
               <span>{{ studioStore.isParsing ? '正在抽取语义…' : '语义抽取 (⌘+Enter)' }}</span>
             </button>
           </div>
@@ -281,5 +282,11 @@ function onPresetSelect() {
 .parse-attached-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.btn-loading {
+  margin-right: 5px;
+  --m3e-loading-indicator-active-indicator-size: 16px;
+  --m3e-loading-indicator-active-indicator-color: currentColor;
+  vertical-align: -4px;
 }
 </style>

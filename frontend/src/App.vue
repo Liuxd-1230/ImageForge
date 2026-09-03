@@ -1,144 +1,44 @@
 <template>
   <v-app>
-    <!-- Desktop Navigation Sidebar（plain 路由如 /intro 隐藏） -->
-    <v-navigation-drawer
-      v-if="!isPlainRoute"
-      v-model="drawer"
-      :rail="rail"
-      permanent
-      border="e"
-      width="230"
-      class="app-sidebar"
-    >
-      <div class="d-flex align-center justify-space-between px-3 py-3 app-brand-header">
-        <div v-if="!rail" class="d-flex align-center gap-2">
-          <v-icon icon="mdi-creation" color="primary" size="22" />
-          <div class="d-flex flex-column">
-            <span class="font-weight-bold text-body-2 tracking-tight">ImageForge</span>
-            <span class="text-caption text-grey text-truncate" style="font-size: 0.68rem !important; line-height: 1;">Anima 工作台</span>
-          </div>
-        </div>
-        <v-icon v-else icon="mdi-creation" color="primary" class="mx-auto" />
-        
-        <v-btn
-          variant="text"
-          density="compact"
-          :icon="rail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
-          size="small"
-          @click.stop="rail = !rail"
-        />
-      </div>
+    <!-- 全局 Navigation：m3e-nav-rail（compact 72–80px；plain 路由如 /intro 隐藏） -->
+    <aside v-if="!isPlainRoute" class="app-nav-rail">
+      <router-link to="/" class="rail-brand" title="ImageForge — 创作台">
+        <v-icon icon="mdi-creation" color="primary" size="24" />
+      </router-link>
 
-      <v-divider class="my-1 opacity-20" />
+      <m3e-nav-rail mode="compact" class="rail-nav">
+        <m3e-nav-item
+          v-for="item in NAV_ITEMS"
+          :key="item.to"
+          :selected="isActive(item.to)"
+          @click="go(item.to)"
+        >
+          <span slot="icon" class="mdi" :class="item.icon" />
+          {{ item.label }}
+        </m3e-nav-item>
+      </m3e-nav-rail>
 
-      <v-list density="compact" nav class="px-2 py-1">
-        <v-list-item
-          prepend-icon="mdi-brush-variant"
-          title="创作台"
-          to="/"
-          value="studio"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-account-box-multiple-outline"
-          title="角色书"
-          to="/characters"
-          value="characters"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-palette-outline"
-          title="画师库"
-          to="/artists"
-          value="artists"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-toy-brick-outline"
-          title="LoRA 库"
-          to="/loras"
-          value="loras"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-file-code-outline"
-          title="规则文件"
-          to="/rules"
-          value="rules"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-tune-variant"
-          title="提示词预设"
-          to="/presets"
-          value="presets"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-history"
-          title="生图历史"
-          to="/history"
-          value="history"
-          rounded="md"
-          class="mb-1"
-        />
-        <v-list-item
-          prepend-icon="mdi-cog-outline"
-          title="系统设置"
-          to="/settings"
-          value="settings"
-          rounded="md"
-          class="mb-1"
-        />
-      </v-list>
-
-      <!-- 《一句话的旅程》主题体验页入口 -->
-      <div v-if="!rail" class="intro-entry">
-        <router-link to="/intro" class="intro-entry-link">
-          <span class="mdi mdi-auto-stories" />一句话的旅程
+      <div class="rail-footer">
+        <router-link to="/intro" class="rail-icon-btn" title="《一句话的旅程》主题体验页">
+          <span class="mdi mdi-auto-stories" />
         </router-link>
-      </div>
-
-      <template #append>
-        <div class="pa-2 border-t">
-          <!-- 主题风格切换（三族：ImageForge 紫 / Gemini / Antigravity） -->
-          <div v-if="!rail" class="theme-family-row">
-            <button
-              v-for="f in THEME_FAMILIES"
-              :key="f.key"
-              type="button"
-              :class="['theme-swatch', { on: family === f.key }]"
-              :title="f.label"
-              @click="setFamily(f.key)"
-            >
-              <span class="swatch-dot" :style="{ background: f.swatch }" />
-              <span class="swatch-label">{{ f.label }}</span>
-            </button>
-          </div>
-          <div class="text-center">
-            <v-btn
-              variant="text"
-              block
-              density="compact"
-              size="small"
-              class="text-caption text-grey"
-              @click="toggleTheme"
-            >
-              <v-icon size="16" class="mr-1">
-                {{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}
-              </v-icon>
-              <span v-if="!rail">{{ isDark ? '浅色模式' : '深色模式' }}</span>
-            </v-btn>
-          </div>
+        <div class="rail-themes" title="主题风格">
+          <button
+            v-for="f in THEME_FAMILIES"
+            :key="f.key"
+            type="button"
+            :class="['rail-swatch', { on: family === f.key }]"
+            :title="f.label"
+            @click="setFamily(f.key)"
+          >
+            <span class="swatch-dot" :style="{ background: f.swatch }" />
+          </button>
         </div>
-      </template>
-    </v-navigation-drawer>
+        <button type="button" class="rail-icon-btn" :title="isDark ? '切换浅色模式' : '切换深色模式'" @click="toggleTheme">
+          <span class="mdi" :class="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" />
+        </button>
+      </div>
+    </aside>
 
     <!-- Main Content Canvas -->
     <v-main class="bg-background">
@@ -153,21 +53,38 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 
-const drawer = ref(true)
-const rail = ref(false)
 const theme = useTheme()
 const route = useRoute()
+const router = useRouter()
 const isPlainRoute = computed(() => !!route.meta.plain)
+
+/* ── 全局导航项（路由结构不变） ── */
+const NAV_ITEMS = [
+  { to: '/', label: '创作台', icon: 'mdi-brush-variant' },
+  { to: '/characters', label: '角色书', icon: 'mdi-account-box-multiple-outline' },
+  { to: '/artists', label: '画师库', icon: 'mdi-palette-outline' },
+  { to: '/loras', label: 'LoRA 库', icon: 'mdi-toy-brick-outline' },
+  { to: '/rules', label: '规则', icon: 'mdi-file-code-outline' },
+  { to: '/presets', label: '预设', icon: 'mdi-tune-variant' },
+  { to: '/history', label: '历史', icon: 'mdi-history' },
+  { to: '/settings', label: '设置', icon: 'mdi-cog-outline' },
+]
+function isActive(to: string) {
+  return to === '/' ? route.path === '/' : route.path.startsWith(to)
+}
+function go(to: string) {
+  if (!isActive(to)) router.push(to)
+}
 
 /* ── 主题族：ImageForge 紫 / Gemini / Antigravity，各自带亮暗两套 ── */
 type ThemeFamilyKey = 'imageforge' | 'gemini' | 'antigravity'
 const THEME_FAMILIES: Array<{ key: ThemeFamilyKey; label: string; swatch: string; light: string; dark: string }> = [
-  { key: 'imageforge', label: '紫', swatch: '#6750A4', light: 'light', dark: 'dark' },
+  { key: 'imageforge', label: 'ImageForge 紫', swatch: '#6750A4', light: 'light', dark: 'dark' },
   { key: 'gemini', label: 'Gemini', swatch: '#0B57D0', light: 'geminiLight', dark: 'geminiDark' },
-  { key: 'antigravity', label: 'Mono', swatch: '#121317', light: 'antigravityLight', dark: 'antigravityDark' },
+  { key: 'antigravity', label: 'Antigravity Mono', swatch: '#121317', light: 'antigravityLight', dark: 'antigravityDark' },
 ]
 const FAMILY_KEY = 'if-theme-family'
 const MODE_KEY = 'if-theme-mode'
@@ -207,75 +124,100 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.app-brand-header {
-  height: 48px;
-}
-.tracking-tight {
-  letter-spacing: -0.02em;
-}
-.gap-2 {
-  gap: 8px;
-}
-
-/* ── 主题族切换 swatch 行 ── */
-.theme-family-row {
+/* ── m3e-nav-rail 承载列：compact 80px（M3 规范值），品牌 / 导航 / 底部操作三段 ── */
+.app-nav-rail {
+  width: 80px;
+  min-width: 80px;
+  height: 100vh;
   display: flex;
-  gap: 4px;
-  margin-bottom: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  background: rgb(var(--v-theme-surface));
+  border-right: 1px solid rgb(var(--v-theme-outline-variant));
+  flex-shrink: 0;
+  z-index: 10;
+  /* vertical nav item 默认宽 96–112px，必须收敛进 80px compact rail */
+  --m3e-nav-bar-vertical-item-width: 80px;
+  /* m3e-nav-rail 自身的 compact 宽度（库默认 96px） */
+  --m3e-nav-rail-compact-width: 80px;
 }
-.theme-swatch {
-  flex: 1;
-  display: inline-flex;
+.rail-brand {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 6px 4px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface-variant));
-  cursor: pointer;
-  transition: background-color 160ms cubic-bezier(0.2, 0, 0, 1),
-    border-color 160ms cubic-bezier(0.2, 0, 0, 1);
-}
-.theme-swatch:hover {
-  background: rgb(var(--v-theme-surface-container));
-}
-.theme-swatch.on {
-  border-color: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-primary));
-}
-.swatch-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  height: 56px;
   flex-shrink: 0;
-}
-.swatch-label {
-  line-height: 1;
-}
-
-/* ── 体验页入口 ── */
-.intro-entry {
-  padding: 2px 14px 6px;
-}
-.intro-entry-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: rgb(var(--v-theme-on-surface-variant));
   text-decoration: none;
-  opacity: 0.75;
-  transition: opacity 160ms ease, color 160ms ease;
 }
-.intro-entry-link:hover {
-  opacity: 1;
+.rail-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.rail-nav::-webkit-scrollbar { width: 0; }
+
+.rail-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0 14px;
+  border-top: 1px solid rgb(var(--v-theme-outline-variant));
+}
+.rail-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(var(--v-theme-on-surface-variant));
+  font-size: 18px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--if-motion-fast-effects), color var(--if-motion-fast-effects);
+}
+.rail-icon-btn:hover {
+  background: rgb(var(--v-theme-surface-container));
   color: rgb(var(--v-theme-primary));
 }
-.intro-entry-link .mdi {
-  font-size: 15px;
+.rail-themes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+.rail-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--if-motion-fast-effects);
+}
+.rail-swatch.on { border-color: rgb(var(--v-theme-primary)); }
+.swatch-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+</style>
+
+<style>
+.v-application .v-application__wrap {
+  flex-direction: row;
+}
+/* v-main 在 rail 旁必须可收缩（flex-basis auto 会按内容撑满全宽并盖住 rail） */
+.v-application .v-main {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 </style>

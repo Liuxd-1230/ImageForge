@@ -30,6 +30,36 @@
   --if-radius-dialog: 24px;
   --if-radius-button: 12px;
   --if-radius-pill: 999px;
+
+  /* ═══ 统一 Motion tokens（R1 起，自定义容器一律用这组，禁止各自发明 cubic-bezier） ═══
+     effects = 颜色/透明度等无位移反馈；spatial = 位移/展开/形变（带 spring 回弹）。 */
+  --if-motion-fast-effects: 110ms cubic-bezier(0.2, 0, 0, 1);
+  --if-motion-fast-spatial: 180ms cubic-bezier(0.2, 0.85, 0.25, 1.08);
+  --if-motion-default-effects: 160ms cubic-bezier(0.2, 0, 0, 1);
+  --if-motion-default-spatial: 260ms cubic-bezier(0.2, 0.85, 0.25, 1.08);
+  --if-motion-slow-effects: 240ms cubic-bezier(0.2, 0, 0, 1);
+
+  /* ═══ @m3e/web ↔ ImageForge 主题桥接 ═══
+     m3e 组件默认 M3 baseline 紫；把关键色 token 映射到 --v-theme-*，
+     让三个主题族下的 m3e 组件与全站一致。 */
+  --m3e-segmented-button-selected-container-color: rgb(var(--v-theme-secondary-container));
+  --m3e-segmented-button-selected-label-text-color: rgb(var(--v-theme-on-secondary-container));
+  --m3e-segmented-button-selected-icon-color: rgb(var(--v-theme-on-secondary-container));
+  --m3e-segmented-button-outline-color: rgb(var(--v-theme-outline-variant));
+  --m3e-switch-selected-track-color: rgb(var(--v-theme-primary));
+  --m3e-switch-selected-handle-color: rgb(var(--v-theme-on-primary));
+  --m3e-slider-active-track-color: rgb(var(--v-theme-primary));
+  --m3e-slider-handle-color: rgb(var(--v-theme-primary));
+  --m3e-slider-inactive-track-color: rgb(var(--v-theme-surface-container-highest));
+  --m3e-slider-label-color: rgb(var(--v-theme-on-primary));
+  --m3e-slider-label-container-color: rgb(var(--v-theme-primary));
+  --m3e-progress-indicator-color: rgb(var(--v-theme-primary));
+  --m3e-progress-indicator-track-color: rgb(var(--v-theme-surface-container-high));
+  --m3e-loading-indicator-active-indicator-color: rgb(var(--v-theme-primary));
+  --m3e-nav-item-active-label-text-color: rgb(var(--v-theme-primary));
+  --m3e-nav-item-active-icon-color: rgb(var(--v-theme-primary));
+  --m3e-nav-item-inactive-label-text-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-nav-item-inactive-icon-color: rgb(var(--v-theme-on-surface-variant));
 }
 
 html {

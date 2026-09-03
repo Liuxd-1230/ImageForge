@@ -50,26 +50,27 @@
           />
         </div>
 
-        <!-- Generating Active Progress Overlay -->
+        <!-- Generating Active Progress Overlay：wavy circular = 主进度（真实 step），
+             unknown 阶段用 m3e-loading-indicator，绝不伪造百分比 -->
         <div v-if="studioStore.isGenerating" class="generating-progress-overlay">
           <div class="gen-tonal-card">
-            <div class="d-flex align-center justify-center mb-2">
-              <span class="mdi mdi-creation text-primary spin-slow text-h5" />
+            <div class="progress-hero">
+              <m3e-circular-progress-indicator
+                v-if="realProgress"
+                variant="wavy"
+                :value="studioStore.generationProgressValue"
+                :max="studioStore.generationProgressMax"
+                class="gen-circular"
+                aria-label="生成进度"
+              />
+              <m3e-loading-indicator v-else class="gen-loading" aria-label="等待中" />
+              <div v-if="realProgress" class="progress-center mono">{{ progressPct }}%</div>
             </div>
             <div class="text-center">
               <div class="font-weight-bold text-body-2 text-on-surface">{{ stageLabel }}</div>
               <div class="text-caption text-on-surface-variant mono mt-1">
                 {{ progressStepText }}
               </div>
-            </div>
-
-            <!-- Expressive progress track -->
-            <div class="m3-progress-track mt-3">
-              <div
-                class="m3-progress-fill"
-                :class="{ indeterminate: !realProgress }"
-                :style="realProgress ? { width: progressPct + '%' } : {}"
-              />
             </div>
 
             <div class="d-flex justify-center gap-2 mt-3">
@@ -329,38 +330,37 @@ function downloadImage(url: string) {
 
 .gen-tonal-card {
   width: 290px;
-  padding: 18px 20px;
+  padding: 20px;
   border-radius: 20px;
   background: rgb(var(--v-theme-surface));
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
 }
 
-.spin-slow {
-  animation: spin 2.5s linear infinite;
+/* wavy circular 主进度（真实 step）；loading indicator 兜底 unknown 阶段 */
+.progress-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96px;
+  margin-bottom: 10px;
 }
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-.m3-progress-track {
-  width: 100%;
-  height: 6px;
-  background: rgb(var(--v-theme-surface-container-high));
-  border-radius: 999px;
-  overflow: hidden;
+.gen-circular {
+  --m3e-circular-wavy-progress-indicator-diameter: 88px;
 }
-
-.m3-progress-fill {
-  height: 100%;
-  background: rgb(var(--v-theme-primary));
-  border-radius: 999px;
-  transition: width 240ms ease;
+.gen-loading {
+  --m3e-loading-indicator-active-indicator-size: 56px;
 }
-.m3-progress-fill.indeterminate {
-  width: 40%;
-  animation: indeterminate-flow 1.5s infinite linear;
-}
-@keyframes indeterminate-flow {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(250%); }
+.progress-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: rgb(var(--v-theme-on-surface));
+  pointer-events: none;
 }
 
 .gen-ghost-action {

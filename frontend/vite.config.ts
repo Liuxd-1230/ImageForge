@@ -4,7 +4,14 @@ import vuetify from 'vite-plugin-vuetify'
 
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          // m3e-* 是 @m3e/web 的 Web Components，不作为 Vue 组件解析
+          isCustomElement: tag => tag.startsWith('m3e-'),
+        },
+      },
+    }),
     vuetify({ autoImport: true }),
   ],
   server: {

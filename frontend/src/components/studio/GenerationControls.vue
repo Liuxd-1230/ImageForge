@@ -2,27 +2,13 @@
   <div class="gen-controls-bar">
     <!-- Left: Seed & Dimensions summary -->
     <div class="left-controls">
-      <!-- Seed Strip -->
+      <!-- Seed Strip：m3e segmented（随机/固定）+ tonal action（复用上次） -->
       <div class="seed-control-group">
         <span class="ctrl-label">SEED</span>
-        <div class="seed-seg">
-          <button
-            type="button"
-            :class="['seed-tab', { active: isRandomSeed }]"
-            title="每次生成换新随机 Seed"
-            @click="setRandomSeed"
-          >
-            随机
-          </button>
-          <button
-            type="button"
-            :class="['seed-tab', { active: !isRandomSeed }]"
-            title="锁定当前数值复现比较"
-            @click="setFixedSeed"
-          >
-            固定
-          </button>
-        </div>
+        <m3e-segmented-button class="seed-seg" @change="onSeedModeChange">
+          <m3e-button-segment value="random" :checked="isRandomSeed" title="每次生成换新随机 Seed">随机</m3e-button-segment>
+          <m3e-button-segment value="fixed" :checked="!isRandomSeed" title="锁定当前数值复现比较">固定</m3e-button-segment>
+        </m3e-segmented-button>
 
         <input
           v-model="seedDisplay"
@@ -33,16 +19,16 @@
           @change="commitSeedInput"
         />
 
-        <button
-          type="button"
+        <m3e-button
+          variant="tonal"
           class="seed-reuse-btn"
           :disabled="lastSnapshotSeed == null"
           title="使用上一张图片实际使用的 seed"
           @click="useLastSeed"
         >
-          <span class="mdi mdi-history mr-1" />
-          <span>{{ lastSnapshotSeed != null ? `复用上次 #${lastSnapshotSeed}` : '复用上次' }}</span>
-        </button>
+          <span slot="icon" class="mdi mdi-history" />
+          {{ lastSnapshotSeed != null ? `复用 #${lastSnapshotSeed}` : '复用上次' }}
+        </m3e-button>
       </div>
 
       <!-- Quick Resolution and Advanced Settings button -->
@@ -110,6 +96,14 @@ function setFixedSeed() {
   }
 }
 
+/** m3e segmented-button change：随机 = seed -1；固定 = 沿用上次 seed 或新 roll */
+function onSeedModeChange(e: Event) {
+  const v = (e.target as unknown as { value?: string | readonly string[] | null }).value
+  const mode = Array.isArray(v) ? v[0] : v
+  if (mode === 'random') setRandomSeed()
+  else if (mode === 'fixed') setFixedSeed()
+}
+
 function commitSeedInput() {
   const v = Math.round(Number(seedDisplay.value) || 0)
   studioStore.seed = Math.max(0, Math.min(2147483647, v))
@@ -162,27 +156,8 @@ function useLastSeed() {
 }
 
 .seed-seg {
-  display: flex;
-  background: rgb(var(--v-theme-surface-container));
-  border-radius: 6px;
-  padding: 2px;
-  gap: 2px;
-}
-
-.seed-tab {
-  border: 0;
-  background: transparent;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface-variant));
-  cursor: pointer;
-}
-.seed-tab.active {
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-primary));
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  --m3e-segmented-button-height: 30px;
+  --m3e-segmented-button-font-size: 11px;
 }
 
 .seed-num-input {
@@ -200,18 +175,8 @@ function useLastSeed() {
 }
 
 .seed-reuse-btn {
-  border: 0;
-  background: transparent;
-  color: rgb(var(--v-theme-primary));
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-}
-.seed-reuse-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .params-pill {
@@ -266,7 +231,7 @@ function useLastSeed() {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all 160ms cubic-bezier(0.2, 0, 0, 1);
+  transition: transform var(--if-motion-fast-spatial), box-shadow var(--if-motion-fast-effects), opacity var(--if-motion-fast-effects);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 

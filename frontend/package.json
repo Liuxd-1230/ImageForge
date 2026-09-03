@@ -9,9 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@m3e/web": "^2.7.9",
     "@mdi/font": "^7.4.47",
     "axios": "^1.7.9",
+    "lit": "^3.3.3",
     "pinia": "^2.2.8",
+    "tslib": "^2.8.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
     "vuetify": "^3.7.8"

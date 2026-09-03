@@ -36,7 +36,7 @@
 
     <!-- Expanded 260px Full Panel -->
     <div v-else class="rail-scroll-body">
-      <!-- 1. Safety Segmented Control (Zero layout reflow) -->
+      <!-- 1. Safety：m3e segmented button（真实 M3E selected state / ripple / 无 reflow） -->
       <section class="rail-section">
         <div class="d-flex align-center justify-space-between mb-1">
           <span class="sec-label">SAFETY 分级</span>
@@ -44,17 +44,14 @@
             {{ studioStore.safety }}
           </span>
         </div>
-        <div class="safety-grid">
-          <button
+        <m3e-segmented-button class="safety-seg" @change="onSafetyChange">
+          <m3e-button-segment
             v-for="opt in (['Safe', 'Sensitive', 'NSFW', 'Explicit'] as const)"
             :key="opt"
-            type="button"
-            :class="['safety-tab', { active: studioStore.safety === opt }]"
-            @click="setSafety(opt)"
-          >
-            {{ opt }}
-          </button>
-        </div>
+            :value="opt"
+            :checked="studioStore.safety === opt"
+          >{{ opt }}</m3e-button-segment>
+        </m3e-segmented-button>
       </section>
 
       <!-- 2. Rules -->
@@ -116,6 +113,15 @@ function setSafety(lvl: SafetyLevel) {
   studioStore.buildPrompt()
 }
 
+/** m3e segmented-button change：target.value 为当前选中段的 value */
+function onSafetyChange(e: Event) {
+  const v = (e.target as unknown as { value?: string | readonly string[] | null }).value
+  const lvl = Array.isArray(v) ? v[0] : v
+  if (lvl === 'Safe' || lvl === 'Sensitive' || lvl === 'NSFW' || lvl === 'Explicit') {
+    setSafety(lvl)
+  }
+}
+
 const activeRulesSummary = computed(() => {
   if (studioStore.selectedRuleIds.length === 0) return '默认官方生图规范（点击添加）'
   const names = ruleStore.rules
@@ -127,15 +133,15 @@ const activeRulesSummary = computed(() => {
 
 <style scoped>
 .context-rail {
-  width: 260px;
-  min-width: 260px;
-  max-width: 260px;
+  width: 272px;
+  min-width: 272px;
+  max-width: 272px;
   height: 100%;
   background: rgb(var(--v-theme-surface));
   border-right: 1px solid rgb(var(--v-theme-outline-variant));
   display: flex;
   flex-direction: column;
-  transition: width 200ms cubic-bezier(0.2, 0, 0, 1), min-width 200ms cubic-bezier(0.2, 0, 0, 1);
+  transition: width var(--if-motion-fast-spatial), min-width var(--if-motion-fast-spatial);
   flex-shrink: 0;
   z-index: 5;
 }
@@ -239,34 +245,15 @@ const activeRulesSummary = computed(() => {
 .safety-state-tag.nsfw { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
 .safety-state-tag.explicit { background: rgba(185, 28, 28, 0.2); color: #991b1b; }
 
-/* Safety Segmented Control (Constraint 1: 4 fixed equal columns, zero layout reflow!) */
-.safety-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: rgb(var(--v-theme-surface-container));
-  padding: 3px;
-  border-radius: 10px;
-  gap: 2px;
-}
-
-.safety-tab {
-  border: 0;
-  background: transparent;
-  padding: 5px 0;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface-variant));
-  cursor: pointer;
-  text-align: center;
-  transition: background-color 140ms ease, color 140ms ease;
-}
-
-.safety-tab.active {
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-primary));
-  font-weight: 700;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+/* m3e segmented button：占满 rail 宽度，四等分（真实 M3E state，零手写 tab） */
+.safety-seg {
+  width: 100%;
+  --m3e-segmented-button-height: 34px;
+  --m3e-segmented-button-font-size: 10px;
+  --m3e-segmented-button-padding-start: 4px;
+  --m3e-segmented-button-padding-end: 4px;
+  --m3e-segmented-button-with-icon-padding-start: 4px;
+  --m3e-segmented-button-spacing: 3px;
 }
 
 .mini-link-btn {

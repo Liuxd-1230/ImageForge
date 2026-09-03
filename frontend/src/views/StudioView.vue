@@ -112,6 +112,8 @@ onMounted(async () => {
     historyStore.fetchHistory(),
   ])
   studioStore.initStudioSettings(settingsStore.settings)
+  // 与旧版一致：库数据就绪后同步 LoRA 到创作台 shelf（缺失会导致 shelf 永远为空）
+  studioStore.syncLorasFromLibrary(loraStore.loras)
 })
 
 onUnmounted(() => {
