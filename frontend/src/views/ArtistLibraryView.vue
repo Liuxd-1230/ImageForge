@@ -12,7 +12,7 @@
     </div>
 
     <!-- Filter Bar -->
-    <v-card variant="outlined" class="pa-2 mb-3 bg-surface rounded-lg library-toolbar">
+    <v-card variant="flat" class="if-panel pa-2 mb-3 library-toolbar">
       <div class="d-flex align-center gap-2 flex-wrap">
         <v-text-field
           v-model="searchQuery"
@@ -29,7 +29,7 @@
         <div class="d-flex align-center gap-1 overflow-x-auto py-1">
           <v-chip
             :color="selectedCategory === '' ? 'primary' : undefined"
-            :variant="selectedCategory === '' ? 'flat' : 'outlined'"
+            :variant="selectedCategory === '' ? 'flat' : 'tonal'"
             size="x-small"
             @click="selectedCategory = ''"
           >
@@ -39,7 +39,7 @@
             v-for="cat in categories"
             :key="cat"
             :color="selectedCategory === cat ? 'primary' : undefined"
-            :variant="selectedCategory === cat ? 'flat' : 'outlined'"
+            :variant="selectedCategory === cat ? 'flat' : 'tonal'"
             size="x-small"
             @click="selectedCategory = cat"
           >
@@ -47,7 +47,7 @@
           </v-chip>
           <v-chip
             :color="onlyFavorites ? 'amber' : undefined"
-            :variant="onlyFavorites ? 'flat' : 'outlined'"
+            :variant="onlyFavorites ? 'flat' : 'tonal'"
             size="x-small"
             prepend-icon="mdi-star"
             @click="onlyFavorites = !onlyFavorites"
@@ -65,7 +65,7 @@
     </v-card>
 
     <!-- Empty State -->
-    <div v-if="filteredArtists.length === 0" class="text-center py-12 text-grey border rounded-lg bg-surface">
+    <div v-if="filteredArtists.length === 0" class="if-empty text-center py-12 text-grey">
       <v-icon size="40" class="mb-2 opacity-50">mdi-palette-outline</v-icon>
       <div class="text-body-2 font-weight-medium">未找到符合条件的画师</div>
       <div class="text-caption mt-1">请尝试调整搜索词或分类筛选。</div>
@@ -83,7 +83,7 @@
       >
         <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden artist-item-card">
           <!-- Image Preview Area (Hero) -->
-          <div class="artist-preview-box bg-surface-variant d-flex align-center justify-center border-b position-relative">
+          <div class="artist-preview-box bg-surface-container-low d-flex align-center justify-center border-b position-relative">
             <label class="row-check artist-check">
               <input type="checkbox" :checked="bulkSel.isSelected(art.id)" @change="bulkSel.toggleOne(art.id)" />
             </label>
@@ -368,10 +368,11 @@ async function confirmDelete() {
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
 .artist-item-card {
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .artist-item-card:hover {
-  border-color: #4F46E5 !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
 }
 .text-truncate-2 {
   display: -webkit-box;

@@ -148,6 +148,51 @@ body {
   animation: if-max-breath 3.2s ease-in-out infinite;
 }
 
+/* ============================================================
+   全局框系统（统一规则）
+   ─ 功能面板（toolbar / 分组容器）= tonal 填充，无描边（.if-panel）
+   ─ 数据卡片（一条记录）= surface 白底 + outline-variant hairline
+   ─ 输入控件 = surface 白底 + hairline，focus 变 primary
+   ─ 卡片内嵌内容区 = surface-container-low（比卡面深/浅半度）
+   ============================================================ */
+
+/* Vuetify outlined 控件：默认描边原是 on-surface 实色（wireframe 感根源），
+   统一为 outline-variant hairline + 统一圆角 + 白底（与 LoRA 搜索框同语言） */
+.v-field--variant-outlined {
+  border-radius: var(--if-radius-field);
+  background: rgb(var(--v-theme-surface));
+}
+.v-field--variant-outlined .v-field__outline {
+  color: rgb(var(--v-theme-outline-variant));
+}
+.v-field--focused.v-field--variant-outlined .v-field__outline {
+  color: rgb(var(--v-theme-primary));
+}
+
+/* 功能面板：tonal 无描边（配合 v-card variant="flat" 使用） */
+.if-panel {
+  background: rgb(var(--v-theme-surface-container)) !important;
+  border: 0 !important;
+  border-radius: var(--if-radius-container) !important;
+  box-shadow: none !important;
+}
+
+/* 空状态占位面板 */
+.if-empty {
+  background: rgb(var(--v-theme-surface-container));
+  border: 0 !important;
+  border-radius: var(--if-radius-card);
+}
+
+/* 数据卡片圆角统一：页面卡片 20px（token --if-radius-card），弹窗 24px */
+.v-card.rounded-lg,
+.v-card.rounded-xl {
+  border-radius: var(--if-radius-card) !important;
+}
+.v-dialog .v-card {
+  border-radius: var(--if-radius-dialog) !important;
+}
+
 /* Accessibility: shut down ALL decorative motion for reduced-motion users */
 @media (prefers-reduced-motion: reduce) {
   *,

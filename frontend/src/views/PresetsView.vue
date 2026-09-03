@@ -20,7 +20,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="presetStore.presets.length === 0" class="text-center py-16 text-grey border rounded-lg bg-surface">
+    <div v-if="presetStore.presets.length === 0" class="if-empty text-center py-16 text-grey">
       <v-icon size="48" class="mb-2 opacity-50">mdi-tune-variant</v-icon>
       <div class="text-body-2 font-weight-medium">暂无提示词预设</div>
       <div class="text-caption mt-1">点击右上角“新建预设”添加默认前缀与 Negative Prompt 模板。</div>
@@ -69,7 +69,7 @@
           <!-- Positive Prefix Preview -->
           <div class="mb-2">
             <div class="text-caption text-grey mb-1">正向固定前缀 (Positive Prefix):</div>
-            <div class="font-mono text-caption border rounded px-2 py-1 bg-surface-variant text-truncate" style="font-size: 0.72rem !important;">
+            <div class="font-mono text-caption rounded px-2 py-1 bg-surface-container-low text-truncate" style="font-size: 0.72rem !important;">
               {{ preset.positive_prefix || '（无固定前缀）' }}
             </div>
           </div>
@@ -77,7 +77,7 @@
           <!-- Negative Prompt Preview -->
           <div class="flex-grow-1">
             <div class="text-caption text-grey mb-1">默认 Negative Prompt:</div>
-            <div class="font-mono text-caption border rounded px-2 py-1 bg-surface-variant text-truncate-2" style="font-size: 0.72rem !important;">
+            <div class="font-mono text-caption rounded px-2 py-1 bg-surface-container-low text-truncate-2" style="font-size: 0.72rem !important;">
               {{ preset.default_negative || '（无默认 Negative）' }}
             </div>
           </div>
@@ -239,10 +239,11 @@ async function confirmDelete() {
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
 .preset-card {
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .preset-card:hover {
-  border-color: #4F46E5 !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
 }
 .text-truncate-2 {
   display: -webkit-box;

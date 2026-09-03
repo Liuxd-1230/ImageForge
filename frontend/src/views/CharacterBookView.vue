@@ -28,7 +28,7 @@
     <!-- ════════ 已解析角色（Trigger Cache） ════════ -->
     <template v-if="tab === 'resolved'">
       <!-- 搜索 + 全选/批量删除 toolbar -->
-      <v-card variant="outlined" class="pa-2 mb-3 bg-surface rounded-xl library-toolbar">
+      <v-card variant="flat" class="if-panel pa-2 mb-3 library-toolbar">
         <div class="d-flex align-center gap-2 flex-wrap">
           <v-text-field
             v-model="cacheStore.searchQuery"
@@ -54,7 +54,7 @@
         </div>
       </v-card>
 
-      <div v-if="cacheStore.filtered.length === 0" class="text-center py-12 text-grey border rounded-xl bg-surface">
+      <div v-if="cacheStore.filtered.length === 0" class="if-empty text-center py-12 text-grey">
         <v-icon size="40" class="mb-2 opacity-50">mdi-database-search-outline</v-icon>
         <div class="text-body-2 font-weight-medium">{{ cacheStore.items.length === 0 ? '还没有已解析角色' : '无匹配结果' }}</div>
         <div class="text-caption mt-1">首次解析（含 &lt;角色名&gt; 显式标记）成功后会自动写入这里的本地缓存，下次直接复用。</div>
@@ -97,7 +97,7 @@
     <template v-else>
 
     <!-- Search & Filter Bar + 全选/批量删除 -->
-    <v-card variant="outlined" class="pa-2 mb-3 bg-surface rounded-xl library-toolbar">
+    <v-card variant="flat" class="if-panel pa-2 mb-3 library-toolbar">
       <div class="d-flex align-center gap-2 flex-wrap">
         <v-text-field
           v-model="characterStore.searchQuery"
@@ -125,7 +125,7 @@
     </v-card>
 
     <!-- Character Cards Grid -->
-    <div v-if="filteredCharacters.length === 0" class="text-center py-12 text-grey border rounded-lg bg-surface">
+    <div v-if="filteredCharacters.length === 0" class="if-empty text-center py-12 text-grey">
       <v-icon size="40" class="mb-2 opacity-50">mdi-account-search-outline</v-icon>
       <div class="text-body-2 font-weight-medium">未找到角色设定</div>
       <div class="text-caption mt-1">点击右上角“新建角色”开始录入人物外貌与服装设定。</div>
@@ -621,10 +621,11 @@ async function confirmBulkDelete() {
 .gap-2 { gap: 8px; }
 .gap-3 { gap: 12px; }
 .character-card {
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .character-card:hover {
-  border-color: #4F46E5 !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* ════ 角色库 segmented ════ */

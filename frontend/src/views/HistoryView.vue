@@ -18,7 +18,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="historyStore.history.length === 0" class="text-center py-16 text-grey border rounded-lg bg-surface">
+    <div v-if="historyStore.history.length === 0" class="if-empty text-center py-16 text-grey">
       <v-icon size="48" class="mb-2 opacity-50">mdi-history</v-icon>
       <div class="text-body-2 font-weight-medium">暂无生图历史记录</div>
       <div class="text-caption mt-1">在创作台生成图片后，历史记录将自动保存在此处。</div>
@@ -36,7 +36,7 @@
       >
         <v-card variant="outlined" class="h-100 d-flex flex-column rounded-lg bg-surface overflow-hidden history-card">
           <!-- Thumbnail Image (Visual Hero) -->
-          <div class="history-image-stage bg-surface-variant d-flex align-center justify-center border-b position-relative">
+          <div class="history-image-stage bg-surface-container-low d-flex align-center justify-center border-b position-relative">
             <v-img
               v-if="item.image_path"
               :src="item.image_path"
@@ -95,7 +95,7 @@
             </div>
 
             <!-- 1-Line Truncated Prompt Snippet -->
-            <div class="text-caption font-mono text-grey border rounded px-2 py-1 mb-3 bg-surface-variant text-truncate" style="font-size: 0.72rem !important;">
+            <div class="text-caption font-mono text-grey rounded px-2 py-1 mb-3 bg-surface-container-low text-truncate" style="font-size: 0.72rem !important;">
               {{ item.prompt }}
             </div>
 
@@ -263,10 +263,11 @@ async function confirmDelete() {
 <style scoped>
 .gap-1 { gap: 4px; }
 .history-card {
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .history-card:hover {
-  border-color: #4F46E5 !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
 }
 .row-check {
   display: inline-flex;
