@@ -40,7 +40,14 @@ class Lora(LoraBase, table=True):
     remote_file_name: Optional[str] = Field(default=None)    # 仅 metadata，绝不覆盖 Lora.filename
     remote_base_model: Optional[str] = Field(default=None)
     remote_trained_words: Optional[str] = Field(default=None)  # JSON array 字符串（Civitai trainedWords 推荐）
-    remote_description: Optional[str] = Field(default=None)    # sanitized plain text（禁止执行远端 HTML）
+    remote_description: Optional[str] = Field(default=None)    # DEPRECATED 兼容字段：version desc 优先的旧混合简介；新 UI 不再依赖
+    remote_model_description: Optional[str] = Field(default=None)   # 模型主页面简介（sanitized plain text）
+    remote_version_description: Optional[str] = Field(default=None) # 版本说明 / changelog（sanitized plain text）
+    # ── Civitai Usage Tips（Tier-2 tRPC enrichment；结构化保存，UI 组装展示） ──
+    remote_recommended_strength: Optional[float] = Field(default=None)  # version.settings.strength
+    remote_clip_skip: Optional[int] = Field(default=None)               # version.clipSkip
+    remote_steps: Optional[int] = Field(default=None)
+    remote_epochs: Optional[int] = Field(default=None)
     remote_creator: Optional[str] = Field(default=None)
     remote_tags: Optional[str] = Field(default=None)           # JSON array 字符串
     remote_nsfw_level: Optional[int] = Field(default=None)
@@ -82,6 +89,12 @@ class LoraRead(LoraBase):
     remote_base_model: Optional[str] = None
     remote_trained_words: Optional[str] = None
     remote_description: Optional[str] = None
+    remote_model_description: Optional[str] = None
+    remote_version_description: Optional[str] = None
+    remote_recommended_strength: Optional[float] = None
+    remote_clip_skip: Optional[int] = None
+    remote_steps: Optional[int] = None
+    remote_epochs: Optional[int] = None
     remote_creator: Optional[str] = None
     remote_tags: Optional[str] = None
     remote_nsfw_level: Optional[int] = None

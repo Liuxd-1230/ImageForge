@@ -1,12 +1,19 @@
 """Civitai metadata client (LoRA Metadata V1) — Red/Green dual host.
 
-Responsibilities:
+Tier 1 — Stable identification (official Site API, 主链):
 - lookup_by_hash / lookup_by_hashes (bulk, chunks of 100) via /api/v1/model-versions/by-hash
 - get_model (caller dedupes by modelId)
 - get_version_images (fallback cover search when version.images is empty)
 - download_cover (secure: https + allowlisted hosts + image/* content-type + size cap)
 - hash_local_file (streaming SHA256, 4 MiB chunks — never read the whole file into RAM)
 - resolve_local_lora_file (source_path → enabled LoraSource exact/basename search)
+
+Tier 2 — Optional UI metadata enrichment (Civitai Web public tRPC, 可失败):
+- get_model_version_enrichment → public procedure modelVersion.getById
+  (settings.strength / clipSkip / steps / epochs / trainedWords / description)。
+  这不是官方 Site REST API：transport 集中在这一个函数里，Civitai 改 tRPC
+  时 Tier 1 identification 不受影响；调用方必须 fail-open（enrichment 失败
+  不影响 matched 状态）。
 
 Token safety:
 - token only sent to civitai.red / civitai.com via Authorization: Bearer
@@ -22,11 +29,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import html
+import json
 import logging
+import math
 import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import httpx
 from sqlmodel import Session, select
@@ -210,6 +219,48 @@ class CivitaiClient:
         data, _ = await self._get_json(url, host)
         return data or {}
 
+    # ── Tier 2: Civitai Web public tRPC enrichment（非官方 Site REST API） ──
+    # 仅此函数了解 tRPC transport。Civitai 对无浏览器 Referer/Origin 的 tRPC
+    # 请求返回 401 "Please use the public API instead"（2026-09 实测），因此
+    # 必须带 Referer。失败一律抛 CivitaiRequestError，由调用方 fail-open。
+    async def get_model_version_enrichment(self, version_id: int, host: str) -> Dict[str, Any]:
+        """public tRPC modelVersion.getById → version detail dict.
+
+        返回 result.data.json（含 settings / clipSkip / steps / epochs /
+        trainedWords / description）。withFiles=false：by-hash 已完成 file
+        identification，这里不再拉 files。
+        """
+        base = self.host_base(host)
+        payload = {"json": {"id": int(version_id), "withFiles": False}}
+        url = f"{base}/api/trpc/modelVersion.getById?input={quote(json.dumps(payload, separators=(',', ':')))}"
+        headers = {
+            "Referer": f"{base}/",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) ImageForge-metadata-enrichment",
+            "Accept": "application/json",
+        }
+        try:
+            async with httpx.AsyncClient(transport=self.transport, timeout=API_TIMEOUT) as client:
+                resp = await client.get(url, headers=headers)
+        except httpx.HTTPError as e:
+            raise CivitaiRequestError(STATUS_REMOTE_ERROR, f"tRPC enrichment 网络错误: {e}")
+        if resp.status_code == 429:
+            raise CivitaiRequestError(STATUS_RATE_LIMITED, "Civitai rate limited", http_status=429)
+        if resp.status_code != 200:
+            raise CivitaiRequestError(STATUS_REMOTE_ERROR,
+                                      f"tRPC enrichment HTTP {resp.status_code}",
+                                      http_status=resp.status_code)
+        try:
+            body = resp.json()
+        except ValueError as e:
+            raise CivitaiRequestError(STATUS_REMOTE_ERROR, f"tRPC enrichment 响应解析失败: {e}")
+        data = ((body or {}).get("result") or {}).get("data") or {}
+        detail = data.get("json")
+        if not isinstance(detail, dict):
+            err = ((body or {}).get("error") or {}).get("json") or {}
+            raise CivitaiRequestError(STATUS_REMOTE_ERROR,
+                                      f"tRPC enrichment 无数据: {err.get('message') or 'unknown'}")
+        return detail
+
     async def get_version_images(self, version_id: int, host: str) -> List[Dict[str, Any]]:
         """Fallback cover search when version.images is empty (spec §16)."""
         url = (f"{self.host_base(host)}/api/v1/images"
@@ -275,10 +326,53 @@ def hash_local_file(path: str) -> str:
 
 
 def sanitize_description(raw: Optional[str]) -> str:
-    """Strip HTML from Civitai description → plain text (never executed)."""
+    """Strip HTML from Civitai description → readable plain text（禁止执行远端 HTML）。
+
+    - <p>/<br>/<li> 等块级标记转换为换行，保留基本段落结构；
+    - 其余 tag 去除，HTML entity unescape；
+    - 行内空白合并，>2 连续空行压缩为 1 个空行。
+    """
     if not raw:
         return ""
-    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]*>", " ", raw))).strip()
+    text = str(raw)
+    # 块级/换行标记 → 换行（在通用 tag strip 之前）
+    text = re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", text)
+    text = re.sub(r"(?i)</\s*(p|div|li|ul|ol|h[1-6]|blockquote|tr)\s*>", "\n", text)
+    text = re.sub(r"(?i)<\s*li[^>]*>", "\n· ", text)
+    text = re.sub(r"(?i)<\s*(p|div|ul|ol|h[1-6]|blockquote|tr)[^>]*>", "\n", text)
+    # 其余所有 tag → 去掉（不执行）
+    text = re.sub(r"<[^>]*>", "", text)
+    text = html.unescape(text)
+    # 行内空白合并；保留换行
+    text = re.sub(r"[^\S\n]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def safe_finite_float(value: Any) -> Optional[float]:
+    """Civitai settings.strength 防御解析：只接受可安全解析的 finite number。"""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
+
+
+def safe_int(value: Any) -> Optional[int]:
+    """Civitai clipSkip/steps/epochs 防御解析：只接受有限整数。"""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, float):
+        if not math.isfinite(value) or not value.is_integer():
+            return None
+        return int(value)
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
 
 
 def _walk_lora_files(root: str, recursive: bool) -> List[str]:

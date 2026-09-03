@@ -105,7 +105,14 @@ export interface Lora {
   remote_file_name?: string | null;
   remote_base_model?: string | null;
   remote_trained_words?: string | null;   // JSON array 字符串（Civitai trainedWords 推荐）
-  remote_description?: string | null;     // sanitized plain text
+  remote_description?: string | null;     // DEPRECATED 兼容字段（旧混合简介，新 UI 不依赖）
+  remote_model_description?: string | null;   // 模型主页面简介（sanitized plain text）
+  remote_version_description?: string | null; // 版本说明（sanitized plain text）
+  // Civitai Usage Tips（Tier-2 enrichment，结构化值；绝不自动覆盖本地配置）
+  remote_recommended_strength?: number | null;
+  remote_clip_skip?: number | null;
+  remote_steps?: number | null;
+  remote_epochs?: number | null;
   remote_creator?: string | null;
   remote_tags?: string | null;            // JSON array 字符串
   remote_nsfw_level?: number | null;

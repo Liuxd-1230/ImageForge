@@ -140,11 +140,19 @@
 
           <div class="card-trigger">
             <span v-if="lora.trigger_words" class="mono">{{ lora.trigger_words }}</span>
+            <span v-else-if="remoteTriggerText(lora)" class="mono" :title="remoteTriggerText(lora)">
+              <span class="tw-src">Civitai</span>{{ remoteTriggerText(lora) }}
+            </span>
             <span v-else class="none-hint">无触发词</span>
           </div>
 
           <div class="card-meta-row">
-            <span class="mono weight">{{ lora.default_strength.toFixed(2) }}</span>
+            <span class="mono weight" title="本地默认权重">{{ lora.default_strength.toFixed(2) }}</span>
+            <span
+              v-if="lora.remote_recommended_strength != null"
+              class="mono rec-weight"
+              title="Civitai 推荐权重（不会自动覆盖本地）"
+            >Civitai {{ lora.remote_recommended_strength.toFixed(2) }}</span>
             <span :class="['meta-badge', metaStatusClass(lora)]">{{ metaStatusText(lora) }}</span>
             <span :class="['status-badge', lora.is_valid_file ? 'ok' : 'bad']">
               <span class="dot" />{{ lora.is_valid_file ? '就绪' : '未识别' }}
@@ -222,10 +230,22 @@
         </div>
         <div class="cell col-trigger">
           <span v-if="lora.trigger_words" class="mono ellipsis trigger" :title="lora.trigger_words">{{ lora.trigger_words }}</span>
+          <span
+            v-else-if="remoteTriggerText(lora)"
+            class="mono ellipsis trigger remote"
+            :title="'Civitai 推荐：' + remoteTriggerText(lora)"
+          ><span class="tw-src">Civitai</span>{{ remoteTriggerText(lora) }}</span>
           <span v-else class="none-hint">无触发词</span>
         </div>
         <div class="cell col-weight">
-          <span class="mono weight">{{ lora.default_strength.toFixed(2) }}</span>
+          <div class="weight-cell">
+            <span class="mono weight">{{ lora.default_strength.toFixed(2) }}</span>
+            <span
+              v-if="lora.remote_recommended_strength != null"
+              class="mono rec-mini"
+              :title="'Civitai 推荐权重 ' + lora.remote_recommended_strength.toFixed(2)"
+            >↳ {{ lora.remote_recommended_strength.toFixed(2) }}</span>
+          </div>
         </div>
         <div class="cell col-base">
           <span v-if="lora.remote_base_model" class="ellipsis">{{ lora.remote_base_model }}</span>
@@ -508,24 +528,66 @@
               <div class="rg-item"><span class="rg-label">Metadata Host</span><span class="mono">{{ form.metadata_host || '—' }}</span></div>
               <div class="rg-item"><span class="rg-label">最近获取</span><span>{{ form.metadata_fetched_at ? formatTime(form.metadata_fetched_at) : '—' }}</span></div>
             </div>
-            <div v-if="remoteTrainedWordsList.length" class="remote-tw">
-              <div class="rg-label">Civitai 推荐 Trigger（不会自动覆盖本地）</div>
+
+            <!-- Usage Tips（Civitai version settings；全部无值时整块隐藏） -->
+            <div v-if="usageTipsVisible" class="remote-block">
+              <div class="rg-label">Usage Tips（Civitai 推荐，不会自动覆盖本地）</div>
+              <div class="usage-grid">
+                <div v-if="form.remote_recommended_strength != null" class="rg-item">
+                  <span class="rg-label">Strength</span>
+                  <span class="mono">{{ form.remote_recommended_strength.toFixed(2) }}</span>
+                </div>
+                <div v-if="form.remote_clip_skip != null" class="rg-item">
+                  <span class="rg-label">Clip Skip</span>
+                  <span class="mono">{{ form.remote_clip_skip }}</span>
+                </div>
+                <div v-if="form.remote_steps != null" class="rg-item">
+                  <span class="rg-label">Steps</span>
+                  <span class="mono">{{ form.remote_steps }}</span>
+                </div>
+                <div v-if="form.remote_epochs != null" class="rg-item">
+                  <span class="rg-label">Epochs</span>
+                  <span class="mono">{{ form.remote_epochs }}</span>
+                </div>
+              </div>
+              <button
+                v-if="form.remote_recommended_strength != null"
+                type="button"
+                class="btn-tonal sm mt-2"
+                @click="adoptStrength"
+              >
+                <span class="mdi mdi-tune-vertical" />采用推荐权重（{{ form.remote_recommended_strength.toFixed(2) }}）
+              </button>
+            </div>
+
+            <!-- Civitai Trigger Words（远端完整展示；采用需手动点击） -->
+            <div v-if="remoteTrainedWordsList.length" class="remote-block">
+              <div class="rg-label">Civitai Trigger Words（不会自动覆盖本地）</div>
               <div class="tw-chips">
                 <span v-for="tw in remoteTrainedWordsList" :key="tw" class="tw-chip mono">{{ tw }}</span>
               </div>
               <button type="button" class="btn-primary sm mt-2" @click="adoptTrainedWords">
-                <span class="mdi mdi-content-copy" />采用为本地 Trigger
+                <span class="mdi mdi-content-copy" />采用全部为本地 Trigger
               </button>
             </div>
-            <div v-if="remoteTagsList.length" class="remote-tw">
+
+            <!-- 模型简介（Civitai 模型主页面，read-only 纯文本） -->
+            <div v-if="form.remote_model_description" class="remote-desc">
+              <div class="rg-label">模型简介（纯文本展示，不执行 HTML）</div>
+              <p class="remote-desc-text">{{ form.remote_model_description }}</p>
+            </div>
+
+            <!-- 版本说明（read-only 纯文本） -->
+            <div v-if="form.remote_version_description" class="remote-desc">
+              <div class="rg-label">版本说明</div>
+              <p class="remote-desc-text">{{ form.remote_version_description }}</p>
+            </div>
+
+            <div v-if="remoteTagsList.length" class="remote-block">
               <div class="rg-label">Tags</div>
               <div class="tw-chips">
                 <span v-for="t in remoteTagsList" :key="t" class="tw-chip">{{ t }}</span>
               </div>
-            </div>
-            <div v-if="form.remote_description" class="remote-desc">
-              <div class="rg-label">远端描述（纯文本展示，不执行 HTML）</div>
-              <p class="remote-desc-text">{{ form.remote_description }}</p>
             </div>
           </div>
 
@@ -708,6 +770,23 @@ const remoteTagsList = computed(() => {
   } catch { return [] }
 })
 const remoteVisible = computed(() => !!editLora.value)
+const usageTipsVisible = computed(() =>
+  form.value.remote_recommended_strength != null ||
+  form.value.remote_clip_skip != null ||
+  form.value.remote_steps != null ||
+  form.value.remote_epochs != null,
+)
+
+/* ── Card/List 触发词展示：local 优先，Civitai trainedWords fallback（§9/§10） ── */
+function remoteTriggerWords(lora: Lora): string[] {
+  try {
+    const arr = lora.remote_trained_words ? JSON.parse(lora.remote_trained_words) : []
+    return Array.isArray(arr) ? arr.filter(w => typeof w === 'string' && w.trim()) : []
+  } catch { return [] }
+}
+function remoteTriggerText(lora: Lora): string {
+  return remoteTriggerWords(lora).join(', ')
+}
 
 const selectedCandidates = computed(() =>
   scanResult.value ? scanResult.value.candidates.filter(c => selectedPaths.value.has(c.full_path)) : [],
@@ -839,6 +918,14 @@ async function adoptTrainedWords() {
   form.value.trigger_words = joined
   await saveLora(false)
   notify('已采用 Civitai 推荐 Trigger 为本地 Trigger')
+}
+
+/* ── 采用 Civitai 推荐权重（本地 default_strength 权威，手动采用才变化，§14/§33） ── */
+async function adoptStrength() {
+  if (!editLora.value || form.value.remote_recommended_strength == null) return
+  form.value.default_strength = form.value.remote_recommended_strength
+  await saveLora(false)
+  notify(`已采用 Civitai 推荐权重 ${form.value.remote_recommended_strength.toFixed(2)}`)
 }
 
 /* ── 来源管理 ── */
@@ -1463,6 +1550,7 @@ function onStrengthDown(e: PointerEvent) {
   color: rgb(var(--v-theme-on-surface-variant));
 }
 .trigger { font-size: 12.5px; color: rgb(var(--v-theme-primary)); }
+.col-trigger .ellipsis { display: block; max-width: 100%; }
 .none-hint { font-size: 12.5px; color: rgb(var(--v-theme-text-muted)); font-style: italic; }
 .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mono { font-family: var(--font-mono); }
@@ -1601,9 +1689,16 @@ function onStrengthDown(e: PointerEvent) {
 .rg-label { font-size: 11.5px; font-weight: 600; color: rgb(var(--v-theme-on-surface-variant)); }
 .rg-item > span:last-child { font-size: 13px; color: rgb(var(--v-theme-on-surface)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .remote-tw { margin-top: 10px; }
+.remote-block { margin-top: 12px; }
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px 16px;
+  margin-top: 6px;
+}
 .tw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .tw-chip { padding: 4px 10px; border-radius: 999px; background: rgb(var(--v-theme-surface-container)); font-size: 12px; color: rgb(var(--v-theme-on-surface)); }
-.remote-desc { margin-top: 10px; }
+.remote-desc { margin-top: 12px; }
 .remote-desc-text {
   margin: 6px 0 0;
   font-size: 12.5px;
@@ -1614,6 +1709,28 @@ function onStrengthDown(e: PointerEvent) {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ── Civitai 远端 fallback 展示（Card/List） ── */
+.tw-src {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgb(var(--v-theme-secondary-container));
+  color: rgb(var(--v-theme-on-secondary-container));
+  font-size: 10.5px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.rec-weight {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: rgb(var(--v-theme-on-surface-variant));
+  white-space: nowrap;
+}
+.weight-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rec-mini { font-size: 11px; color: rgb(var(--v-theme-on-surface-variant)); white-space: nowrap; }
+.trigger.remote { color: rgb(var(--v-theme-on-surface-variant)); }
 
 /* ── Metadata 批量进度/汇总 ── */
 .meta-progress-body { padding: 8px 24px 4px; }
