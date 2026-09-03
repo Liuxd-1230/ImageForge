@@ -4,7 +4,7 @@
     <div class="lib-head">
       <div>
         <h1 class="lib-title">LoRA 资源库</h1>
-        <p class="lib-sub">管理本地权重、来源目录与触发词映射。</p>
+        <p class="lib-sub">管理本地权重、来源目录、触发词映射与 Civitai 元数据。</p>
       </div>
       <div class="lib-actions">
         <button type="button" class="btn-tonal" @click="openSourceDialog">
@@ -23,7 +23,7 @@
         <input
           v-model="searchQuery"
           class="search-input"
-          placeholder="搜索 LoRA 名称、文件名或触发词"
+          placeholder="搜索 LoRA 名称或触发词"
         />
         <button v-if="searchQuery" type="button" class="search-clear" @click="searchQuery = ''">
           <span class="mdi mdi-close" />
@@ -35,7 +35,43 @@
         @toggle-all="bulkSel.toggleAll()"
         @delete="openBulkDelete"
       />
+      <button
+        v-if="bulkSel.selectedCount > 0"
+        type="button"
+        class="btn-primary sm"
+        :disabled="metaBusy"
+        @click="openBulkMetadata"
+      >
+        <span class="mdi mdi-cloud-sync-outline" />补全所选 Metadata
+      </button>
+      <button
+        v-else
+        type="button"
+        class="btn-tonal sm"
+        :disabled="metaBusy || filteredLoras.length === 0"
+        @click="refreshCurrentFilter"
+      >
+        <span class="mdi mdi-cloud-sync-outline" />补全当前结果
+      </button>
       <div class="filter-side">
+        <div class="view-toggle" role="tablist">
+          <button
+            type="button"
+            :class="['vt-btn', { on: viewMode === 'card' }]"
+            :title="'卡片视图'"
+            @click="setViewMode('card')"
+          >
+            <span class="mdi mdi-view-grid-outline" />
+          </button>
+          <button
+            type="button"
+            :class="['vt-btn', { on: viewMode === 'list' }]"
+            :title="'列表视图'"
+            @click="setViewMode('list')"
+          >
+            <span class="mdi mdi-format-list-bulleted" />
+          </button>
+        </div>
         <button
           type="button"
           :class="['fav-btn', { on: onlyFavorites }]"
@@ -55,7 +91,97 @@
       <p class="lib-empty-hint">点击「扫描来源」添加本地目录并选择导入，或手动添加。</p>
     </div>
 
-    <!-- ── List ── -->
+    <!-- ══════════ CARD VIEW（浏览模式，有封面；绝不显示本地绝对路径） ══════════ -->
+    <div v-else-if="viewMode === 'card'" class="lora-cards">
+      <div
+        v-for="lora in filteredLoras"
+        :key="lora.id"
+        :class="['lora-card', { selected: bulkSel.isSelected(lora.id) }]"
+      >
+        <!-- Cover region -->
+        <div v-if="!lora.cover_hidden" class="card-cover">
+          <label class="head-check card-check">
+            <input type="checkbox" :checked="bulkSel.isSelected(lora.id)" @change="bulkSel.toggleOne(lora.id)" />
+          </label>
+          <button
+            type="button"
+            :class="['fav-star', { on: lora.is_favorite }]"
+            :title="lora.is_favorite ? '取消收藏' : '收藏'"
+            @click="loraStore.toggleFavorite(lora)"
+          >
+            <span class="mdi" :class="lora.is_favorite ? 'mdi-star' : 'mdi-star-outline'" />
+          </button>
+          <img
+            v-if="coverSrc(lora)"
+            :src="coverSrc(lora)"
+            :alt="lora.name"
+            loading="lazy"
+            class="cover-img"
+            @error="onCoverError(lora)"
+          />
+          <div v-else class="cover-empty">
+            <span class="mdi mdi-image-off-outline" />
+            <span>暂无封面</span>
+          </div>
+        </div>
+
+        <!-- Card body -->
+        <div class="card-body">
+          <div class="card-title-row">
+            <span class="card-name" :title="lora.name">{{ lora.name }}</span>
+            <span v-if="lora.is_favorite" class="mdi mdi-star card-fav-mini" />
+          </div>
+          <div v-if="lora.remote_model_name" class="card-remote-name" :title="lora.remote_model_name">
+            {{ lora.remote_model_name }}
+          </div>
+          <div v-if="lora.remote_version_name || lora.remote_base_model" class="card-version">
+            {{ lora.remote_version_name || '—' }}<template v-if="lora.remote_base_model"> · {{ lora.remote_base_model }}</template>
+          </div>
+
+          <div class="card-trigger">
+            <span v-if="lora.trigger_words" class="mono">{{ lora.trigger_words }}</span>
+            <span v-else class="none-hint">无触发词</span>
+          </div>
+
+          <div class="card-meta-row">
+            <span class="mono weight">{{ lora.default_strength.toFixed(2) }}</span>
+            <span :class="['meta-badge', metaStatusClass(lora)]">{{ metaStatusText(lora) }}</span>
+            <span :class="['status-badge', lora.is_valid_file ? 'ok' : 'bad']">
+              <span class="dot" />{{ lora.is_valid_file ? '就绪' : '未识别' }}
+            </span>
+          </div>
+
+          <div class="card-actions">
+            <button type="button" class="op-btn" title="编辑" @click="openEditDialog(lora)">
+              <span class="mdi mdi-pencil-outline" />编辑
+            </button>
+            <button
+              type="button"
+              class="op-btn"
+              title="刷新 Civitai 信息"
+              :disabled="metaBusy"
+              @click="refreshOne(lora)"
+            >
+              <span class="mdi" :class="refreshingIds.has(lora.id) ? 'mdi-loading mdi-spin' : 'mdi-refresh'" />刷新
+            </button>
+            <button
+              v-if="lora.remote_model_id && lora.metadata_host"
+              type="button"
+              class="op-btn external"
+              title="在 Civitai 打开"
+              @click="openCivitai(lora)"
+            >
+              <span class="mdi mdi-open-in-new" />
+            </button>
+            <button type="button" class="op-btn danger" title="删除" @click="askDeleteLora(lora)">
+              <span class="mdi mdi-delete-outline" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ LIST VIEW（管理模式，无封面；无本地绝对路径/文件名大列） ══════════ -->
     <div v-else class="lora-list">
       <div class="lora-head">
         <span class="cell col-check">
@@ -65,10 +191,11 @@
         </span>
         <span class="cell col-fav">收藏</span>
         <span class="cell col-name">名称 / 分类</span>
-        <span class="cell col-file">文件名</span>
         <span class="cell col-trigger">触发词</span>
         <span class="cell col-weight">权重</span>
-        <span class="cell col-status">状态</span>
+        <span class="cell col-base">Base Model</span>
+        <span class="cell col-meta">Metadata</span>
+        <span class="cell col-status">ComfyUI</span>
         <span class="cell col-ops">操作</span>
       </div>
       <div v-for="lora in filteredLoras" :key="lora.id" class="lora-row">
@@ -93,10 +220,6 @@
             <span class="cat-pill">{{ lora.category || '通用' }}</span>
           </div>
         </div>
-        <div class="cell col-file">
-          <span class="mono ellipsis file-name" :title="lora.filename">{{ lora.filename }}</span>
-          <span v-if="lora.source_path" class="mono src-path ellipsis" :title="lora.source_path">{{ lora.source_path }}</span>
-        </div>
         <div class="cell col-trigger">
           <span v-if="lora.trigger_words" class="mono ellipsis trigger" :title="lora.trigger_words">{{ lora.trigger_words }}</span>
           <span v-else class="none-hint">无触发词</span>
@@ -104,15 +227,39 @@
         <div class="cell col-weight">
           <span class="mono weight">{{ lora.default_strength.toFixed(2) }}</span>
         </div>
+        <div class="cell col-base">
+          <span v-if="lora.remote_base_model" class="ellipsis">{{ lora.remote_base_model }}</span>
+          <span v-else class="none-hint">—</span>
+        </div>
+        <div class="cell col-meta">
+          <span :class="['meta-badge', metaStatusClass(lora)]">{{ metaStatusText(lora) }}</span>
+        </div>
         <div class="cell col-status">
           <span :class="['status-badge', lora.is_valid_file ? 'ok' : 'bad']">
-            <span class="dot" />
-            {{ lora.is_valid_file ? '就绪' : '未识别' }}
+            <span class="dot" />{{ lora.is_valid_file ? '就绪' : '未识别' }}
           </span>
         </div>
         <div class="cell col-ops">
           <button type="button" class="op-btn" title="编辑" @click="openEditDialog(lora)">
             <span class="mdi mdi-pencil-outline" />
+          </button>
+          <button
+            type="button"
+            class="op-btn"
+            title="刷新 Civitai 信息"
+            :disabled="metaBusy"
+            @click="refreshOne(lora)"
+          >
+            <span class="mdi" :class="refreshingIds.has(lora.id) ? 'mdi-loading mdi-spin' : 'mdi-refresh'" />
+          </button>
+          <button
+            v-if="lora.remote_model_id && lora.metadata_host"
+            type="button"
+            class="op-btn external"
+            title="在 Civitai 打开"
+            @click="openCivitai(lora)"
+          >
+            <span class="mdi mdi-open-in-new" />
           </button>
           <button type="button" class="op-btn danger" title="删除" @click="askDeleteLora(lora)">
             <span class="mdi mdi-delete-outline" />
@@ -121,7 +268,7 @@
       </div>
     </div>
 
-    <!-- ══════════ 来源管理 Dialog ══════════ -->
+    <!-- ══════════ 来源管理 Dialog（唯一展示目录地址的地方，spec §52） ══════════ -->
     <v-dialog v-model="sourceDialog" max-width="640px">
       <div class="m3-dialog">
         <div class="dialog-head">
@@ -287,8 +434,8 @@
       </div>
     </v-dialog>
 
-    <!-- ══════════ LoRA 创建/编辑 Dialog ══════════ -->
-    <v-dialog v-model="loraDialog" max-width="520px">
+    <!-- ══════════ LoRA 创建/编辑 Dialog（本地 / 远端 / 技术 三区） ══════════ -->
+    <v-dialog v-model="loraDialog" max-width="640px">
       <div class="m3-dialog">
         <div class="dialog-head">
           <span class="dialog-title">{{ isEdit ? '编辑 LoRA 设定' : '添加 LoRA' }}</span>
@@ -296,38 +443,150 @@
             <span class="mdi mdi-close" />
           </button>
         </div>
-        <div class="form-body">
-          <label class="field">
-            <span class="field-label">显示名称</span>
-            <input v-model="form.name" class="field-input" placeholder="如: Water Dress" />
-          </label>
-          <label class="field">
-            <span class="field-label">文件名（ComfyUI LoRA 文件）</span>
-            <input v-model="form.filename" class="field-input mono" :readonly="isEdit" placeholder="如: water_dress.safetensors" />
-          </label>
-          <label class="field">
-            <span class="field-label">触发词 Trigger Words（英文逗号分隔）</span>
-            <textarea v-model="form.trigger_words" class="field-input" rows="2" placeholder="如: water_dress, flowing_water" />
-          </label>
-          <label class="field">
-            <span class="field-label">分类</span>
-            <input v-model="form.category" class="field-input" />
-          </label>
-          <div class="strength-field">
-            <span class="field-label">默认权重 <b class="mono">{{ form.default_strength.toFixed(2) }}</b></span>
-            <div class="mini-slider" @pointerdown="onStrengthDown">
-              <div class="ms-track">
-                <div class="ms-fill" :style="{ width: strengthPct + '%' }" />
-                <div class="ms-thumb" :style="{ left: strengthPct + '%' }" />
+
+        <div class="edit-sections">
+          <!-- 本地信息 -->
+          <div class="edit-section">
+            <div class="edit-sec-title">本地信息</div>
+            <div class="form-body">
+              <label class="field">
+                <span class="field-label">显示名称</span>
+                <input v-model="form.name" class="field-input" placeholder="如: Water Dress" />
+              </label>
+              <label class="field">
+                <span class="field-label">描述</span>
+                <textarea v-model="form.description" class="field-input" rows="2" placeholder="本地备注（不会被远端刷新覆盖）" />
+              </label>
+              <label class="field">
+                <span class="field-label">触发词 Trigger Words（英文逗号分隔）</span>
+                <textarea v-model="form.trigger_words" class="field-input mono" rows="2" placeholder="如: water_dress, flowing_water" />
+              </label>
+              <label class="field">
+                <span class="field-label">分类</span>
+                <input v-model="form.category" class="field-input" />
+              </label>
+              <div class="strength-field">
+                <span class="field-label">默认权重 <b class="mono">{{ form.default_strength.toFixed(2) }}</b></span>
+                <div class="mini-slider" @pointerdown="onStrengthDown">
+                  <div class="ms-track">
+                    <div class="ms-fill" :style="{ width: strengthPct + '%' }" />
+                    <div class="ms-thumb" :style="{ left: strengthPct + '%' }" />
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex gap-2 align-center pt-2">
+                <label class="row-check">
+                  <input v-model="form.is_favorite" type="checkbox" />
+                  <span class="check-label">收藏</span>
+                </label>
+                <label class="row-check">
+                  <input v-model="form.cover_hidden" type="checkbox" />
+                  <span class="check-label">隐藏封面（卡片视图收起封面区）</span>
+                </label>
               </div>
             </div>
           </div>
+
+          <!-- 远端信息（read-only） -->
+          <div v-if="isEdit && remoteVisible" class="edit-section">
+            <div class="edit-sec-title">
+              远端信息（Civitai）
+              <button
+                type="button"
+                class="btn-tonal sm"
+                :disabled="metaBusy"
+                @click="refreshEditLora"
+              >
+                <span class="mdi" :class="editLora && refreshingIds.has(editLora.id) ? 'mdi-loading mdi-spin' : 'mdi-refresh'" />刷新联网信息
+              </button>
+            </div>
+            <div class="remote-grid">
+              <div class="rg-item"><span class="rg-label">Civitai Model</span><span>{{ form.remote_model_name || '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">Version</span><span>{{ form.remote_version_name || '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">Creator</span><span>{{ form.remote_creator || '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">Base Model</span><span>{{ form.remote_base_model || '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">Metadata Host</span><span class="mono">{{ form.metadata_host || '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">最近获取</span><span>{{ form.metadata_fetched_at ? formatTime(form.metadata_fetched_at) : '—' }}</span></div>
+            </div>
+            <div v-if="remoteTrainedWordsList.length" class="remote-tw">
+              <div class="rg-label">Civitai 推荐 Trigger（不会自动覆盖本地）</div>
+              <div class="tw-chips">
+                <span v-for="tw in remoteTrainedWordsList" :key="tw" class="tw-chip mono">{{ tw }}</span>
+              </div>
+              <button type="button" class="btn-primary sm mt-2" @click="adoptTrainedWords">
+                <span class="mdi mdi-content-copy" />采用为本地 Trigger
+              </button>
+            </div>
+            <div v-if="remoteTagsList.length" class="remote-tw">
+              <div class="rg-label">Tags</div>
+              <div class="tw-chips">
+                <span v-for="t in remoteTagsList" :key="t" class="tw-chip">{{ t }}</span>
+              </div>
+            </div>
+            <div v-if="form.remote_description" class="remote-desc">
+              <div class="rg-label">远端描述（纯文本展示，不执行 HTML）</div>
+              <p class="remote-desc-text">{{ form.remote_description }}</p>
+            </div>
+          </div>
+
+          <!-- 技术信息（默认折叠，无绝对路径） -->
+          <div v-if="isEdit" class="edit-section">
+            <div class="edit-sec-title tech-toggle" @click="techOpen = !techOpen">
+              <span class="mdi" :class="techOpen ? 'mdi-chevron-down' : 'mdi-chevron-right'" />
+              技术信息
+            </div>
+            <div v-if="techOpen" class="tech-grid">
+              <div class="rg-item"><span class="rg-label">SHA256</span><span class="mono ellipsis" :title="form.sha256 || ''">{{ form.sha256 || '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">ComfyUI filename</span><span class="mono ellipsis" :title="form.filename">{{ form.filename }}</span></div>
+              <div class="rg-item"><span class="rg-label">Civitai Model ID</span><span class="mono">{{ form.remote_model_id ?? '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">Civitai Version ID</span><span class="mono">{{ form.remote_version_id ?? '—' }}</span></div>
+              <div class="rg-item"><span class="rg-label">Civitai File ID</span><span class="mono">{{ form.remote_file_id ?? '—' }}</span></div>
+            </div>
+          </div>
         </div>
+
         <div class="dialog-foot">
           <button type="button" class="btn-tonal" @click="loraDialog = false">取消</button>
-          <button type="button" class="btn-primary" :disabled="!form.name || !form.filename" @click="saveLora">
+          <button type="button" class="btn-primary" :disabled="!form.name || !form.filename" @click="saveLora()">
             保存
           </button>
+        </div>
+      </div>
+    </v-dialog>
+
+    <!-- ══════════ Metadata 批量进度/汇总 Dialog ══════════ -->
+    <v-dialog v-model="metaDialog" max-width="520px">
+      <div class="m3-dialog">
+        <div class="dialog-head">
+          <span class="dialog-title">{{ metaBusy ? '正在补全 Metadata…' : 'Metadata 汇总' }}</span>
+          <button type="button" class="dialog-close" @click="metaDialog = false">
+            <span class="mdi mdi-close" />
+          </button>
+        </div>
+        <div v-if="metaBusy" class="meta-progress-body">
+          <div class="meta-progress-track">
+            <div class="meta-progress-fill" :style="{ width: metaPct + '%' }" />
+          </div>
+          <p class="text-caption">正在处理 {{ metaDone }} / {{ metaTotal }}</p>
+        </div>
+        <div v-else class="meta-progress-body">
+          <div v-if="metaResult" class="meta-summary">
+            <div class="ms-item ok"><b>{{ metaResult.matched.length }}</b> 已匹配</div>
+            <div class="ms-item warn"><b>{{ metaResult.not_found.length }}</b> 未找到</div>
+            <div class="ms-item warn"><b>{{ metaResult.local_file_missing.length }}</b> 本地文件不存在</div>
+            <div class="ms-item warn"><b>{{ metaResult.local_file_ambiguous.length }}</b> 本地文件歧义</div>
+            <div class="ms-item err"><b>{{ metaResult.errors.length }}</b> 失败</div>
+          </div>
+          <p v-if="metaResult && metaResult.auth_warning" class="auth-warn">
+            Civitai Token 无效，已使用公开访问。
+          </p>
+          <details v-if="metaResult && metaResult.errors.length" class="meta-errors">
+            <summary>展开失败详情</summary>
+            <p v-for="(e, i) in metaResult.errors.slice(0, 20)" :key="i" class="mono meta-err-line">{{ e.name || ('#' + e.id) }}：{{ e.detail }}</p>
+          </details>
+        </div>
+        <div class="dialog-foot">
+          <button type="button" class="btn-tonal" @click="metaDialog = false">关闭</button>
         </div>
       </div>
     </v-dialog>
@@ -358,7 +617,7 @@ import { useLoraStore } from '../stores/lora'
 import { useStudioStore } from '../stores/studio'
 import { useBulkSelection } from '../composables/useBulkSelection'
 import BulkSelectionBar from '../components/BulkSelectionBar.vue'
-import type { Lora, LoraSource, ScanCandidate } from '../types'
+import type { Lora, LoraSource, ScanCandidate, MetadataStatus } from '../types'
 
 const loraStore = useLoraStore()
 const studioStore = useStudioStore()
@@ -369,6 +628,14 @@ const onlyFavorites = ref(false)
 const snackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('success')
+
+/* ── 视图模式（卡片/列表，localStorage 记忆，spec §38） ── */
+const VIEW_KEY = 'imageforge_lora_view'
+const viewMode = ref<'card' | 'list'>('card')
+function setViewMode(mode: 'card' | 'list') {
+  viewMode.value = mode
+  try { localStorage.setItem(VIEW_KEY, mode) } catch { /* ignore */ }
+}
 
 /* ── 来源管理 ── */
 const sourceDialog = ref(false)
@@ -389,17 +656,22 @@ const importing = ref(false)
 /* ── LoRA 编辑 ── */
 const loraDialog = ref(false)
 const isEdit = ref(false)
-const form = ref({
-  id: undefined as number | undefined,
-  name: '',
-  filename: '',
-  trigger_words: '',
-  default_strength: 0.8,
-  is_favorite: false,
-  category: '通用',
-  is_custom: true,
-  is_valid_file: true,
+const techOpen = ref(false)
+const editLora = ref<Lora | null>(null)
+const form = ref<any>({
+  id: undefined, name: '', filename: '', trigger_words: '', description: '',
+  default_strength: 0.8, is_favorite: false, cover_hidden: false, category: '通用',
+  is_custom: true, is_valid_file: true,
 })
+
+/* ── Metadata 批量刷新 ── */
+const metaBusy = ref(false)
+const metaDialog = ref(false)
+const metaDone = ref(0)
+const metaTotal = ref(0)
+const metaResult = ref<any>(null)
+const refreshingIds = ref<Set<number>>(new Set())
+const coverErrored = ref<Set<number>>(new Set())
 
 /* ── 删除确认 ── */
 const confirmDialog = ref(false)
@@ -413,7 +685,6 @@ const filteredLoras = computed(() => {
     const q = searchQuery.value.toLowerCase()
     const matchQuery = !q ||
       l.name.toLowerCase().includes(q) ||
-      l.filename.toLowerCase().includes(q) ||
       (l.trigger_words && l.trigger_words.toLowerCase().includes(q))
     return matchFav && matchQuery
   })
@@ -422,6 +693,21 @@ const filteredLoras = computed(() => {
 const bulkSel = useBulkSelection(() => filteredLoras.value)
 
 const strengthPct = computed(() => ((form.value.default_strength - 0.1) / 1.4) * 100)
+const metaPct = computed(() => (metaTotal.value ? Math.round((metaDone.value / metaTotal.value) * 100) : 0))
+
+const remoteTrainedWordsList = computed(() => {
+  try {
+    const v = form.value.remote_trained_words
+    return v ? JSON.parse(v) : []
+  } catch { return [] }
+})
+const remoteTagsList = computed(() => {
+  try {
+    const v = form.value.remote_tags
+    return v ? JSON.parse(v) : []
+  } catch { return [] }
+})
+const remoteVisible = computed(() => !!editLora.value)
 
 const selectedCandidates = computed(() =>
   scanResult.value ? scanResult.value.candidates.filter(c => selectedPaths.value.has(c.full_path)) : [],
@@ -430,12 +716,129 @@ const selectedCandidates = computed(() =>
 onMounted(() => {
   loraStore.fetchLoras()
   loraStore.fetchSources()
+  try {
+    const saved = localStorage.getItem(VIEW_KEY)
+    if (saved === 'card' || saved === 'list') viewMode.value = saved
+  } catch { /* ignore */ }
 })
 
 function notify(text: string, color = 'success') {
   snackbarText.value = text
   snackbarColor.value = color
   snackbar.value = true
+}
+
+/* ── 封面（只走本地 backend /api/loras/{id}/cover，spec §66） ── */
+function coverSrc(lora: Lora): string {
+  if (!lora.id || coverErrored.value.has(lora.id)) return ''
+  return `/api/loras/${lora.id}/cover`
+}
+function onCoverError(lora: Lora) {
+  coverErrored.value.add(lora.id)
+}
+
+/* ── Metadata 状态（spec §53/§63） ── */
+function metaStatusText(lora: Lora): string {
+  const s: MetadataStatus = lora.metadata_status ?? null
+  if (s === 'matched') return '已匹配'
+  if (s === 'not_found') return '未找到'
+  if (s === 'remote_error') return '失败'
+  if (s === 'rate_limited') return '限流'
+  if (s === 'local_file_not_found') return '本地文件缺失'
+  if (s === 'local_file_ambiguous') return '本地文件歧义'
+  if (s === 'hash_file_mismatch') return '哈希不符'
+  return '未获取'
+}
+function metaStatusClass(lora: Lora): string {
+  const s: MetadataStatus = lora.metadata_status ?? null
+  if (s === 'matched') return 'ok'
+  if (s === 'not_found' || s === 'hash_file_mismatch') return 'warn'
+  if (s === 'remote_error' || s === 'rate_limited') return 'err'
+  if (s === 'local_file_not_found' || s === 'local_file_ambiguous') return 'err'
+  return 'idle'
+}
+
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('zh-CN', { hour12: false })
+  } catch { return iso }
+}
+
+function openCivitai(lora: Lora) {
+  if (!lora.remote_model_id || !lora.metadata_host) return
+  window.open(`https://${lora.metadata_host}/models/${lora.remote_model_id}`, '_blank', 'noopener')
+}
+
+/* ── 单条刷新 ── */
+async function refreshEditLora() {
+  if (editLora.value) await refreshOne(editLora.value)
+}
+async function refreshOne(lora: Lora) {
+  if (!lora.id || metaBusy.value) return
+  refreshingIds.value.add(lora.id)
+  try {
+    const res = await loraStore.refreshMetadata(lora.id)
+    coverErrored.value.delete(lora.id)
+    // 若编辑对话框正打开这条 LoRA，同步远端区
+    if (editLora.value?.id === lora.id) {
+      const fresh = loraStore.loras.find(x => x.id === lora.id)
+      if (fresh) form.value = { is_custom: true, ...fresh }
+    }
+    if (res.status === 'matched') notify(`已匹配：${res.remote_model_name || lora.name}`)
+    else if (res.status === 'not_found') notify('两个官方 host 均未找到', 'warning')
+    else if (res.status === 'hash_file_mismatch') notify('远端 files 无匹配 SHA256', 'error')
+    else if (res.status === 'local_file_not_found') notify('本地文件不存在或已移动', 'error')
+    else if (res.status === 'local_file_ambiguous') notify('多个同名文件，无法确定目标', 'error')
+    else notify(`刷新失败：${res.detail || res.status}`, 'error')
+  } catch (err: any) {
+    notify(err.response?.data?.detail?.summary || err.message || '刷新失败', 'error')
+  } finally {
+    refreshingIds.value.delete(lora.id)
+  }
+}
+
+/* ── 批量补全（选中 或 当前过滤结果，spec §58） ── */
+async function openBulkMetadata() {
+  if (bulkSel.selected.length === 0) return
+  await runBatch([...bulkSel.selected])
+}
+async function refreshCurrentFilter() {
+  if (filteredLoras.value.length === 0) return
+  await runBatch(filteredLoras.value.map(l => l.id))
+}
+async function runBatch(ids: Array<number | string>) {
+  metaBusy.value = true
+  metaDialog.value = true
+  metaResult.value = null
+  metaDone.value = 0
+  metaTotal.value = ids.length
+  try {
+    // 后端批量接口一次性返回；前端用进度模拟展示（spec §59 只出一个汇总 UI）
+    const step = Math.max(1, Math.floor(ids.length / 8))
+    const tick = setInterval(() => {
+      metaDone.value = Math.min(metaTotal.value, metaDone.value + step)
+      if (metaDone.value >= metaTotal.value) clearInterval(tick)
+    }, 180)
+    const res = await loraStore.refreshMetadataBatch(ids)
+    clearInterval(tick)
+    metaDone.value = metaTotal.value
+    metaResult.value = res
+    bulkSel.clear()
+  } catch (err: any) {
+    notify(err.response?.data?.detail || err.message || '批量补全失败', 'error')
+    metaDialog.value = false
+  } finally {
+    metaBusy.value = false
+  }
+}
+
+/* ── 采用 Civitai Trigger（走现有 PUT /api/loras/{id}，spec §28/§34） ── */
+async function adoptTrainedWords() {
+  if (!editLora.value || !remoteTrainedWordsList.value.length) return
+  const joined = remoteTrainedWordsList.value.join(', ')
+  form.value.trigger_words = joined
+  await saveLora(false)
+  notify('已采用 Civitai 推荐 Trigger 为本地 Trigger')
 }
 
 /* ── 来源管理 ── */
@@ -453,7 +856,6 @@ function resolvePreview() {
     sourceError.value = ''
     return
   }
-  // WSL 判定以后端为准：调 resolve-path 预览 API，前端不猜 /mnt/<drive>
   if (resolveTimer) clearTimeout(resolveTimer)
   resolveTimer = setTimeout(async () => {
     try {
@@ -493,7 +895,6 @@ async function runScan(s: LoraSource) {
     const result = await loraStore.scanSource(s.id)
     if (result) {
       scanResult.value = result
-      // 默认一个都不选；「全选新增」是用户的主动操作
       selectedPaths.value = new Set()
       scanDialog.value = true
     }
@@ -537,7 +938,6 @@ async function doImport() {
   if (selectedCandidates.value.length === 0 || !scanResult.value) return
   importing.value = true
   try {
-    // 只传 source_id + relative_paths，服务器重新验证（路径归属/存在/识别/重复）
     const res = await loraStore.importCandidates(
       scanResult.value.source.id,
       selectedCandidates.value.map(c => c.relative_path),
@@ -545,8 +945,14 @@ async function doImport() {
     studioStore.syncLorasFromLibrary(loraStore.loras)
     const skippedN = (res.skipped || []).length
     const errN = (res.errors || []).length
-    notify(`已导入 ${res.imported.length} 项${skippedN ? `，跳过 ${skippedN}` : ''}${errN ? `，${errN} 项失败` : ''}`)
+    const importedN = (res.imported || []).length
+    notify(`已导入 ${importedN} 项${skippedN ? `，跳过 ${skippedN}` : ''}${errN ? `，${errN} 项失败` : ''}`)
     scanDialog.value = false
+    // 可选小改动（spec §37）：导入后可一键补全 Metadata
+    if (importedN > 0) {
+      snackbarText.value = `已导入 ${importedN} 项 LoRA —— 可用「补全当前结果」获取 Civitai 元数据`
+      snackbar.value = true
+    }
   } catch (err: any) {
     notify(err.response?.data?.detail || err.message || '导入失败', 'error')
   } finally {
@@ -557,23 +963,28 @@ async function doImport() {
 /* ── LoRA 编辑 ── */
 function openCreateDialog() {
   isEdit.value = false
+  editLora.value = null
+  techOpen.value = false
   form.value = {
-    id: undefined, name: '', filename: '', trigger_words: '',
-    default_strength: 0.8, is_favorite: false, category: '通用', is_custom: true, is_valid_file: true,
+    id: undefined, name: '', filename: '', trigger_words: '', description: '',
+    default_strength: 0.8, is_favorite: false, cover_hidden: false, category: '通用',
+    is_custom: true, is_valid_file: true,
   }
   loraDialog.value = true
 }
 function openEditDialog(lora: Lora) {
   isEdit.value = true
+  editLora.value = lora
+  techOpen.value = false
   form.value = { is_custom: true, ...lora }
   loraDialog.value = true
 }
-async function saveLora() {
+async function saveLora(showMsg = true) {
   await loraStore.saveLora(form.value)
   studioStore.syncLorasFromLibrary(loraStore.loras)
   await studioStore.buildPrompt()
   loraDialog.value = false
-  notify('LoRA 配置已保存并同步至创作台')
+  if (showMsg) notify('LoRA 配置已保存并同步至创作台')
 }
 function askDeleteLora(lora: Lora) {
   confirmTitle.value = '删除 LoRA 记录'
@@ -706,11 +1117,12 @@ function onStrengthDown(e: PointerEvent) {
   border-radius: 24px;
   background: rgb(var(--v-theme-surface-container));
   margin-bottom: 18px;
+  flex-wrap: wrap;
 }
 .search-field {
   position: relative;
   flex: 1;
-  min-width: 0;
+  min-width: 220px;
   display: flex;
   align-items: center;
   border-radius: 16px;
@@ -761,6 +1173,33 @@ function onStrengthDown(e: PointerEvent) {
   gap: 12px;
   flex-shrink: 0;
 }
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(var(--v-theme-surface));
+}
+.vt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--v-theme-on-surface-variant));
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-emphasized),
+    color var(--motion-fast) var(--motion-emphasized);
+}
+.vt-btn.on {
+  background: rgb(var(--v-theme-secondary-container));
+  color: rgb(var(--v-theme-on-secondary-container));
+}
 .fav-btn {
   display: inline-flex;
   align-items: center;
@@ -774,8 +1213,6 @@ function onStrengthDown(e: PointerEvent) {
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--motion-fast) var(--motion-emphasized),
-    color var(--motion-fast) var(--motion-emphasized);
 }
 .fav-btn.on {
   background: rgb(var(--v-theme-secondary-container));
@@ -807,7 +1244,150 @@ function onStrengthDown(e: PointerEvent) {
 .lib-empty p { margin: 0 0 4px; font-size: 14.5px; font-weight: 600; }
 .lib-empty-hint { font-weight: 400 !important; font-size: 13px !important; }
 
-/* ── List（CSS grid，minmax(0,…) 保证 ellipsis、不撑宽） ── */
+/* ── CARD VIEW ── */
+.lora-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: 18px;
+}
+.lora-card {
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 20px;
+  background: rgb(var(--v-theme-surface));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--motion-fast) var(--motion-emphasized),
+    box-shadow var(--motion-fast) var(--motion-emphasized);
+}
+.lora-card:hover {
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+}
+.lora-card.selected {
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.35);
+}
+.card-cover {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: rgb(var(--v-theme-surface-container-low));
+  overflow: hidden;
+}
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 6px;
+  color: rgb(var(--v-theme-on-surface-variant));
+  font-size: 13px;
+}
+.cover-empty .mdi { font-size: 28px; opacity: 0.55; }
+.card-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+}
+.card-cover .fav-star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: #fff;
+}
+.card-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-name {
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-fav-mini { color: rgb(var(--v-theme-warning)); font-size: 13px; flex-shrink: 0; }
+.card-remote-name {
+  font-size: 12.5px;
+  color: rgb(var(--v-theme-primary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-version {
+  font-size: 12px;
+  color: rgb(var(--v-theme-on-surface-variant));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-trigger {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: rgb(var(--v-theme-on-surface));
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 34px;
+}
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+.weight { font-size: 13px; font-weight: 700; }
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-top: 1px solid rgb(var(--v-theme-outline-variant));
+  margin-top: 10px;
+  padding-top: 8px;
+}
+.op-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: rgb(var(--v-theme-on-surface-variant));
+  font-size: 12.5px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-emphasized);
+}
+.op-btn:hover { background: rgb(var(--v-theme-surface-container)); }
+.op-btn.danger:hover { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
+.op-btn.external:hover { background: rgb(var(--v-theme-secondary-container)); }
+.op-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── LIST VIEW（无封面） ── */
 .lora-list {
   border: 1px solid rgb(var(--v-theme-outline-variant));
   border-radius: 20px;
@@ -816,7 +1396,7 @@ function onStrengthDown(e: PointerEvent) {
 }
 .lora-head, .lora-row {
   display: grid;
-  grid-template-columns: 44px 44px minmax(0, 1.25fr) minmax(0, 1.55fr) minmax(0, 1.3fr) 72px 96px 96px;
+  grid-template-columns: 44px 44px minmax(0, 1.5fr) minmax(0, 1.4fr) 72px 120px 110px 96px 120px;
   align-items: center;
   min-width: 0;
 }
@@ -839,6 +1419,7 @@ function onStrengthDown(e: PointerEvent) {
 .cell { min-width: 0; }
 .col-fav { text-align: center; }
 .col-check { display: flex; align-items: center; justify-content: center; }
+.col-ops { display: flex; justify-content: flex-end; gap: 2px; }
 .head-check {
   display: inline-flex;
   align-items: center;
@@ -850,8 +1431,6 @@ function onStrengthDown(e: PointerEvent) {
   accent-color: rgb(var(--v-theme-primary));
   cursor: pointer;
 }
-.col-ops { text-align: right; display: flex; justify-content: flex-end; gap: 2px; }
-
 .fav-star {
   display: inline-flex;
   align-items: center;
@@ -883,12 +1462,13 @@ function onStrengthDown(e: PointerEvent) {
   font-weight: 600;
   color: rgb(var(--v-theme-on-surface-variant));
 }
-.file-name { display: block; font-size: 12.5px; color: rgb(var(--v-theme-on-surface-variant)); }
-.src-path { display: block; font-size: 11.5px; color: rgb(var(--v-theme-text-muted)); margin-top: 2px; }
 .trigger { font-size: 12.5px; color: rgb(var(--v-theme-primary)); }
 .none-hint { font-size: 12.5px; color: rgb(var(--v-theme-text-muted)); font-style: italic; }
-.weight { font-size: 13px; font-weight: 700; color: rgb(var(--v-theme-on-surface)); }
-.status-badge {
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mono { font-family: var(--font-mono); }
+
+/* ── Status / Meta badges ── */
+.status-badge, .meta-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -896,27 +1476,15 @@ function onStrengthDown(e: PointerEvent) {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .status-badge.ok { background: rgb(var(--v-theme-surface-container)); color: rgb(var(--v-theme-success)); }
 .status-badge.bad { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
 .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.op-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: rgb(var(--v-theme-on-surface-variant));
-  cursor: pointer;
-  font-size: 15px;
-  transition: background-color var(--motion-fast) var(--motion-emphasized);
-}
-.op-btn:hover { background: rgb(var(--v-theme-surface-container)); }
-.op-btn.danger:hover { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
-.op-btn:disabled { opacity: 0.4; cursor: default; }
+.meta-badge.ok { background: rgb(var(--v-theme-primary-container)); color: rgb(var(--v-theme-on-primary-container)); }
+.meta-badge.idle { background: rgb(var(--v-theme-surface-container)); color: rgb(var(--v-theme-on-surface-variant)); }
+.meta-badge.warn { background: rgb(var(--v-theme-warning)); color: #fff; }
+.meta-badge.err { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
 
 /* ── Dialog 公共 ── */
 .m3-dialog {
@@ -959,14 +1527,104 @@ function onStrengthDown(e: PointerEvent) {
   padding: 14px 24px 20px;
 }
 .foot-hint { margin-right: auto; font-size: 13px; color: rgb(var(--v-theme-on-surface-variant)); }
+.confirm-text {
+  margin: 0;
+  padding: 0 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
 
-/* ── 来源管理 ── */
-.add-source {
+/* ── Edit Dialog：三区 ── */
+.edit-sections { padding: 4px 24px 0; display: flex; flex-direction: column; gap: 16px; }
+.edit-section {
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 16px;
+  padding: 14px;
+  background: rgb(var(--v-theme-surface-container-low));
+}
+.edit-sec-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 24px;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+  margin-bottom: 10px;
 }
+.tech-toggle { cursor: pointer; margin-bottom: 0; }
+.form-body { display: flex; flex-direction: column; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 12.5px; font-weight: 600; color: rgb(var(--v-theme-on-surface-variant)); }
+.field-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid rgb(var(--v-theme-outline-variant));
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: rgb(var(--v-theme-on-surface));
+}
+.field-input:focus { outline: none; border-color: rgb(var(--v-theme-primary)); box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.12); }
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+.row-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: rgb(var(--v-theme-primary)); cursor: pointer; }
+.check-label { font-size: 13px; }
+.strength-field { padding-top: 4px; }
+.mini-slider { margin-top: 10px; height: 20px; display: flex; align-items: center; cursor: pointer; }
+.ms-track { position: relative; width: 100%; height: 5px; border-radius: 999px; background: rgb(var(--v-theme-surface-container-highest)); }
+.ms-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: rgb(var(--v-theme-primary)); }
+.ms-thumb { position: absolute; top: 50%; width: 18px; height: 18px; border-radius: 50%; transform: translate(-50%, -50%); background: rgb(var(--v-theme-surface)); border: 2.5px solid rgb(var(--v-theme-primary)); pointer-events: none; }
+
+.remote-grid, .tech-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.rg-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rg-label { font-size: 11.5px; font-weight: 600; color: rgb(var(--v-theme-on-surface-variant)); }
+.rg-item > span:last-child { font-size: 13px; color: rgb(var(--v-theme-on-surface)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remote-tw { margin-top: 10px; }
+.tw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tw-chip { padding: 4px 10px; border-radius: 999px; background: rgb(var(--v-theme-surface-container)); font-size: 12px; color: rgb(var(--v-theme-on-surface)); }
+.remote-desc { margin-top: 10px; }
+.remote-desc-text {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: rgb(var(--v-theme-on-surface-variant));
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Metadata 批量进度/汇总 ── */
+.meta-progress-body { padding: 8px 24px 4px; }
+.meta-progress-track { height: 6px; border-radius: 999px; background: rgb(var(--v-theme-surface-container-highest)); overflow: hidden; }
+.meta-progress-fill { height: 100%; border-radius: 999px; background: rgb(var(--v-theme-primary)); transition: width 160ms var(--motion-emphasized); }
+.meta-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.ms-item { padding: 8px 14px; border-radius: 999px; background: rgb(var(--v-theme-surface-container)); font-size: 12.5px; color: rgb(var(--v-theme-on-surface-variant)); }
+.ms-item b { margin-right: 6px; font-size: 14px; }
+.ms-item.ok { background: rgb(var(--v-theme-primary-container)); color: rgb(var(--v-theme-on-primary-container)); }
+.ms-item.warn { background: rgb(var(--v-theme-warning)); color: #fff; }
+.ms-item.err { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
+.auth-warn { margin: 10px 0 0; font-size: 12.5px; color: rgb(var(--v-theme-warning)); }
+.meta-errors { margin-top: 10px; font-size: 12.5px; }
+.meta-errors summary { cursor: pointer; color: rgb(var(--v-theme-on-surface-variant)); }
+.meta-err-line { font-size: 11.5px; color: rgb(var(--v-theme-error)); margin: 3px 0; }
+
+/* ── 来源管理 ── */
+.add-source { display: flex; align-items: center; gap: 10px; padding: 0 24px; }
 .path-input {
   flex: 1;
   min-width: 0;
@@ -1000,28 +1658,13 @@ function onStrengthDown(e: PointerEvent) {
   font-size: 12px;
 }
 .rec-check input:checked + .rec-box { background: rgb(var(--v-theme-primary)); border-color: rgb(var(--v-theme-primary)); }
-.form-error {
-  margin: 8px 24px 0;
-  font-size: 12.5px;
-  color: rgb(var(--v-theme-error));
-}
-.path-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 24px 0;
-  font-size: 12.5px;
-}
+.form-error { margin: 8px 24px 0; font-size: 12.5px; color: rgb(var(--v-theme-error)); }
+.path-preview { display: flex; align-items: center; gap: 10px; margin: 8px 24px 0; font-size: 12.5px; }
 .pv-label { color: rgb(var(--v-theme-on-surface-variant)); flex-shrink: 0; }
 .pv-path { color: rgb(var(--v-theme-primary)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pv-dot { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--v-theme-success)); flex-shrink: 0; }
 .pv-dot.bad { background: rgb(var(--v-theme-error)); }
-.source-list {
-  max-height: 44vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 12px 16px;
-}
+.source-list { max-height: 44vh; overflow-y: auto; overflow-x: hidden; padding: 12px 16px; }
 .source-row {
   display: flex;
   align-items: center;
@@ -1049,7 +1692,6 @@ function onStrengthDown(e: PointerEvent) {
   border-radius: 999px;
   background: rgb(var(--v-theme-surface-container-highest));
   cursor: pointer;
-  transition: background-color var(--motion-fast) var(--motion-emphasized);
 }
 .mini-switch.on { background: rgb(var(--v-theme-primary)); }
 .mini-switch .knob {
@@ -1075,21 +1717,11 @@ function onStrengthDown(e: PointerEvent) {
   cursor: pointer;
 }
 .mini-chip.on { background: rgb(var(--v-theme-secondary-container)); border-color: transparent; color: rgb(var(--v-theme-on-secondary-container)); }
-.src-empty {
-  padding: 26px 0;
-  text-align: center;
-  font-size: 13px;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
+.src-empty { padding: 26px 0; text-align: center; font-size: 13px; color: rgb(var(--v-theme-on-surface-variant)); }
 
 /* ── 扫描预览 ── */
 .scan-body { padding: 0 24px; }
-.scan-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+.scan-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .sum-item {
   padding: 7px 14px;
   border-radius: 999px;
@@ -1102,40 +1734,12 @@ function onStrengthDown(e: PointerEvent) {
 .sum-item.warn { background: rgb(var(--v-theme-warning)); color: #fff; }
 .sum-item.err { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
 .sum-item.muted { opacity: 0.75; }
-.scan-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
+.scan-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .scan-path { flex: 1; min-width: 0; font-size: 12px; color: rgb(var(--v-theme-on-surface-variant)); text-align: right; }
-.cand-list {
-  border: 1px solid rgb(var(--v-theme-outline-variant));
-  border-radius: 16px;
-  overflow: hidden;
-  max-height: 46vh;
-  overflow-y: auto;
-}
-.cand-head, .cand-row {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1.4fr) minmax(0, 1fr);
-  align-items: center;
-  min-width: 0;
-}
-.cand-head {
-  padding: 10px 14px;
-  background: rgb(var(--v-theme-surface-container));
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
-.cand-row {
-  padding: 10px 14px;
-  border-top: 1px solid rgb(var(--v-theme-outline-variant));
-  min-width: 0;
-}
+.cand-list { border: 1px solid rgb(var(--v-theme-outline-variant)); border-radius: 16px; overflow: hidden; max-height: 46vh; overflow-y: auto; }
+.cand-head, .cand-row { display: grid; grid-template-columns: 44px minmax(0, 1.4fr) minmax(0, 1fr); align-items: center; min-width: 0; }
+.cand-head { padding: 10px 14px; background: rgb(var(--v-theme-surface-container)); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--v-theme-on-surface-variant)); }
+.cand-row { padding: 10px 14px; border-top: 1px solid rgb(var(--v-theme-outline-variant)); min-width: 0; }
 .cand-row.disabled { opacity: 0.55; }
 .row-check {
   display: flex;
@@ -1156,66 +1760,19 @@ function onStrengthDown(e: PointerEvent) {
 .cand-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cand-path { font-size: 11.5px; color: rgb(var(--v-theme-on-surface-variant)); }
 .c-flag { display: flex; flex-wrap: wrap; gap: 4px; }
-.flag {
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
+.flag { padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
 .flag.ok { background: rgb(var(--v-theme-primary-container)); color: rgb(var(--v-theme-on-primary-container)); }
 .flag.done { background: rgb(var(--v-theme-surface-container)); color: rgb(var(--v-theme-on-surface-variant)); }
 .flag.warn { background: rgb(var(--v-theme-warning)); color: #fff; }
 .flag.err { background: rgb(var(--v-theme-error-container)); color: rgb(var(--v-theme-error)); }
 
-/* ── LoRA 编辑表单 ── */
-.form-body { padding: 4px 24px 0; display: flex; flex-direction: column; gap: 12px; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 12.5px; font-weight: 600; color: rgb(var(--v-theme-on-surface-variant)); }
-.field-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 11px 13px;
-  border: 1px solid rgb(var(--v-theme-outline-variant));
-  border-radius: 12px;
-  background: rgb(var(--v-theme-surface-container-low));
-  font-family: var(--font-sans);
-  font-size: 14px;
-  color: rgb(var(--v-theme-on-surface));
-}
-.field-input:focus { outline: none; border-color: rgb(var(--v-theme-primary)); box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.12); }
-.strength-field { padding-top: 4px; }
-.mini-slider { margin-top: 10px; height: 20px; display: flex; align-items: center; cursor: pointer; }
-.ms-track {
-  position: relative;
-  width: 100%;
-  height: 5px;
-  border-radius: 999px;
-  background: rgb(var(--v-theme-surface-container-highest));
-}
-.ms-fill {
-  position: absolute;
-  left: 0; top: 0; height: 100%;
-  border-radius: 999px;
-  background: rgb(var(--v-theme-primary));
-}
-.ms-thumb {
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: rgb(var(--v-theme-surface));
-  border: 2.5px solid rgb(var(--v-theme-primary));
-  pointer-events: none;
-}
-
-.confirm-text {
-  margin: 0;
-  padding: 0 24px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
+.mdi-spin { animation: mdi-spin 1s linear infinite; }
+@keyframes mdi-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.pt-2 { padding-top: 8px; }
+.mt-2 { margin-top: 8px; }
+.text-caption { font-size: 12.5px; color: rgb(var(--v-theme-on-surface-variant)); }
+.d-flex { display: flex; }
+.align-center { align-items: center; }
 </style>

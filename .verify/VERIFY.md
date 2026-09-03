@@ -661,5 +661,72 @@ QA 中发现并修复两个真实缺陷：
 
 ## 提交
 - Commit A: `cdb9392`（已推送 main）
-- Commit B: 本文件同轮（见 git log）
+- Commit B: `a679e73`（已推送 main）
+
+---
+
+# 第十五轮：LoRA Metadata V1 — Civitai Red/Green SHA256 + 本地封面缓存 + 卡片/列表双视图
+
+## Commit A — `feat(lora-metadata): Civitai Red/Green SHA256 metadata + cover cache`
+
+- **服务** `backend/app/services/lora_metadata/civitai.py`：`CivitaiClient`（lookup_by_hash /
+  lookup_by_hashes（每 100 一批）/ get_model / get_version_images / download_cover），
+  `hash_local_file`（4 MiB streaming，禁止整文件入 RAM），`sanitize_description`（剥 HTML→纯文本，
+  前端永不 v-html），`resolve_local_lora_file`（source_path → 唯一 exact → 唯一 basename，0/多 → 明确状态）。
+- **DB 字段**（models/lora.py + database.py legacy ALTER）：local `description` / `cover_hidden`；
+  hash `sha256 / sha256_file_size / sha256_mtime_ns`；remote `metadata_provider / metadata_host /
+  metadata_status / remote_model_id / remote_version_id / remote_file_id / remote_model_name /
+  remote_version_name / remote_file_name / remote_base_model / remote_trained_words / remote_description /
+  remote_creator / remote_tags / remote_nsfw_level / cached_cover_path / metadata_fetched_at / metadata_json`。
+- **API**：`POST /api/loras/{id}/metadata/refresh`、`POST /api/loras/metadata/refresh-batch`（bulk 100、
+  modelId 去重、cover 并发 4）、`GET /api/loras/{id}/cover`（仅本地缓存，404 而非实时 proxy）。
+- **Settings**：`CIVITAI_API_HOST`（red|com enum，默认 red）+ 可选 `CIVITAI_API_TOKEN`（仅后端 Bearer；
+  GET 永远返回 "" + `CIVITAI_API_TOKEN_SET` 布尔位，POST 空串=保持不变，禁第三方 host）。
+- **安全**：token 只发 civitai.red/com；401/403 → 匿名重试一次（auth_warning）；429 honor
+  Retry-After 一次；5xx 指数退避 2 次；封面下载限 https + Civitai 官方域（含 image-b2 等 CDN 子域）
+  + image/* + ≤15 MB。
+- **Cross-host fallback**：优先此前成功 metadata_host，否则 Settings host；网络错误/404 才换另一个
+  官方 host 一次；red 200 绝不查 com（实测 green 零请求）。
+- **Local-first ownership**：refresh 绝不覆盖 name/description/trigger_words/category/
+  default_strength/is_favorite/cover_hidden；remote_trained_words 只存展示；采用走既有 PUT。
+- **pytest**（httpx MockTransport，零真实请求）：`backend/tests/test_lora_metadata.py` **24 passed**，
+  覆盖用户 37 项检查点（hash streaming / size+mtime 复用 / 文件变化重 hash / red 200 matched /
+  red 404→green matched / 网络失败 fallback / red 200 不查 green / both 404 not_found / files[0]
+  非目标仍按 SHA256 命中 / bulk 101→100+1 / bulk 缺项 not_found / 顺序无关 / modelId 去重 /
+  HTML 纯文本 / 本地字段不变 / trainedWords 保存 / 采用 PUT / cover 成功+非图片拒绝+超限拒绝 /
+  matched 无图仍 matched / source_path 空 unique/ambiguous / remote_file_name 不覆盖 filename /
+  Civitai 错误不改 is_valid_file / sync-comfyui 仍 validate-only / token 只发官方域 / 非法 host 拒绝 /
+  settings GET 掩码 token）。全量 **118 passed**。
+
+## Commit B — `feat(lora-ui): card/list library views and metadata UX`
+
+- **卡片/列表双视图**（M3 segmented，localStorage `imageforge_lora_view` 记忆，默认卡片）：
+  共用同一 filteredLoras / 搜索 / 收藏筛选 / bulk selection，切换不重置状态。
+- **卡片**：封面走 `/api/loras/{id}/cover`（本地，禁直接 Civitai CDN）；无封面→矮 tonal 占位；
+  cover_hidden→整区收起；显示 名称/远端 Model/Version·Base/Trigger(3 行 clamp)/权重/元数据状态/
+  编辑/刷新/在 Civitai 打开/删除；checkbox 左上。
+- **列表**：无任何封面；列 = checkbox/收藏/名称/Trigger/权重/Base Model/元数据状态/ComfyUI/操作；
+  无 filename 大列。
+- **Edit Dialog 三区**：本地（名称/描述/Trigger/权重/分类/收藏/隐藏封面）、远端 read-only
+  （Model/Version/Creator/Base/Host/最近获取 + 推荐 Trigger chips + 「采用为本地 Trigger」+「刷新联网信息」）、
+  技术（默认折叠：SHA256/ComfyUI filename/Model/Version/File ID）。
+- **任何普通 UI（卡片/列表/Edit 技术区）都不显示本地绝对路径**；唯一展示目录地址处 = 来源管理 Dialog。
+- **批量元数据 UX**：选中 →「补全所选 Metadata」；无选中 →「补全当前结果」；进度 + 单次汇总
+  （已匹配/未找到/本地文件缺失/歧义/失败 + 可展开失败详情 + Token 无效提示）。
+- **Playwright QA**（`.verify/lora_meta_qa.cjs`，1440×900 + 1920×1080）：
+  卡片 12 张 / 封面 1 张真实 + 11 占位 / 列表 12 行无封面 / 两种视图均无绝对路径 /
+  bulk「已选择+补全所选 Metadata+删除所选」出现 / Edit 三区 + 技术区展开含 SHA256、无绝对路径 /
+  来源管理仍显示路径 / 两种分辨率均无横向 overflow。截图 `lm_01…08`。
+
+## 真实 Civitai Red smoke（用户指定 SHA `c2cc425e…`）
+- `GET civitai.red/api/v1/model-versions/by-hash/{sha}` → **200**；files[0] SHA256 与本地
+  case-insensitive 一致 → matched；modelId 2812201 / version 3171446 / "Pin legs 足ピン" /
+  baseModel Anima / trainedWords 8 项 / images 8 / 封面 `image-b2.civitai.com` 重定向后缓存成功。
+- `GET civitai.red/api/v1/models/2812201` → 200：name / creator / type=LORA / tags / description。
+- Red 200 → 未请求 Green（green 仅 fallback 时）。
+- 实际批量 `refresh-batch` 12 条：**11 matched（全部封面缓存）+ 1 not_found + 0 错误**。
+- 前端 `GET /api/loras/7/cover` → 200 image/webp（本地缓存，非实时 proxy）。
+
+## 提交
+- Commit A / Commit B 见 git log（本轮已推送 main）
 

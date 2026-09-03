@@ -112,6 +112,21 @@ export const useLoraStore = defineStore('lora', {
       const updated = !lora.is_favorite
       lora.is_favorite = updated
       await axios.put(`/api/loras/${lora.id}`, { is_favorite: updated })
+    },
+
+    // ── Civitai Metadata（LoRA Metadata V1） ──
+    /** 单条补全 Civitai metadata（返回后端结果并刷新本地行）。 */
+    async refreshMetadata(id: number) {
+      const resp = await axios.post(`/api/loras/${id}/metadata/refresh`)
+      await this.fetchLoras()
+      return resp.data
+    },
+
+    /** 批量补全 Civitai metadata（{ids} → 汇总结果）。 */
+    async refreshMetadataBatch(ids: Array<number | string>) {
+      const resp = await axios.post('/api/loras/metadata/refresh-batch', { ids: ids.map(Number) })
+      await this.fetchLoras()
+      return resp.data
     }
   }
 })

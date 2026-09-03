@@ -277,6 +277,47 @@
           <div class="text-caption text-grey mt-2">数据源：Safebooru（gelbooru 系 SFW booru），输出 canonical_tag + series_tag + caption + aliases。</div>
         </v-card>
       </v-col>
+
+      <!-- Section 6: Civitai Metadata（LoRA Metadata V1） -->
+      <v-col cols="12">
+        <v-card variant="outlined" class="pa-3 bg-surface rounded-lg mb-3">
+          <div class="section-label mb-2 text-tertiary">6. Civitai 元数据（LoRA Metadata V1）</div>
+          <div class="d-flex gap-2 align-center py-1">
+            <v-select
+              v-model="form.CIVITAI_API_HOST"
+              :items="[
+                { title: 'Civitai Red（https://civitai.red）', value: 'red' },
+                { title: 'Civitai.com（https://civitai.com）', value: 'com' }
+              ]"
+              item-title="title"
+              item-value="value"
+              label="API Host"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="text-caption"
+              style="max-width: 360px"
+            />
+            <span class="text-caption text-grey">默认 Red；查询时优先使用该条 LoRA 此前成功匹配的 host。</span>
+          </div>
+          <div class="d-flex gap-2 align-center py-1 mt-1">
+            <v-text-field
+              v-model="form.CIVITAI_API_TOKEN"
+              label="Civitai API Token（可选）"
+              :placeholder="form.CIVITAI_API_TOKEN_SET ? '已设置（输入新值覆盖，留空保持不变）' : '不填也能查询公开元数据'"
+              density="compact"
+              variant="outlined"
+              type="password"
+              autocomplete="new-password"
+              hide-details
+              class="text-caption"
+              style="max-width: 420px"
+            />
+            <span class="text-caption text-grey">Token 仅后端使用（Authorization: Bearer），只发送给 Red / Com 官方域名。</span>
+          </div>
+          <div class="text-caption text-grey mt-2">封面与元数据缓存于本地（backend/data/cache/lora_metadata）；刷新永不覆盖本地名称 / 描述 / Trigger / 权重。</div>
+        </v-card>
+      </v-col>
     </v-row>
 
     <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="2500">
@@ -314,7 +355,11 @@ const form = ref<AppSettings>({
 
   ONLINE_RESOLVE_ENABLED: false,
   ONLINE_RESOLVE_CACHE_WRITE: true,
-  ONLINE_RESOLVE_AMBIGUOUS: 'ask'
+  ONLINE_RESOLVE_AMBIGUOUS: 'ask',
+
+  CIVITAI_API_HOST: 'red',
+  CIVITAI_API_TOKEN: '',
+  CIVITAI_API_TOKEN_SET: false
 })
 
 onMounted(async () => {

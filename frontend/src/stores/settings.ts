@@ -23,7 +23,11 @@ export const useSettingsStore = defineStore('settings', {
 
       ONLINE_RESOLVE_ENABLED: false,
       ONLINE_RESOLVE_CACHE_WRITE: true,
-      ONLINE_RESOLVE_AMBIGUOUS: 'ask'
+      ONLINE_RESOLVE_AMBIGUOUS: 'ask',
+
+      CIVITAI_API_HOST: 'red',
+      CIVITAI_API_TOKEN: '',
+      CIVITAI_API_TOKEN_SET: false
     } as AppSettings,
     lmStudioStatus: 'disconnected' as 'connected' | 'disconnected' | 'error',
     lmStudioModels: [] as any[],

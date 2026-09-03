@@ -85,7 +85,44 @@ export interface Lora {
   category: string;
   is_valid_file: boolean;
   source_path?: string | null;
+  description?: string;
+  cover_hidden?: boolean;
+
+  // SHA256 本地缓存（LoRA Metadata V1）
+  sha256?: string | null;
+  sha256_file_size?: number | null;
+  sha256_mtime_ns?: number | null;
+
+  // Civitai 远端 metadata
+  metadata_provider?: string | null;
+  metadata_host?: string | null;
+  metadata_status?: MetadataStatus | null;
+  remote_model_id?: number | null;
+  remote_version_id?: number | null;
+  remote_file_id?: number | null;
+  remote_model_name?: string | null;
+  remote_version_name?: string | null;
+  remote_file_name?: string | null;
+  remote_base_model?: string | null;
+  remote_trained_words?: string | null;   // JSON array 字符串（Civitai trainedWords 推荐）
+  remote_description?: string | null;     // sanitized plain text
+  remote_creator?: string | null;
+  remote_tags?: string | null;            // JSON array 字符串
+  remote_nsfw_level?: number | null;
+  cached_cover_path?: string | null;
+  metadata_fetched_at?: string | null;
+  metadata_json?: string | null;
 }
+
+export type MetadataStatus =
+  | 'matched'
+  | 'not_found'
+  | 'remote_error'
+  | 'rate_limited'
+  | 'local_file_not_found'
+  | 'local_file_ambiguous'
+  | 'hash_file_mismatch'
+  | null;
 
 export interface LoraSource {
   id: number;
@@ -170,4 +207,10 @@ export interface AppSettings {
   ONLINE_RESOLVE_ENABLED: boolean;
   ONLINE_RESOLVE_CACHE_WRITE: boolean;
   ONLINE_RESOLVE_AMBIGUOUS: 'ask';
+
+  // Civitai Metadata（LoRA Metadata V1）— 只允许 red / com 两个官方 host
+  CIVITAI_API_HOST: 'red' | 'com';
+  // 前端永远拿不到 token 明文（GET 只返回 CIVITAI_API_TOKEN_SET 布尔位）
+  CIVITAI_API_TOKEN: string;
+  CIVITAI_API_TOKEN_SET?: boolean;
 }
