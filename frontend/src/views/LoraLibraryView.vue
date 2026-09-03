@@ -474,12 +474,12 @@
                   </div>
                 </div>
               </div>
-              <div class="d-flex gap-2 align-center pt-2">
-                <label class="row-check">
+              <div class="d-flex gap-3 align-center pt-2">
+                <label class="edit-check">
                   <input v-model="form.is_favorite" type="checkbox" />
                   <span class="check-label">收藏</span>
                 </label>
-                <label class="row-check">
+                <label class="edit-check">
                   <input v-model="form.cover_hidden" type="checkbox" />
                   <span class="check-label">隐藏封面（卡片视图收起封面区）</span>
                 </label>
@@ -1536,7 +1536,14 @@ function onStrengthDown(e: PointerEvent) {
 }
 
 /* ── Edit Dialog：三区 ── */
-.edit-sections { padding: 4px 24px 0; display: flex; flex-direction: column; gap: 16px; }
+.edit-sections {
+  padding: 4px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 62vh;
+  overflow-y: auto;
+}
 .edit-section {
   border: 1px solid rgb(var(--v-theme-outline-variant));
   border-radius: 16px;
@@ -1569,7 +1576,7 @@ function onStrengthDown(e: PointerEvent) {
   color: rgb(var(--v-theme-on-surface));
 }
 .field-input:focus { outline: none; border-color: rgb(var(--v-theme-primary)); box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.12); }
-.row-check {
+.edit-check {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1577,7 +1584,7 @@ function onStrengthDown(e: PointerEvent) {
   font-size: 13px;
   color: rgb(var(--v-theme-on-surface-variant));
 }
-.row-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: rgb(var(--v-theme-primary)); cursor: pointer; }
+.edit-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: rgb(var(--v-theme-primary)); cursor: pointer; }
 .check-label { font-size: 13px; }
 .strength-field { padding-top: 4px; }
 .mini-slider { margin-top: 10px; height: 20px; display: flex; align-items: center; cursor: pointer; }
@@ -1770,6 +1777,7 @@ function onStrengthDown(e: PointerEvent) {
 @keyframes mdi-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
+.gap-3 { gap: 16px; }
 .pt-2 { padding-top: 8px; }
 .mt-2 { margin-top: 8px; }
 .text-caption { font-size: 12.5px; color: rgb(var(--v-theme-on-surface-variant)); }
