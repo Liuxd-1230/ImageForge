@@ -1,7 +1,8 @@
 <template>
   <v-app>
-    <!-- Desktop Navigation Sidebar -->
+    <!-- Desktop Navigation Sidebar（plain 路由如 /intro 隐藏） -->
     <v-navigation-drawer
+      v-if="!isPlainRoute"
       v-model="drawer"
       :rail="rail"
       permanent
@@ -97,6 +98,13 @@
         />
       </v-list>
 
+      <!-- 《一句话的旅程》主题体验页入口 -->
+      <div v-if="!rail" class="intro-entry">
+        <router-link to="/intro" class="intro-entry-link">
+          <span class="mdi mdi-auto-stories" />一句话的旅程
+        </router-link>
+      </div>
+
       <template #append>
         <div class="pa-2 border-t">
           <!-- 主题风格切换（三族：ImageForge 紫 / Gemini / Antigravity） -->
@@ -145,11 +153,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useTheme } from 'vuetify'
 
 const drawer = ref(true)
 const rail = ref(false)
 const theme = useTheme()
+const route = useRoute()
+const isPlainRoute = computed(() => !!route.meta.plain)
 
 /* ── 主题族：ImageForge 紫 / Gemini / Antigravity，各自带亮暗两套 ── */
 type ThemeFamilyKey = 'imageforge' | 'gemini' | 'antigravity'
@@ -244,5 +255,27 @@ onMounted(() => {
 }
 .swatch-label {
   line-height: 1;
+}
+
+/* ── 体验页入口 ── */
+.intro-entry {
+  padding: 2px 14px 6px;
+}
+.intro-entry-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: rgb(var(--v-theme-on-surface-variant));
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 160ms ease, color 160ms ease;
+}
+.intro-entry-link:hover {
+  opacity: 1;
+  color: rgb(var(--v-theme-primary));
+}
+.intro-entry-link .mdi {
+  font-size: 15px;
 }
 </style>

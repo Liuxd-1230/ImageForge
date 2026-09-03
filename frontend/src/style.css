@@ -46,7 +46,9 @@ body {
   margin: 0;
   padding: 0;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  /* overflow-x:hidden 会把 body 变成滚动容器并折断所有 position:sticky；
+     clip 不产生滚动容器，既防横向溢出又保住 sticky（Chrome 90+/FF 81+/Safari 16+） */
+  overflow-x: clip;
 }
 
 /* Custom tonal desktop scrollbars */

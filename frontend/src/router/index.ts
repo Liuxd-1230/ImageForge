@@ -17,6 +17,8 @@ const routes = [
   { path: '/presets', name: 'Presets', component: PresetsView },
   { path: '/history', name: 'History', component: HistoryView },
   { path: '/settings', name: 'Settings', component: SettingsView },
+  // 《一句话的旅程》— 沉浸式主题体验页（无侧边栏的独立布局）
+  { path: '/intro', name: 'Intro', component: () => import('../views/intro/IntroView.vue'), meta: { plain: true } },
 ]
 
 export const router = createRouter({
