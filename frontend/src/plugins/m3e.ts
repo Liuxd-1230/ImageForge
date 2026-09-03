@@ -11,7 +11,8 @@
  * R1: nav-bar / nav-rail / segmented-button / switch / slider / button
  *     loading-indicator / progress-indicator（Studio）
  * R2: tabs / search / checkbox / chips / icon-button / tooltip / menu
- *     dialog / snackbar / list（Character Library 及后续资源页）
+ *     dialog / snackbar（Character Library 及后续资源页）
+ *     （Dense List 为自定义行布局，未使用 m3e-list，R2.1 已移除该模块）
  */
 
 // Navigation（nav-item 由 nav-bar 模块注册，nav-rail 依赖它）
@@ -38,4 +39,3 @@ import '@m3e/web/tooltip'
 import '@m3e/web/menu'
 import '@m3e/web/dialog'
 import '@m3e/web/snackbar'
-import '@m3e/web/list'

@@ -19,7 +19,9 @@
     </m3e-tabs>
 
     <!-- ════════ 已解析角色（Trigger Cache） ════════ -->
+    <!-- R2.1：toolbar 与 list 同一 workspace 宽度（1000px），1920 下不再 toolbar 横贯整页 -->
     <template v-if="tab === 'resolved'">
+    <div class="cl-workspace">
       <!-- 搜索 + 全选/批量操作 toolbar -->
       <div class="cl-toolbar">
         <m3e-search-bar class="cl-search" clearable clear-label="清空搜索" @clear="cacheStore.searchQuery = ''">
@@ -120,6 +122,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     </template>
 
@@ -168,8 +171,9 @@
           class="if-enter"
           :style="{ '--i': i }"
         >
-          <v-card variant="outlined" class="h-100 d-flex flex-column pa-3 bg-surface rounded-lg character-card">
-            <div class="d-flex justify-space-between align-center mb-2 pb-2 border-b">
+          <!-- R2.1：neutral tonal resource card，不再是 outlined CRUD 卡 -->
+          <div class="h-100 d-flex flex-column pa-3 clu-card">
+            <div class="d-flex justify-space-between align-center mb-2 pb-2">
               <div class="d-flex align-center gap-2">
                 <m3e-checkbox
                   :checked="customSel.isSelected(char.id)"
@@ -243,10 +247,10 @@
               </div>
             </div>
 
-            <div class="pt-2 border-t text-caption text-grey text-truncate">
+            <div class="pt-2 text-caption text-grey text-truncate">
               {{ char.extra_description || '暂无补充描述' }}
             </div>
-          </v-card>
+          </div>
         </v-col>
       </v-row>
     </template>
@@ -746,10 +750,15 @@ async function confirmBulkDelete() {
   --m3e-filled-button-label-text-color: rgb(var(--v-theme-on-error));
 }
 
-/* ════ 方案 A：M3E Dense List ════
-   单一 tonal 容器承载全部行；行高 ≥68px；selected = secondary-container（不是描边）。 */
+/* ════ R2.1：resolved workspace —— toolbar 与 list 同宽（960~1040 区间取 1000px） ════ */
+.cl-workspace {
+  max-width: 1000px;
+}
+
+/* ════ M3E Dense List ════
+   单一 tonal 容器承载全部行；行高 ≥68px；selected = secondary-container（不是描边）。
+   宽度由 .cl-workspace 统一约束。 */
 .cl-list {
-  max-width: 960px;
   background: rgb(var(--v-theme-surface-container-low));
   border-radius: var(--if-radius-card, 20px);
   padding: 6px;
@@ -877,13 +886,14 @@ async function confirmBulkDelete() {
   --m3e-menu-item-icon-color: rgb(var(--v-theme-error));
 }
 
-/* ════ 自定义角色卡（沿用 grid，已换 M3E primitives） ════ */
-.character-card {
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+/* ════ 自定义角色卡（R2.1：neutral tonal resource card，与 Dense List 同一 surface 语言） ════ */
+.clu-card {
+  background: rgb(var(--v-theme-surface-container-low));
+  border-radius: var(--if-radius-card, 20px);
+  transition: background-color var(--if-motion-fast-effects);
 }
-.character-card:hover {
-  border-color: rgb(var(--v-theme-primary)) !important;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+.clu-card:hover {
+  background: rgb(var(--v-theme-surface-container));
 }
 .cl-fav-on .mdi {
   color: rgb(var(--v-theme-warning, 245 158 11));
