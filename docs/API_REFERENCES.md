@@ -97,25 +97,38 @@ Thinking / reasoning effort：
 
 ---
 
-## 5. Material Design 3
+## 5. Material Design 3 Expressive
 
 参考：
 
-`https://m3.material.io/`
+- `https://m3.material.io/`
+- `https://m3.material.io/blog/building-with-m3-expressive`（采用度量 rubric：
+  Good / Better / Excellent，按 component / motion / color / shape / typography 五类评估）
 
 目标：
 
-- MD3 信息层级
-- Navigation
-- Button
-- Chips
-- Dialog
-- Side sheet
-- Theme
-- Typography
-- State
+- M3E 信息层级与 component 配置（nav rail、segmented button、slider、switch、
+  loading indicator、wavy progress）
+- spring motion 与统一 motion tokens
+- 新 shape 语言（loading indicator shape morph）
 
-不要把“MD3”简化成“紫色 + 大圆角”。
+不要把"MD3"简化成"紫色 + 大圆角"，也不以"用了 M3 色板和圆角"为验收。
+
+### 5.1 matraic/m3e（Web 实现）
+
+GitHub：
+
+`https://github.com/matraic/m3e`
+
+用途：
+
+- R1 起提供真实 M3E Web Components（`@m3e/web`）
+
+注意：
+
+- 这是**第三方** Material 3 Expressive 实现，不是 Google 官方库
+- 只模块化 import（tree shaking），禁止 `@m3e/web/all`
+- 使用具体组件前检查 repo README / exports / component docs（版本以 npm latest 为准）
 
 ---
 

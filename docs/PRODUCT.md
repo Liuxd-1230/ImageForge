@@ -57,25 +57,18 @@
 ## 3. 页面
 
 ### 创作台
-主要入口。
+主要入口。三栏工作区（详见 `docs/UI_SPEC.md` §7）：
 
-包含：
+- 全局 `m3e-nav-rail`（compact 80px）
+- Context Rail：Safety（segmented）、规则集、画师、LoRA（switch + slider）、登场角色
+- The Forge（工坊流水线）：自然语言输入 + 语义抽取 → Facts Pipeline → Final Prompt
+- Canvas：ComfyUI 状态、画布 HUD、wavy 真实进度、生成 CTA、Seed（segmented + tonal 复用）、Filmstrip
 
-- 自然语言输入
-- Safe / NSFW
-- Provider
-- 模型
-- Thinking
-- Reasoning Effort
-- 当前角色
-- 画师
-- LoRA
-- 规则文件
-- 语义解析结果
-- 最终英文 Prompt
-- Negative Prompt
-- ComfyUI 状态
-- 生成结果
+高级设置在独立 dialog（Provider / Model / Reasoning slider / 尺寸 / Steps / CFG / Workflow）。
+
+旧版单文件创作台保留在 `/legacy-studio` 供回归比对。
+
+另有独立体验页 `/intro`（《一句话的旅程》，plain 路由无导航栏）。
 
 ### 角色书
 只保存用户自己定义的角色。
@@ -131,20 +124,24 @@
 ### LoRA 库
 支持：
 
-- 从 ComfyUI 发现
-- 注册
-- trigger words
-- 默认 strength
+- 从 ComfyUI 发现（validate-only 同步）
+- 来源目录扫描与导入
+- trigger words（本地权威；Civitai trainedWords 展示并可手动采用）
+- 默认 strength（本地权威；Civitai 推荐权重展示并可手动采用）
 - 启用 / 禁用
 - 分类
 - 收藏
 - 检查文件存在
 - 删除映射
+- Civitai 元数据（SHA256 识别、Red/Green 双 host、封面缓存、
+  Usage Tips：推荐 strength / clipSkip / steps / epochs、模型简介与版本说明）
 
 生成时必须同时：
 
 - 注入 trigger
 - 写入 ComfyUI LoRA strength
+
+本地字段（名称 / 描述 / trigger / strength）永远不被远端覆盖。
 
 ### 规则文件
 支持：
@@ -167,7 +164,8 @@
 - LM Studio
 - 云端 Provider
 - ComfyUI URL
-- 主题
+- 主题族（ImageForge 紫 / Gemini / Antigravity Mono × 亮暗）
+- Civitai Host（Red / Green）与可选 API Token
 - 默认 Safe / NSFW
 - 默认模型
 

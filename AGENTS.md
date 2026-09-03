@@ -105,7 +105,10 @@ Tag 适合表达：
 - TypeScript
 - Pinia
 - 当前稳定版 Vuetify
-- Material Design 3 视觉与交互原则
+- Material Design 3 **Expressive** 视觉与交互原则
+- `@m3e/web`（matraic/m3e，第三方 M3E Web Component 实现，非 Google 官方库）：
+  真实 M3E 控件用它的组件，不再用普通 HTML + 手写 CSS 模仿；
+  只模块化 import（tree shaking），禁止 `@m3e/web/all`
 
 后端：
 
@@ -126,6 +129,42 @@ LLM：
 - ComfyUI
 
 不要把具体依赖小版本当作产品不变量。
+
+---
+
+## 4.1 UI 设计系统（不变量）
+
+现行设计系统详见 `docs/UI_SPEC.md`，以下为不可违背的骨架：
+
+### 框系统三规则
+
+- **功能面板**（toolbar / 分组容器）= tonal 填充、无描边（`.if-panel`）
+- **数据卡片**（一条记录）= `surface` 白底 + `outline-variant` hairline
+- **输入控件** = 白底 hairline，focus 变 primary
+- 卡片内嵌区 = `surface-container-low`
+- 禁止 wireframe 感重描边盒子；禁止偏色 hover（如 `#4F46E5`）
+
+### 主题族
+
+ImageForge 紫 / Gemini / Antigravity Mono，各带亮暗，侧栏 swatch 切换并持久化。
+一切颜色走 `--v-theme-*` token；m3e 组件经 `--m3e-*` 桥接对齐。
+新增视觉不允许绕过 token 写死颜色。
+
+### Motion
+
+- 自定义容器只用统一 `--if-motion-*` tokens（fast/default/slow × effects/spatial），
+  禁止各自发明 cubic-bezier
+- 动效是编舞不是 reveal：章节间要有状态延续或视觉因果
+- 进度必须真实数据驱动（ComfyUI WS step），绝不伪造百分比
+- `prefers-reduced-motion` 时动效全关
+
+### 组件
+
+- R1 已用 m3e：nav-rail / segmented-button / switch / slider / button /
+  loading-indicator / circular progress（wavy）
+- Dialog、Prompt editor、Facts board、Artist/Rules dialog、History、LoRA 资源库页：
+  R2 之前不替换
+- `m3e-icon` 不引入（在线字体违背 local-first）
 
 ---
 

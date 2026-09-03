@@ -106,6 +106,25 @@
 - MD3 UI 打磨
 - 响应式
 
+### Phase 5+（已落地的设计系统演进）
+
+- **UI 框系统统一**（面板 tonal / 数据卡 hairline / 输入框 hairline）
+- **Motion layer**（统一 tokens、路由过渡、stagger、reduced-motion）
+- **主题族**（ImageForge 紫 / Gemini / Antigravity Mono × 亮暗）
+- **创作台三栏改造**（nav rail 80px + context rail + Forge + Canvas）
+- **LoRA Metadata V1**（Civitai 识别 + Usage Tips enrichment + 批量收口）
+- **M3E Component Adoption R1**（@m3e/web：nav-rail / segmented / switch /
+  slider / button / loading / wavy progress）
+- **体验页 `/intro`**（《一句话的旅程》滚动编舞）
+
+R2 候选（未做，下轮评估）：
+
+- Dialog / Prompt editor / Facts board 的 m3e 化
+- Artist / Rules dialog m3e 化
+- History / LoRA 资源库页是否继续用 Vuetify 还是进一步 M3E
+- 规则文件 markdown 渲染
+- M3E rubric 中 typography emphasized scale 的系统性引入
+
 ---
 
 ## Phase 6：高级能力
