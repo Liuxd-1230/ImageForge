@@ -1,6 +1,7 @@
 import os
 from collections import Counter
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from typing import List, Optional, Dict, Any
@@ -8,6 +9,10 @@ from app.database import get_session
 from app.models.lora import Lora, LoraCreate, LoraUpdate, LoraRead
 from app.models.lora_source import LoraSource, LoraSourceCreate, LoraSourceUpdate, LoraSourceRead
 from app.services.comfyui.client import ComfyUIClient
+from app.services.lora_metadata.manager import (
+    refresh_lora_metadata,
+    refresh_lora_metadata_batch,
+)
 from app.services.pathutils import (
     source_identity,
     path_status,
@@ -73,6 +78,50 @@ def delete_lora(lora_id: int, session: Session = Depends(get_session)):
     session.delete(lora)
     session.commit()
     return {"status": "ok"}
+
+
+# ────────────────── Civitai Metadata（LoRA Metadata V1） ──────────────────
+
+class RefreshBatchRequest(BaseModel):
+    ids: List[int]
+
+
+@router.post("/metadata/refresh-batch")
+async def refresh_metadata_batch(payload: RefreshBatchRequest, session: Session = Depends(get_session)):
+    """批量补全 Civitai metadata：bulk by-hash（每 100 一批）、modelId 去重、
+    cover 并发下载。单个失败不 rollback 整批。"""
+    if not payload.ids:
+        return {
+            "total": 0, "matched": [], "not_found": [],
+            "local_file_missing": [], "local_file_ambiguous": [],
+            "errors": [], "auth_warning": False,
+        }
+    return await refresh_lora_metadata_batch(session, payload.ids)
+
+
+@router.post("/{lora_id}/metadata/refresh")
+async def refresh_single_metadata(lora_id: int, session: Session = Depends(get_session)):
+    """单条补全 Civitai metadata（本地文件 → SHA256 → by-hash → model → cover → 缓存）。"""
+    lora = session.get(Lora, lora_id)
+    if not lora:
+        raise HTTPException(status_code=404, detail="LoRA不存在")
+    return await refresh_lora_metadata(session, lora)
+
+
+@router.get("/{lora_id}/cover")
+def get_lora_cover(lora_id: int, session: Session = Depends(get_session)):
+    """只返回本地缓存的 cover；没有则 404。绝不实时 proxy Civitai CDN。"""
+    lora = session.get(Lora, lora_id)
+    if not lora or not lora.cached_cover_path or not os.path.isfile(lora.cached_cover_path):
+        raise HTTPException(status_code=404, detail="cover not cached")
+    ext = os.path.splitext(lora.cached_cover_path)[1].lower().lstrip(".")
+    media = {
+        "webp": "image/webp",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+    }.get(ext, "application/octet-stream")
+    return FileResponse(lora.cached_cover_path, media_type=media)
 
 
 # ────────────────── ComfyUI 同步：只校验，不再自动导入 ──────────────────

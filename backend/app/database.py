@@ -67,6 +67,42 @@ def _migrate_legacy_sqlite(database_url: str | None = None) -> None:
             conn.commit()
             logger.info("Added loras.source_path column")
 
+        # -- 2b. loras metadata/hash columns (LoRA Metadata V1) ---------------
+        cols = {r[1]: r for r in cur.execute("PRAGMA table_info(loras)").fetchall()}
+        new_loras_cols = {
+            "description": "TEXT DEFAULT ''",
+            "cover_hidden": "BOOLEAN DEFAULT 0",
+            "sha256": "TEXT",
+            "sha256_file_size": "INTEGER",
+            "sha256_mtime_ns": "INTEGER",
+            "metadata_provider": "TEXT",
+            "metadata_host": "TEXT",
+            "metadata_status": "TEXT",
+            "remote_model_id": "INTEGER",
+            "remote_version_id": "INTEGER",
+            "remote_file_id": "INTEGER",
+            "remote_model_name": "TEXT",
+            "remote_version_name": "TEXT",
+            "remote_file_name": "TEXT",
+            "remote_base_model": "TEXT",
+            "remote_trained_words": "TEXT",
+            "remote_description": "TEXT",
+            "remote_creator": "TEXT",
+            "remote_tags": "TEXT",
+            "remote_nsfw_level": "INTEGER",
+            "cached_cover_path": "TEXT",
+            "metadata_fetched_at": "DATETIME",
+            "metadata_json": "TEXT",
+        }
+        for col, ddl in new_loras_cols.items():
+            if col not in cols:
+                cur.execute(f"ALTER TABLE loras ADD COLUMN {col} {ddl}")
+                conn.commit()
+                logger.info(f"Added loras.{col} column")
+        if "sha256" in cols:
+            cur.execute("CREATE INDEX IF NOT EXISTS ix_loras_sha256 ON loras (sha256)")
+            conn.commit()
+
         # -- 3. character_trigger_cache online-resolver columns ----------------
         cache_cols = {r[1] for r in cur.execute("PRAGMA table_info(character_trigger_cache)").fetchall()}
         for col, ddl in (

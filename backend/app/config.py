@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     ONLINE_RESOLVE_CACHE_WRITE: bool = True
     ONLINE_RESOLVE_AMBIGUOUS: str = "ask"
 
+    # ── Civitai Metadata（LoRA Metadata V1） ──
+    # 仅允许两个官方 host 之一：red → https://civitai.red，com → https://civitai.com
+    CIVITAI_API_HOST: str = "red"
+    # 可选 API Token：只允许后端使用（Bearer 头），前端不得直接访问 Civitai API；
+    # 不填也能查询公开 metadata。禁止把 token 发给任意第三方 host。
+    CIVITAI_API_TOKEN: str = ""
+
     # Generation
     GENERATE_TIMEOUT_SECONDS: int = 300  # 前端等待 ComfyUI 生成的最长秒数（慢 GPU/高分辨率可调）
 
@@ -59,6 +66,13 @@ class Settings(BaseSettings):
         db_path = self.DATABASE_URL_ABS.replace("sqlite:///", "").split("?")[0]
         base = os.path.dirname(os.path.abspath(db_path)) or PROJECT_ROOT
         return os.path.join(base, self.DATA_DIR, "generated")
+
+    @property
+    def LORA_METADATA_DIR(self) -> str:
+        """LoRA metadata 本地缓存根目录（封面等）——锚定项目 root，禁止使用 cwd。"""
+        db_path = self.DATABASE_URL_ABS.replace("sqlite:///", "").split("?")[0]
+        base = os.path.dirname(os.path.abspath(db_path)) or PROJECT_ROOT
+        return os.path.join(base, self.DATA_DIR, "cache", "lora_metadata")
     
     # Defaults
     DEFAULT_SAFETY: str = "Safe"
@@ -82,4 +96,27 @@ EDITABLE_SETTING_KEYS = {
     "ONLINE_RESOLVE_ENABLED",
     "ONLINE_RESOLVE_CACHE_WRITE",
     "ONLINE_RESOLVE_AMBIGUOUS",
+    "CIVITAI_API_HOST",
+    "CIVITAI_API_TOKEN",
+}
+
+# Civitai 双域：只允许这两个官方 host（防止 token 被发给任意第三方）
+CIVITAI_HOSTS = {
+    "red": "https://civitai.red",
+    "com": "https://civitai.com",
+}
+
+# metadata_host 存裸 host（spec §60：外部链接用 https://{metadata_host}/models/{id}）
+CIVITAI_HOST_NAMES = {
+    "red": "civitai.red",
+    "com": "civitai.com",
+}
+_CIVITAI_KEY_BY_HOST = {v: k for k, v in CIVITAI_HOST_NAMES.items()}
+
+# 允许下载封面的图片 host（Civitai API 返回的 HTTPS image URL）
+CIVITAI_COVER_ALLOWED_HOSTS = {
+    "civitai.com",
+    "civitai.red",
+    "image.civitai.com",
+    "www.civitai.com",
 }

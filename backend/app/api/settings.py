@@ -35,12 +35,19 @@ def get_all_settings(session: Session = Depends(get_session)) -> Dict[str, Any]:
     for s in db_settings:
         if s.key in EDITABLE_SETTING_KEYS:
             res[s.key] = _coerce(s.key, s.value)
+    # Token 安全：前端永远拿不到 Civitai token 明文，只给一个是否已设置的布尔位
+    if "CIVITAI_API_TOKEN" in res:
+        res["CIVITAI_API_TOKEN_SET"] = bool(res["CIVITAI_API_TOKEN"])
+        res["CIVITAI_API_TOKEN"] = ""
     return res
 
 @router.post("")
 def update_settings(payload: Dict[str, Any], session: Session = Depends(get_session)):
     for k, v in payload.items():
         if k in EDITABLE_SETTING_KEYS and hasattr(settings, k):
+            # Token 安全：空字符串表示“保持不变”（前端 GET 永远拿到 ""，防止误清空）
+            if k == "CIVITAI_API_TOKEN" and (v is None or str(v).strip() == ""):
+                continue
             coerced = _coerce(k, v)  # 运行时与存储均按声明类型
             setting = session.exec(select(AppSetting).where(AppSetting.key == k)).first()
             if not setting:
