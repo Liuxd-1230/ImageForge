@@ -60,6 +60,40 @@
   --m3e-nav-item-active-icon-color: rgb(var(--v-theme-primary));
   --m3e-nav-item-inactive-label-text-color: rgb(var(--v-theme-on-surface-variant));
   --m3e-nav-item-inactive-icon-color: rgb(var(--v-theme-on-surface-variant));
+
+  /* ── R2：资源页组件桥接 ── */
+  /* Tabs：选中指示器与文字走 primary */
+  --m3e-tabs-active-indicator-color: rgb(var(--v-theme-primary));
+  --m3e-tab-selected-color: rgb(var(--v-theme-primary));
+  --m3e-tab-unselected-color: rgb(var(--v-theme-on-surface-variant));
+  /* Search bar：tonal container，不吃描边 */
+  --m3e-search-bar-container-color: rgb(var(--v-theme-surface-container-high));
+  --m3e-search-bar-input-color: rgb(var(--v-theme-on-surface));
+  --m3e-search-bar-leading-icon-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-search-bar-trailing-icon-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-search-bar-supporting-text-color: rgb(var(--v-theme-on-surface-variant));
+  /* Checkbox */
+  --m3e-checkbox-selected-container-color: rgb(var(--v-theme-primary));
+  --m3e-checkbox-selected-icon-color: rgb(var(--v-theme-on-primary));
+  --m3e-checkbox-unselected-outline-color: rgb(var(--v-theme-on-surface-variant));
+  /* List item：容器透明，由外层面板承载 tonal */
+  --m3e-list-item-label-text-color: rgb(var(--v-theme-on-surface));
+  --m3e-list-item-supporting-text-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-list-item-overline-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-list-item-leading-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-list-item-trailing-color: rgb(var(--v-theme-on-surface-variant));
+  /* Chip：默认 neutral tonal（source 标签按语义再覆盖） */
+  --m3e-chip-label-text-color: rgb(var(--v-theme-on-surface-variant));
+  --m3e-outlined-chip-outline-color: rgb(var(--v-theme-outline-variant));
+  /* Icon button：standard 默认色 */
+  /* Tooltip / Menu / Dialog / Snackbar：surface 体系对齐 */
+  --m3e-tooltip-container-color: rgb(var(--v-theme-inverse-surface));
+  --m3e-tooltip-supporting-text-color: rgb(var(--v-theme-inverse-on-surface));
+  --m3e-menu-container-color: rgb(var(--v-theme-surface-container));
+  --m3e-menu-item-color: rgb(var(--v-theme-on-surface));
+  --m3e-dialog-container-color: rgb(var(--v-theme-surface-container-high));
+  --m3e-dialog-color: rgb(var(--v-theme-on-surface));
+  --m3e-snackbar-container-color: rgb(var(--v-theme-inverse-surface));
 }
 
 html {
@@ -105,17 +139,28 @@ body {
   font-family: var(--font-mono) !important;
 }
 
+/* ═══ Typography 层级（R2）═══
+   Page title > Section title > Body > Supporting > Label > Mono technical。
+   不再用“11px + font-weight:700 + 英文括号”区分层级。 */
 .page-header-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.page-header-subtitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 450;
+  color: rgb(var(--v-theme-on-surface-variant));
+  margin-top: 2px;
 }
 
 .section-label {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   font-weight: 600;
-  color: var(--v-theme-on-surface);
-  opacity: 0.82;
+  color: rgb(var(--v-theme-on-surface));
 }
 
 /* Layout utility (kept for other views) */

@@ -3,7 +3,7 @@
     <!-- Top Action Bar -->
     <div class="d-flex justify-space-between align-center mb-3">
       <div>
-        <div class="page-header-title">生图历史 (Generation History)</div>
+        <div class="page-header-title">生图历史</div>
         <div class="text-caption text-grey">记录每次生图的全部 Prompt、Seed 与 ComfyUI 工作台配置，支持完整恢复至创作台。</div>
       </div>
       <div class="d-flex align-center gap-2">

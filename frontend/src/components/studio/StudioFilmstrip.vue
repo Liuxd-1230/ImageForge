@@ -3,7 +3,7 @@
     <div class="d-flex align-center justify-space-between mb-1 px-1">
       <div class="d-flex align-center gap-1 text-caption text-grey font-weight-bold">
         <span class="mdi mdi-filmstrip" />
-        <span>最近快照 (Filmstrip)</span>
+        <span>最近快照</span>
       </div>
       <span class="text-caption text-grey mono">{{ historyStore.history.length }} 条记录</span>
     </div>

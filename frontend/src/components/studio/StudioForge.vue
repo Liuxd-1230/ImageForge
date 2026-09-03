@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="forge-header">
       <div class="d-flex align-center gap-2">
-        <span class="forge-title">工坊流水线 (The Forge)</span>
+        <span class="forge-title">工坊</span>
       </div>
       <div class="d-flex align-center gap-2">
         <!-- Preset selector -->
@@ -12,7 +12,7 @@
           class="preset-select mono"
           @change="onPresetSelect"
         >
-          <option :value="null">默认预设 (None)</option>
+          <option :value="null">默认预设</option>
           <option v-for="p in presetStore.presets" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
       </div>
@@ -80,7 +80,7 @@
       <section class="stage-section">
         <div class="d-flex align-center gap-2 mb-2">
           <span class="stage-badge mono">02</span>
-          <span class="stage-title">语义装配线 (Facts Pipeline)</span>
+          <span class="stage-title">语义解析</span>
         </div>
         <SemanticPipelineBoard />
       </section>

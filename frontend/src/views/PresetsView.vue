@@ -3,7 +3,7 @@
     <!-- Top Action Header -->
     <div class="d-flex justify-space-between align-center mb-3">
       <div>
-        <div class="page-header-title">提示词预设 (Prompt Presets)</div>
+        <div class="page-header-title">提示词预设</div>
         <div class="text-caption text-grey">配置不同场景的正向固定质量词与默认 Negative Prompt。</div>
       </div>
       <div class="d-flex align-center gap-2">
@@ -70,7 +70,7 @@
 
           <!-- Positive Prefix Preview -->
           <div class="mb-2">
-            <div class="text-caption text-grey mb-1">正向固定前缀 (Positive Prefix):</div>
+            <div class="text-caption text-grey mb-1">正向固定前缀:</div>
             <div class="font-mono text-caption rounded px-2 py-1 bg-surface-container-low text-truncate" style="font-size: 0.72rem !important;">
               {{ preset.positive_prefix || '（无固定前缀）' }}
             </div>

@@ -32,3 +32,6 @@ yarn-error.log*
 
 # Runtime data (persisted generated images)
 data/
+
+# QA harness local deps
+.verify/node_modules/

@@ -3,7 +3,7 @@
     <!-- Top Action Header -->
     <div class="d-flex justify-space-between align-center mb-3">
       <div>
-        <div class="page-header-title">系统与服务设置 (Preferences)</div>
+        <div class="page-header-title">系统设置</div>
         <div class="text-caption text-grey">配置 LLM 语义推理引擎、云端 API 与 ComfyUI 生图服务地址。</div>
       </div>
       <v-btn

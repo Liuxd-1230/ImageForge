@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="d-flex align-center justify-space-between mb-2">
       <div class="d-flex align-center gap-2">
-        <span class="editor-title">最终 Prompt (Final Prompt)</span>
+        <span class="editor-title">最终 Prompt</span>
         <span v-if="studioStore.isPositivePromptDirty" class="dirty-badge">
           <span class="dirty-dot" />已手动修改
         </span>

@@ -5,7 +5,7 @@
       <div class="d-flex align-center justify-space-between px-4 py-3 border-b">
         <div class="d-flex align-center gap-2">
           <v-icon color="primary" size="20">mdi-palette-outline</v-icon>
-          <span class="font-weight-bold text-subtitle-2">选择画师风格 (Artist Palette)</span>
+          <span class="font-weight-bold text-subtitle-2">选择画师风格</span>
         </div>
         <v-btn icon="mdi-close" variant="text" size="small" @click="modelValueProxy = false" />
       </div>

@@ -1,7 +1,7 @@
 <template>
   <div class="cast-shelf">
     <div class="d-flex align-center justify-space-between mb-2">
-      <span class="cast-label">登场角色 (Cast Roster)</span>
+      <span class="cast-label">登场角色</span>
       <span v-if="detectedCount > 0" class="detected-badge mono">
         {{ detectedCount }} 自动检出
       </span>
@@ -9,7 +9,7 @@
 
     <!-- Empty state -->
     <div v-if="characterStore.characters.length === 0" class="cast-empty">
-      暂无角色，可在「角色书」创建自设角色 (OC)
+      暂无角色，可在「角色书」创建自设角色
     </div>
 
     <!-- Character Capsules List -->

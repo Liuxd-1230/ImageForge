@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="d-flex align-center justify-space-between mb-2">
       <div class="d-flex align-center gap-2">
-        <span class="board-title">结构化事实 (Semantic Facts)</span>
+        <span class="board-title">结构化事实</span>
         <span class="count-pill mono">
           {{ studioStore.facts.entities.length }} 实体 · {{ studioStore.facts.statements.length }} 关系
         </span>

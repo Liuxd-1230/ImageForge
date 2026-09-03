@@ -14,7 +14,7 @@
       <div class="pa-5 d-flex flex-column gap-5" style="max-height: 72vh; overflow-y: auto;">
         <!-- 1. LLM Provider -->
         <div class="adv-section">
-          <div class="adv-sec-title">LLM 推理提供商 (Provider)</div>
+          <div class="adv-sec-title">LLM 推理提供商</div>
           <div class="m3-segmented mt-1">
             <button
               type="button"
@@ -36,7 +36,7 @@
         <!-- 2. Model Selection -->
         <div class="adv-section">
           <div class="d-flex align-center justify-space-between mb-1">
-            <span class="adv-sec-title">推理模型 (Model)</span>
+            <span class="adv-sec-title">推理模型</span>
             <button type="button" class="text-caption text-primary d-inline-flex align-center gap-1 cursor-pointer bg-transparent border-0" @click="refreshModels">
               <span class="mdi mdi-refresh" />刷新列表
             </button>
@@ -51,7 +51,7 @@
         <!-- 3. Reasoning Effort：m3e-slider（离散档位；MAX 仅 slider 局部 neon treatment） -->
         <div class="adv-section">
           <div class="d-flex align-center justify-space-between mb-1">
-            <span class="adv-sec-title">思考强度 (Reasoning Effort)</span>
+            <span class="adv-sec-title">思考强度</span>
             <span class="text-caption font-weight-bold" :class="isMaxReasoning ? 'if-max-gradient' : 'text-primary'">
               {{ currentRsLabel }}
             </span>
@@ -123,7 +123,7 @@
         <div class="adv-section">
           <div class="row-2cols">
             <div>
-              <span class="adv-sec-title mb-1 d-block">采样步数 (Steps)</span>
+              <span class="adv-sec-title mb-1 d-block">采样步数</span>
               <input
                 v-model.number="studioStore.steps"
                 type="number"

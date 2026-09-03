@@ -3,7 +3,7 @@
     <!-- Top Header -->
     <div class="d-flex justify-space-between align-center mb-3">
       <div>
-        <div class="page-header-title">画师风格库 (Artist Gallery)</div>
+        <div class="page-header-title">画师库</div>
         <div class="text-caption text-grey">精选 Anima 适配画师（标准 @artist 规范），支持视觉画风预览与分类管理。</div>
       </div>
       <v-btn color="primary" variant="flat" size="small" prepend-icon="mdi-plus" class="px-3" @click="openCreateDialog">

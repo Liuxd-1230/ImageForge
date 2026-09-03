@@ -3,7 +3,7 @@
     <!-- Top Action Bar -->
     <div class="d-flex justify-space-between align-center mb-3">
       <div>
-        <div class="page-header-title">提示词规则文件 (Rules & Guidelines)</div>
+        <div class="page-header-title">规则文件</div>
         <div class="text-caption text-grey">维护 Prompt 写作规范与参考说明，支持导入 .md / .txt / .yaml 作为语义抽取上下文。</div>
       </div>
       <div class="d-flex gap-2">

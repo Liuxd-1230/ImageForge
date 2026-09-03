@@ -28,7 +28,8 @@ export const useCharacterCacheStore = defineStore('characterCache', {
         it.name.toLowerCase().includes(q) ||
         it.canonical_tag.toLowerCase().includes(q) ||
         it.series_tag.toLowerCase().includes(q) ||
-        it.caption_name.toLowerCase().includes(q)
+        it.caption_name.toLowerCase().includes(q) ||
+        (it.aliases && it.aliases.toLowerCase().includes(q))
       )
     },
   },
